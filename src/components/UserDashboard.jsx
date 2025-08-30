@@ -1,9 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, UserCheck, MessageCircle, BarChart3, Shield } from 'lucide-react';
+import { Heart, UserCheck, MessageCircle, BarChart3, Shield, Clock, Loader2 } from 'lucide-react';
+import { useUserActivity } from '@/hooks/useUserActivity';
 
 const UserDashboard = ({ user }) => {
   const navigate = useNavigate();
+  const { activities, loading } = useUserActivity();
 
   const features = [
     {
@@ -95,52 +97,80 @@ const UserDashboard = ({ user }) => {
             <h3 className="text-xl font-semibold text-card-foreground mb-2">Recent Activity</h3>
             <p className="text-muted-foreground mb-6">Your latest interactions with the platform</p>
             
-            <div className="space-y-4">
-              <div className="flex items-center p-4 bg-accent rounded-lg border border-border">
-                <div className="flex-shrink-0">
-                  <div className="bg-success/10 rounded-full p-3">
-                    <span className="text-success text-lg">📊</span>
-                  </div>
-                </div>
-                <div className="ml-4">
-                  <h4 className="text-sm font-semibold text-card-foreground">Mood Entry Recorded</h4>
-                  <p className="text-sm text-muted-foreground">You recorded your mood today at 9:30 AM</p>
-                </div>
-                <div className="ml-auto">
-                  <div className="w-2 h-2 bg-success rounded-full"></div>
-                </div>
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                <span className="ml-2 text-muted-foreground">Loading activities...</span>
               </div>
-              
-              <div className="flex items-center p-4 bg-accent rounded-lg border border-border">
-                <div className="flex-shrink-0">
-                  <div className="bg-primary/10 rounded-full p-3">
-                    <span className="text-primary text-lg">👨‍⚕️</span>
-                  </div>
+            ) : activities.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                  <BarChart3 className="w-8 h-8 text-muted-foreground" />
                 </div>
-                <div className="ml-4">
-                  <h4 className="text-sm font-semibold text-card-foreground">Doctor Appointment</h4>
-                  <p className="text-sm text-muted-foreground">Appointment with Dr. Johnson scheduled for tomorrow</p>
-                </div>
-                <div className="ml-auto">
-                  <div className="w-2 h-2 bg-warning rounded-full"></div>
-                </div>
+                <h4 className="text-lg font-medium text-card-foreground mb-2">No Recent Activity</h4>
+                <p className="text-muted-foreground">Start using the platform features to see your activity here</p>
               </div>
-              
-              <div className="flex items-center p-4 bg-accent rounded-lg border border-border">
-                <div className="flex-shrink-0">
-                  <div className="bg-accent-foreground/10 rounded-full p-3">
-                    <span className="text-accent-foreground text-lg">🧘</span>
-                  </div>
-                </div>
-                <div className="ml-4">
-                  <h4 className="text-sm font-semibold text-card-foreground">Meditation Session</h4>
-                  <p className="text-sm text-muted-foreground">Completed 10-minute breathing exercise</p>
-                </div>
-                <div className="ml-auto">
-                  <div className="w-2 h-2 bg-success rounded-full"></div>
-                </div>
+            ) : (
+              <div className="space-y-4">
+                {activities.map((activity) => {
+                  const getActivityIcon = (type) => {
+                    switch (type) {
+                      case 'mood': return '📊';
+                      case 'appointment': return '👨‍⚕️';
+                      case 'chat': return '🤖';
+                      case 'meditation': return '🧘';
+                      default: return '📋';
+                    }
+                  };
+
+                  const getStatusColor = (status) => {
+                    switch (status) {
+                      case 'completed': return 'bg-success';
+                      case 'scheduled': return 'bg-warning';
+                      case 'active': return 'bg-primary';
+                      default: return 'bg-muted';
+                    }
+                  };
+
+                  const getTimeAgo = (timestamp) => {
+                    const now = new Date();
+                    const diff = now.getTime() - timestamp.getTime();
+                    const hours = Math.floor(diff / (1000 * 60 * 60));
+                    const days = Math.floor(hours / 24);
+                    
+                    if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
+                    if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+                    return 'Just now';
+                  };
+
+                  return (
+                    <div key={activity.id} className="flex items-center p-4 bg-accent rounded-lg border border-border hover:bg-accent/80 transition-colors">
+                      <div className="flex-shrink-0">
+                        <div className={`rounded-full p-3 ${
+                          activity.type === 'mood' ? 'bg-success/10' :
+                          activity.type === 'appointment' ? 'bg-primary/10' :
+                          activity.type === 'chat' ? 'bg-secondary/10' :
+                          'bg-accent-foreground/10'
+                        }`}>
+                          <span className="text-lg">{getActivityIcon(activity.type)}</span>
+                        </div>
+                      </div>
+                      <div className="ml-4 flex-1 min-w-0">
+                        <h4 className="text-sm font-semibold text-card-foreground">{activity.title}</h4>
+                        <p className="text-sm text-muted-foreground truncate">{activity.description}</p>
+                        <div className="flex items-center mt-1 text-xs text-muted-foreground">
+                          <Clock className="w-3 h-3 mr-1" />
+                          {getTimeAgo(activity.timestamp)}
+                        </div>
+                      </div>
+                      <div className="ml-auto flex-shrink-0">
+                        <div className={`w-2 h-2 rounded-full ${getStatusColor(activity.status)}`}></div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            </div>
+            )}
           </div>
         </div>
       </main>

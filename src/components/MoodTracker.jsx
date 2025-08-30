@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, Brain, Calendar, TrendingUp, Download, Plus, X } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const MoodTracker = () => {
   const navigate = useNavigate();
@@ -18,18 +20,72 @@ const MoodTracker = () => {
   const [showForm, setShowForm] = useState(false);
   const [view, setView] = useState('list'); // 'list' or 'chart'
 
-  // Load mood entries from localStorage on component mount
+  const { toast } = useToast();
+
+  // Load mood entries from Supabase on component mount
   useEffect(() => {
-    const savedEntries = localStorage.getItem('moodEntries');
-    if (savedEntries) {
-      setMoodEntries(JSON.parse(savedEntries));
-    }
+    loadMoodEntries();
   }, []);
 
-  // Save mood entries to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('moodEntries', JSON.stringify(moodEntries));
-  }, [moodEntries]);
+  const loadMoodEntries = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Authentication Error",
+          description: "Please sign in to view your mood entries.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('mood_entries')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Transform data to match component structure
+      const transformedEntries = data.map(entry => ({
+        id: entry.id,
+        date: new Date(entry.created_at).toISOString().split('T')[0],
+        mood: getMoodValueFromLevel(entry.mood_level),
+        energyLevel: entry.sleep_hours ? Math.round(entry.sleep_hours * 10 / 12) : 5,
+        activities: entry.activities || [],
+        notes: entry.notes || '',
+        location: '',
+        weather: ''
+      }));
+
+      setMoodEntries(transformedEntries);
+    } catch (error) {
+      console.error('Error loading mood entries:', error);
+      toast({
+        title: "Load Error", 
+        description: "Failed to load mood entries. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getMoodValueFromLevel = (level) => {
+    const moodMap = {
+      1: 'sad', 2: 'sad', 3: 'anxious', 4: 'tired', 
+      5: 'neutral', 6: 'calm', 7: 'happy', 8: 'happy', 
+      9: 'excited', 10: 'excited'
+    };
+    return moodMap[level] || 'neutral';
+  };
+
+  const getMoodLevelFromValue = (mood) => {
+    const levelMap = {
+      'sad': 2, 'angry': 3, 'anxious': 4, 'tired': 4,
+      'neutral': 5, 'calm': 6, 'happy': 7, 'excited': 9
+    };
+    return levelMap[mood] || 5;
+  };
 
   const handleMoodChange = (mood) => {
     setCurrentMood({ ...currentMood, mood });
@@ -58,34 +114,101 @@ const MoodTracker = () => {
     setCurrentMood({ ...currentMood, [name]: value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!currentMood.mood) {
-      alert('Please select a mood');
+      toast({
+        title: "Validation Error",
+        description: "Please select a mood before saving.",
+        variant: "destructive",
+      });
       return;
     }
     
-    const newEntry = {
-      id: Date.now(),
-      ...currentMood,
-      date: new Date().toISOString().split('T')[0]
-    };
-    
-    setMoodEntries([newEntry, ...moodEntries]);
-    setCurrentMood({
-      date: new Date().toISOString().split('T')[0],
-      mood: '',
-      energyLevel: 5,
-      activities: [],
-      notes: '',
-      location: '',
-      weather: ''
-    });
-    setShowForm(false);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Authentication Error", 
+          description: "Please sign in to save mood entries.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const moodEntry = {
+        user_id: user.id,
+        mood_level: getMoodLevelFromValue(currentMood.mood),
+        sleep_hours: (currentMood.energyLevel * 12) / 10, // Convert energy level to sleep hours approximation
+        stress_level: 10 - currentMood.energyLevel, // Inverse of energy level
+        activities: currentMood.activities,
+        notes: currentMood.notes
+      };
+
+      const { data, error } = await supabase
+        .from('mood_entries')
+        .insert([moodEntry])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Add to local state
+      const newEntry = {
+        id: data.id,
+        date: new Date().toISOString().split('T')[0],
+        ...currentMood
+      };
+      
+      setMoodEntries([newEntry, ...moodEntries]);
+      setCurrentMood({
+        date: new Date().toISOString().split('T')[0],
+        mood: '',
+        energyLevel: 5,
+        activities: [],
+        notes: '',
+        location: '',
+        weather: ''
+      });
+      setShowForm(false);
+
+      toast({
+        title: "Mood Saved",
+        description: "Your mood entry has been saved successfully!",
+      });
+    } catch (error) {
+      console.error('Error saving mood entry:', error);
+      toast({
+        title: "Save Error",
+        description: "Failed to save mood entry. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const deleteEntry = (id) => {
-    setMoodEntries(moodEntries.filter(entry => entry.id !== id));
+  const deleteEntry = async (id) => {
+    try {
+      const { error } = await supabase
+        .from('mood_entries')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setMoodEntries(moodEntries.filter(entry => entry.id !== id));
+      
+      toast({
+        title: "Entry Deleted",
+        description: "Mood entry has been deleted successfully.",
+      });
+    } catch (error) {
+      console.error('Error deleting mood entry:', error);
+      toast({
+        title: "Delete Error",
+        description: "Failed to delete mood entry. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const exportData = () => {
