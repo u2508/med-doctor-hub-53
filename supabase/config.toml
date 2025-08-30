@@ -1,0 +1,5 @@
+project_id = "xmgtgpfsijbteijceneq"
+
+# Edge Functions Configuration
+[functions.chatbot]
+verify_jwt = true
