@@ -338,25 +338,25 @@ const MoodTracker = () => {
   return (
     <div className="min-h-screen bg-background" style={{ background: 'var(--gradient-subtle)' }}>
       {/* Header */}
-      <header className="bg-card border-b border-border" style={{ boxShadow: 'var(--shadow-card)' }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-6">
+      <header className="glass border-b border-white/10 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10">
+          <div className="flex items-center justify-between py-8">
             <div>
-              <h1 className="text-3xl font-bold text-primary">
+              <h1 className="text-4xl font-bold text-gradient font-display">
                 Mood Tracker
               </h1>
-              <p className="text-muted-foreground mt-1">Track your emotional well-being journey</p>
+              <p className="text-muted-foreground mt-3 text-lg font-medium">Track your emotional well-being journey</p>
             </div>
-            <div className="flex space-x-3">
+            <div className="flex space-x-4">
               <button
                 onClick={() => setView(view === 'list' ? 'chart' : 'list')}
-                className="bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary-dark transition"
+                className="bg-gradient-primary text-primary-foreground px-6 py-3 rounded-xl hover:shadow-glow transition-all duration-300 font-medium"
               >
                 {view === 'list' ? 'View Chart' : 'View List'}
               </button>
               <button
                 onClick={() => navigate('/user-dashboard')}
-                className="bg-secondary text-secondary-foreground px-4 py-2 rounded-lg hover:bg-secondary/80 transition"
+                className="bg-secondary text-secondary-foreground px-6 py-3 rounded-xl hover:bg-secondary/80 transition-all duration-300 font-medium"
               >
                 Back to Dashboard
               </button>
@@ -365,9 +365,9 @@ const MoodTracker = () => {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+      <main className="max-w-7xl mx-auto px-6 py-12 sm:px-8 lg:px-10">
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
           <StatsCard 
             icon={<Calendar className="w-6 h-6" />}
             title="Total Entries" 
@@ -394,21 +394,20 @@ const MoodTracker = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-card rounded-xl border border-border p-6 mb-8"
-          style={{ boxShadow: 'var(--shadow-card)' }}
+          className="card-elevated rounded-2xl p-8 mb-12"
         >
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-card-foreground">Record Your Mood</h2>
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-3xl font-bold text-card-foreground font-display">Record Your Mood</h2>
             <button
               onClick={() => setShowForm(!showForm)}
-              className="bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary-dark transition"
+              className="bg-gradient-primary text-primary-foreground px-6 py-3 rounded-xl hover:shadow-glow transition-all duration-300 font-medium"
             >
               {showForm ? <X className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
             </button>
           </div>
 
           {showForm && (
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-8">
               {/* Mood Selection */}
               <div>
                 <label className="block text-sm font-medium text-card-foreground mb-3">How are you feeling today?</label>
@@ -488,7 +487,7 @@ const MoodTracker = () => {
 
               <button
                 type="submit"
-                className="w-full bg-primary text-primary-foreground py-3 rounded-lg font-semibold hover:bg-primary-dark transition"
+                className="w-full bg-gradient-primary text-primary-foreground py-4 rounded-xl font-semibold hover:shadow-glow transition-all duration-300 text-lg"
               >
                 Save Mood Entry
               </button>

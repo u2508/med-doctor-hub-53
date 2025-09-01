@@ -146,14 +146,14 @@ const Chatbot = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col" style={{ background: 'var(--gradient-subtle)' }}>
       {/* Header */}
-      <header className="bg-card/80 backdrop-blur-md border-b border-border sticky top-0 z-10" style={{ boxShadow: 'var(--shadow-card)' }}>
-        <div className="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-card-foreground flex items-center gap-2">
+      <header className="glass border-b border-white/10 sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto px-6 py-6 flex justify-between items-center">
+          <h1 className="text-3xl font-bold text-gradient flex items-center gap-3 font-display">
             <Heart className="text-primary" /> MentiBot Chat
           </h1>
           <button
             onClick={() => navigate("/user-dashboard")}
-            className="bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary-dark transition"
+            className="bg-gradient-primary text-primary-foreground px-6 py-3 rounded-xl hover:shadow-glow transition-all duration-300 font-medium"
           >
             Dashboard
           </button>
@@ -161,29 +161,29 @@ const Chatbot = () => {
       </header>
 
       {/* Chat */}
-      <main className="flex-1 max-w-5xl mx-auto w-full p-4 flex flex-col">
-        <div className="bg-card/80 backdrop-blur-md rounded-2xl border border-border flex-1 flex flex-col overflow-hidden" style={{ boxShadow: 'var(--shadow-elegant)' }}>
+      <main className="flex-1 max-w-6xl mx-auto w-full p-8 flex flex-col">
+        <div className="card-elevated rounded-3xl flex-1 flex flex-col overflow-hidden">
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <div className="flex-1 overflow-y-auto p-8 space-y-6">
             {messages.map((message) => (
               <div
                 key={message.id}
                 className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`px-4 py-3 rounded-xl max-w-xs md:max-w-md whitespace-pre-line ${
+                  className={`px-6 py-4 rounded-2xl max-w-xs md:max-w-lg whitespace-pre-line ${
                     message.sender === "user"
-                      ? "bg-primary text-primary-foreground rounded-br-none"
-                      : "bg-accent text-accent-foreground rounded-bl-none border border-border"
+                      ? "bg-gradient-primary text-primary-foreground rounded-br-md"
+                      : "bg-card text-card-foreground rounded-bl-md border border-border"
                   }`}
                   style={{ 
                     boxShadow: message.sender === "user" 
-                      ? 'var(--shadow-card)' 
-                      : 'var(--shadow-card)'
+                      ? 'var(--shadow-glow)' 
+                      : 'var(--shadow-elegant)'
                   }}
                 >
                   {message.text}
-                  <div className="text-xs opacity-70 mt-2">
+                  <div className="text-xs opacity-70 mt-3 font-medium">
                     {new Date(message.timestamp).toLocaleTimeString([], {
                       hour: "2-digit",
                       minute: "2-digit",
@@ -213,12 +213,12 @@ const Chatbot = () => {
           </div>
 
           {/* Quick responses */}
-          <div className="border-t border-border p-4 flex flex-wrap gap-2 bg-accent/50">
+          <div className="border-t border-border p-6 flex flex-wrap gap-3 bg-accent/30">
             {quickResponses.map((text, idx) => (
               <button
                 key={idx}
                 onClick={() => sendMessage(text)}
-                className="text-sm bg-secondary hover:bg-secondary/80 text-secondary-foreground px-3 py-1 rounded-full transition-colors border border-border"
+                className="text-sm bg-secondary hover:bg-secondary/80 text-secondary-foreground px-4 py-2 rounded-full transition-all duration-200 border border-border hover:shadow-card font-medium"
               >
                 {text}
               </button>
@@ -228,18 +228,18 @@ const Chatbot = () => {
           {/* Input */}
           <form
             onSubmit={handleSubmit}
-            className="border-t border-border flex bg-card/60 p-3 gap-3"
+            className="border-t border-border flex bg-card/80 p-6 gap-4"
           >
             <input
               type="text"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               placeholder="Type your message..."
-              className="flex-1 px-4 py-2 bg-background border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent outline-none text-foreground"
+              className="flex-1 px-5 py-3 bg-background border border-border rounded-xl focus:ring-2 focus:ring-ring focus:border-transparent outline-none text-foreground text-lg"
             />
             <button
               type="submit"
-              className="bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary-dark transition-colors"
+              className="bg-gradient-primary text-primary-foreground px-8 py-3 rounded-xl hover:shadow-glow transition-all duration-300 font-semibold"
             >
               Send
             </button>
@@ -247,9 +247,11 @@ const Chatbot = () => {
         </div>
 
         {/* Crisis info */}
-        <div className="mt-4 bg-destructive/10 border border-destructive/20 rounded-lg p-4" style={{ boxShadow: 'var(--shadow-card)' }}>
-          <h3 className="text-sm font-semibold text-destructive mb-2">🚨 Crisis Support</h3>
-          <ul className="list-disc list-inside text-sm text-destructive-foreground space-y-1">
+        <div className="mt-8 bg-destructive/10 border border-destructive/20 rounded-2xl p-6" style={{ boxShadow: 'var(--shadow-elegant)' }}>
+          <h3 className="text-base font-semibold text-destructive mb-4 flex items-center gap-2">
+            🚨 Crisis Support
+          </h3>
+          <ul className="list-disc list-inside text-sm text-destructive-foreground space-y-2 font-medium">
             <li>National Suicide Prevention Lifeline: 988</li>
             <li>Crisis Text Line: Text HOME to 741741</li>
             <li>Emergency Services: 911</li>
