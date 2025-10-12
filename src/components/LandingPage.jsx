@@ -198,7 +198,7 @@ const LandingPage = () => {
           </div>
 
           {/* Stats Section */}
-          <div className="mt-24 grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="mt-24 grid grid-cols-1 md:grid-cols-3 gap-8 mb-32">
             <StatCard number="10K+" label="Active Users" color="primary" delay={0.5} />
             <StatCard number="500+" label="Verified Doctors" color="success" delay={0.7} />
             <StatCard number="50K+" label="Mood Entries" color="warning" delay={0.9} />
@@ -209,14 +209,14 @@ const LandingPage = () => {
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1.1, duration: 0.8 }}
-            className="mt-32"
+            className="mt-16"
           >
-            <div className="text-center mb-16">
+            <div className="text-center mb-20">
               <h2 className="text-5xl font-bold text-foreground mb-6 font-display">Everything You Need</h2>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">Comprehensive features for your mental and physical health journey</p>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-32">
               {features.map((feature, index) => (
                 <motion.div
                   key={index}
@@ -235,7 +235,7 @@ const LandingPage = () => {
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1.8, duration: 0.8 }}
-            className="mt-32"
+            className="mt-16 mb-32"
           >
             <Card className="bg-gradient-to-r from-destructive-light/50 to-pink-50 border-destructive/30 shadow-elegant overflow-hidden relative">
               <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 to-pink-500/5"></div>
@@ -270,7 +270,7 @@ const LandingPage = () => {
       </main>
 
       {/* Footer */}
-      <footer className="bg-primary text-primary-foreground relative overflow-hidden">
+      <footer className="bg-gradient-to-r from-primary via-primary-dark to-primary text-primary-foreground relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-success/5"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 relative">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
