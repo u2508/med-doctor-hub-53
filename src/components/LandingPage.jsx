@@ -270,105 +270,90 @@ const LandingPage = () => {
       </main>
 
       {/* Footer */}
-<footer className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white relative overflow-hidden">
-  {/* Subtle Capri Blue overlay */}
-  <div className="absolute inset-0 bg-gradient-to-r from-[#00BFFF]/10 via-[#00BFFF]/15 to-[#00BFFF]/10 blur-3xl"></div>
-
-  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 relative">
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-      
-      {/* About MedDoctorHub */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 2.0, duration: 0.6 }}
-      >
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="w-10 h-10 bg-[#00BFFF]/20 border border-[#00BFFF]/40 rounded-xl flex items-center justify-center shadow-[0_0_12px_#00BFFF55]">
-            <Heart className="w-6 h-6 text-[#00BFFF]" />
-          </div>
-          <h3 className="text-2xl font-semibold font-display text-[#00BFFF] drop-shadow-[0_0_6px_#00BFFF55]">
-            About MedDoctorHub
-          </h3>
-        </div>
-        <p className="text-gray-300 leading-relaxed">
-          Comprehensive mental health support and medical care platform with mood tracking, AI chatbot,
-          doctor finder, and patient management tools.
-        </p>
-      </motion.div>
-
-      {/* Quick Links */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 2.2, duration: 0.6 }}
-      >
-        <h3 className="text-2xl font-semibold mb-6 font-display text-[#00BFFF] drop-shadow-[0_0_6px_#00BFFF55]">
-          Quick Links
-        </h3>
-        <ul className="space-y-4">
-          {[
-            { label: 'Home', path: '/' },
-            { label: 'Mood Tracker', path: '/mood-tracker' },
-            { label: 'Chatbot', path: '/chatbot' },
-            { label: 'Stress Management', path: '/stress-management' },
-          ].map((link, index) => (
-            <li key={index}>
-              <button
-                onClick={() => link.path !== '#' && navigate(link.path)}
-                className="text-gray-300 hover:text-[#00BFFF] transition-colors flex items-center group"
-              >
-                <span className="w-2 h-2 bg-[#00BFFF]/70 rounded-full mr-3 group-hover:scale-125 transition-transform"></span>
-                {link.label}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </motion.div>
-
-      {/* Emergency Contacts */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 2.4, duration: 0.6 }}
-      >
-        <h3 className="text-2xl font-semibold mb-6 font-display text-[#00BFFF] drop-shadow-[0_0_6px_#00BFFF55]">
-          Emergency Contacts
-        </h3>
-        <div className="space-y-4">
-          {[
-            { label: 'Emergency', number: '102' },
-            { label: 'Crisis Helpline', number: '112' },
-            { label: 'Suicide Prevention', number: '1-800-273-8255' },
-          ].map((contact, index) => (
-            <div
-              key={index}
-              className="bg-white/5 p-4 rounded-lg border border-[#00BFFF]/20 hover:border-[#00BFFF]/40 transition-all shadow-[0_0_10px_#00BFFF15]"
+      <footer className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-success/5"></div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 relative">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+            {/* About ThinkBot */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 2.0, duration: 0.6 }}
             >
-              <div className="text-white font-semibold">{contact.label}</div>
-              <div className="text-[#00BFFF] text-lg font-bold tracking-wide">
-                {contact.number}
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="w-10 h-10 bg-gradient-primary rounded-xl flex items-center justify-center">
+                  <Heart className="w-6 h-6 text-primary-foreground" />
+                </div>
+                <h3 className="text-2xl font-semibold font-display">About MedDoctorHub</h3>
               </div>
-            </div>
-          ))}
+              <p className="text-gray-300 leading-relaxed">
+                Comprehensive mental health support and medical care platform with mood tracking, AI chatbot, doctor finder, and patient management tools.
+                              </p>
+            </motion.div>
+
+            {/* Quick Links */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 2.2, duration: 0.6 }}
+            >
+              <h3 className="text-2xl font-semibold mb-6 font-display">Quick Links</h3>
+              <ul className="space-y-4">
+                {[
+                  { label: 'Home', path: '/' },
+                  { label: 'Mood Tracker', path: '/mood-tracker' },
+                  { label: 'Chatbot', path: '/chatbot' },
+                  { label: 'Stress Management', path: '/stress-management' },
+                  
+                ].map((link, index) => (
+                  <li key={index}>
+                    <button 
+                      onClick={() => link.path !== '#' && navigate(link.path)}
+                      className="text-gray-300 hover:text-white transition-colors flex items-center group"
+                    >
+                      <span className="w-2 h-2 bg-primary rounded-full mr-3 group-hover:bg-primary-glow transition-colors"></span>
+                      {link.label}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </motion.div>
+
+            {/* Emergency Contacts */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 2.4, duration: 0.6 }}
+            >
+              <h3 className="text-2xl font-semibold mb-6 font-display text-destructive">Emergency Contacts</h3>
+              <div className="space-y-4">
+                {[
+                  { label: 'Emergency', number: '102' },
+                  { label: 'Crisis Helpline', number: '112' },
+                  { label: 'Suicide Prevention', number: '1-800-273-8255' }
+                ].map((contact, index) => (
+                  <div key={index} className="bg-white/5 p-4 rounded-lg border border-white/10">
+                    <div className="text-white font-semibold">{contact.label}</div>
+                    <div className="text-primary-glow text-lg font-bold">{contact.number}</div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Copyright */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 2.6, duration: 0.6 }}
+            className="border-t border-gray-700 mt-12 pt-8 text-center"
+          >
+            <p className="text-gray-400">
+              © {currentYear} ThinkBot. All rights reserved. | Built with ❤️ for better healthcare
+            </p>
+          </motion.div>
         </div>
-      </motion.div>
-    </div>
-
-    {/* Copyright */}
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ delay: 2.6, duration: 0.6 }}
-      className="border-t border-[#00BFFF]/20 mt-12 pt-8 text-center"
-    >
-      <p className="text-gray-400">
-        © {currentYear} <span className="text-[#00BFFF] font-semibold">ThinkBot</span>. All rights reserved. | Built with ❤️ for better healthcare
-      </p>
-    </motion.div>
-  </div>
-</footer>
-
+      </footer>
     </div>
   );
 };
