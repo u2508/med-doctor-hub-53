@@ -261,15 +261,15 @@ const StressManagement = () => {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-8 space-y-8">
+      <main className="max-w-6xl mx-auto px-4 py-8 space-y-12">
         {/* Breathing Exercise Section */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-card/80 backdrop-blur-md rounded-2xl border border-border p-8"
+          className="bg-card/80 backdrop-blur-md rounded-2xl border border-border p-8 md:p-12"
           style={{ boxShadow: 'var(--shadow-elegant)' }}
         >
-          <div className="text-center mb-8">
+          <div className="text-center mb-12">
             <div className="inline-flex items-center space-x-2 bg-primary/10 px-4 py-2 rounded-full mb-4">
               <Wind className="w-5 h-5 text-primary" />
               <span className="text-primary font-medium">Breathing Exercise</span>
@@ -278,7 +278,7 @@ const StressManagement = () => {
             <p className="text-muted-foreground">Follow the circle and breathe deeply to reduce stress and anxiety</p>
           </div>
 
-          <div className="flex flex-col items-center space-y-8">
+          <div className="flex flex-col items-center space-y-10">
             {/* Breathing Circle */}
             <div className="relative">
               <motion.div
@@ -338,8 +338,8 @@ const StressManagement = () => {
             </div>
 
             {/* Breathing Controls */}
-            <div className="text-center space-y-4">
-              <div className="flex items-center space-x-4">
+            <div className="text-center space-y-6 mt-8">
+              <div className="flex items-center justify-center space-x-4">
                 <div className="bg-accent/50 px-4 py-2 rounded-lg">
                   <span className="text-sm text-accent-foreground">
                     Cycle: {breathingExercise.cycles + 1}/{breathingExercise.totalCycles}
@@ -352,7 +352,7 @@ const StressManagement = () => {
                 </div>
               </div>
               
-              <div className="flex space-x-3">
+              <div className="flex justify-center space-x-3">
                 {!breathingExercise.isActive ? (
                   <button
                     onClick={startBreathingExercise}
@@ -380,10 +380,10 @@ const StressManagement = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-card/80 backdrop-blur-md rounded-2xl border border-border p-8"
+          className="bg-card/80 backdrop-blur-md rounded-2xl border border-border p-8 md:p-12"
           style={{ boxShadow: 'var(--shadow-elegant)' }}
         >
-          <div className="mb-6">
+          <div className="mb-8">
             <div className="inline-flex items-center space-x-2 bg-secondary/20 px-4 py-2 rounded-full mb-4">
               <Music className="w-5 h-5 text-secondary-foreground" />
               <span className="text-secondary-foreground font-medium">Relaxation Sounds</span>
