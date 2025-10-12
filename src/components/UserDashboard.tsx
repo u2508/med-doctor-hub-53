@@ -1,8 +1,9 @@
-import React, { memo, useMemo } from 'react';
+import React, { memo, useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Heart, UserCheck, MessageCircle, BarChart3, Shield, Clock, Loader2, Sparkles } from 'lucide-react';
+import { Heart, UserCheck, MessageCircle, BarChart3, Clock, Loader2, Sparkles } from 'lucide-react';
 import { useUserActivity } from '@/hooks/useUserActivity';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Feature {
   title: string;
@@ -111,6 +112,25 @@ ActivityItem.displayName = 'ActivityItem';
 const UserDashboard = memo(({ user }: UserDashboardProps) => {
   const navigate = useNavigate();
   const { activities, loading } = useUserActivity();
+  const [userName, setUserName] = useState<string>('User');
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (user?.id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (profile?.full_name) {
+          setUserName(profile.full_name);
+        }
+      }
+    };
+    
+    fetchUserProfile();
+  }, [user?.id]);
 
   // Memoized features array to prevent re-creation on every render
   const features = useMemo<Feature[]>(() => [
@@ -137,12 +157,6 @@ const UserDashboard = memo(({ user }: UserDashboardProps) => {
       description: 'Access meditation audio and breathing exercises for stress relief.',
       icon: <Heart className="w-8 h-8" />,
       path: '/stress-management'
-    },
-    {
-      title: 'Doctor Portal',
-      description: 'Access medical dashboard and patient management tools (for healthcare professionals).',
-      icon: <Shield className="w-8 h-8" />,
-      path: '/doctor-portal'
     }
   ], []);
 
@@ -168,7 +182,7 @@ const UserDashboard = memo(({ user }: UserDashboardProps) => {
           >
             <div className="text-right">
               <p className="text-sm text-muted-foreground">Welcome back,</p>
-              <p className="font-semibold text-foreground">{user?.name || 'User'}</p>
+              <p className="font-semibold text-foreground">{userName}</p>
             </div>
             <button
               onClick={handleSignOut}
