@@ -155,8 +155,7 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Chatbot function error:', errorMessage);
+    console.error('Chatbot function error:', error.message);
     return new Response(JSON.stringify({ 
       error: 'An error occurred while processing your request'
     }), {
