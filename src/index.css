@@ -2,23 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
+/* 
+  🧬 MEDICAL DESIGN SYSTEM – Enhanced for Clinical Clarity
+  All color tokens are HSL-based for dynamic theme control.
+  Core goals: calm contrast, clean depth, subtle energy.
 */
 
 @layer base {
   :root {
-    /* Enhanced Medical Theme */
+    /* === Core Palette === */
     --background: 0 0% 100%;
     --foreground: 222 47% 11%;
-
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
-
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    /* Primary medical blue - enhanced */
+    /* === Brand Colors === */
     --primary: 221 83% 53%;
     --primary-foreground: 210 40% 98%;
     --primary-light: 221 83% 88%;
@@ -28,13 +28,10 @@ All colors MUST be HSL.
     --secondary: 210 40% 96%;
     --secondary-foreground: 222 47% 11%;
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
-
     --accent: 210 40% 96%;
     --accent-foreground: 222 47% 11%;
 
-    /* Enhanced status colors */
+    /* === Functional Colors === */
     --success: 142 76% 38%;
     --success-foreground: 0 0% 100%;
     --success-light: 142 76% 90%;
@@ -47,76 +44,63 @@ All colors MUST be HSL.
     --destructive-foreground: 0 0% 100%;
     --destructive-light: 0 84% 92%;
 
+    /* === Borders & Inputs === */
     --border: 214 32% 91%;
     --input: 214 32% 91%;
     --ring: 221 83% 53%;
 
-    /* Enhanced gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(221, 83%, 53%), hsl(221, 83%, 65%));
-    --gradient-card: linear-gradient(145deg, hsl(0, 0%, 100%), hsl(221, 83%, 96%));
-    --gradient-hero: linear-gradient(135deg, hsl(221, 83%, 53%) 0%, hsl(230, 80%, 60%) 50%, hsl(240, 75%, 65%) 100%);
-    --gradient-subtle: linear-gradient(145deg, hsl(0, 0%, 100%), hsl(210, 40%, 98%));
-    --gradient-glass: linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
-    --gradient-success: linear-gradient(135deg, hsl(142, 76%, 38%), hsl(142, 76%, 48%));
-    --gradient-warning: linear-gradient(135deg, hsl(38, 92%, 52%), hsl(38, 92%, 62%));
+    /* === Gradients === */
+    --gradient-primary: linear-gradient(135deg, hsl(221 83% 53%), hsl(221 83% 65%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(221 83% 96%));
+    --gradient-hero: linear-gradient(135deg, hsl(221 83% 53%) 0%, hsl(230 80% 60%) 50%, hsl(240 75% 65%) 100%);
+    --gradient-subtle: linear-gradient(145deg, hsl(0 0% 100%), hsl(210 40% 98%));
+    --gradient-glass: linear-gradient(145deg, rgba(255,255,255,0.12), rgba(255,255,255,0.05));
+    --gradient-success: linear-gradient(135deg, hsl(142 76% 38%), hsl(142 76% 48%));
+    --gradient-warning: linear-gradient(135deg, hsl(38 92% 52%), hsl(38 92% 62%));
     
-    /* Enhanced shadows */
+    /* === Shadows === */
     --shadow-card: 0 4px 16px -4px hsl(221 83% 53% / 0.12);
-    --shadow-elegant: 0 8px 32px -8px hsl(221 83% 53% / 0.2);
+    --shadow-elegant: 0 8px 32px -8px hsl(221 83% 53% / 0.25);
     --shadow-glow: 0 0 40px hsl(221 83% 70% / 0.5);
     --shadow-success: 0 4px 16px -4px hsl(142 76% 38% / 0.12);
     --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
 
     --radius: 0.75rem;
-    
-    /* Typography */
+
+    /* === Typography === */
     --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
     --font-display: 'Poppins', system-ui, -apple-system, sans-serif;
 
+    /* === Sidebar === */
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
+  /* === DARK MODE === */
   .dark {
     --background: 222 47% 11%;
     --foreground: 210 40% 98%;
-
     --card: 222 47% 15%;
     --card-foreground: 210 40% 98%;
-
     --popover: 222 47% 15%;
     --popover-foreground: 210 40% 98%;
-
     --primary: 221 83% 53%;
-    --primary-foreground: 210 40% 98%;
     --primary-dark: 221 83% 43%;
     --primary-glow: 221 83% 70%;
-
     --secondary: 217 33% 17%;
     --secondary-foreground: 210 40% 98%;
-
     --muted: 217 33% 17%;
     --muted-foreground: 215 20% 65%;
-
     --accent: 217 33% 17%;
     --accent-foreground: 210 40% 98%;
-
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
-
     --border: 217 33% 17%;
     --input: 217 33% 17%;
     --ring: 221 83% 53%;
@@ -137,67 +121,85 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    @apply bg-background text-foreground font-sans antialiased transition-colors duration-500;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-display;
+    @apply font-display tracking-tight;
+  }
+
+  ::selection {
+    background-color: hsl(var(--primary) / 0.25);
   }
 }
 
+/* ========================== COMPONENTS ========================== */
 @layer components {
-  /* Glassmorphism utilities */
+  /* === Glassmorphism === */
   .glass {
     @apply bg-white/10 backdrop-blur-md border border-white/20;
   }
-  
+
   .glass-card {
     background: var(--gradient-glass);
-    backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
     box-shadow: var(--shadow-glass);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  .glass-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-elegant);
   }
 
-  /* Enhanced animations */
+  /* === Motion Enhancements === */
   .animate-float {
     animation: float 6s ease-in-out infinite;
   }
-  
+
   .animate-glow {
     animation: glow 2s ease-in-out infinite alternate;
   }
 
   .animate-slide-up {
-    animation: slideUp 0.5s ease-out;
+    animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .animate-fade-in-up {
-    animation: fadeInUp 0.6s ease-out;
+    animation: fadeInUp 0.7s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
-  /* Hover effects */
+  /* === Hover Dynamics === */
   .hover-lift {
-    @apply transition-all duration-300 hover:scale-105 hover:shadow-elegant;
+    @apply transition-transform duration-300 hover:-translate-y-1 hover:shadow-elegant;
   }
 
   .hover-glow {
-    @apply transition-all duration-300;
-  }
-  
-  .hover-glow:hover {
-    box-shadow: var(--shadow-glow);
+    @apply transition-all duration-300 hover:shadow-glow;
   }
 
-  /* Medical themed components */
+  /* === Themed UI Blocks === */
   .medical-gradient {
     background: var(--gradient-primary);
   }
 
   .card-elevated {
-    @apply bg-card/80 backdrop-blur-sm border border-border/50 shadow-card hover:shadow-elegant transition-all duration-300;
+    @apply bg-card/90 backdrop-blur-sm border border-border/50 shadow-card hover:shadow-elegant transition-all duration-300;
+    border-radius: var(--radius);
+  }
+
+  .btn-primary {
+    background: var(--gradient-primary);
+    color: hsl(var(--primary-foreground));
+    @apply px-4 py-2 font-semibold rounded-lg shadow-sm hover:shadow-glow transition-all duration-300;
+  }
+
+  .btn-outline {
+    @apply border border-primary text-primary font-semibold rounded-lg px-4 py-2 hover:bg-primary hover:text-white transition-all duration-300;
   }
 }
 
+/* ========================== UTILITIES ========================== */
 @layer utilities {
   .text-gradient {
     @apply bg-gradient-to-r from-primary via-primary-dark to-success bg-clip-text text-transparent;
@@ -211,40 +213,29 @@ All colors MUST be HSL.
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-  
+
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
 }
 
+/* ========================== ANIMATIONS ========================== */
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-20px); }
+  50% { transform: translateY(-16px); }
 }
 
 @keyframes glow {
-  from { box-shadow: 0 0 20px hsl(var(--primary) / 0.3); }
-  to { box-shadow: 0 0 30px hsl(var(--primary) / 0.6); }
+  from { box-shadow: 0 0 20px hsl(var(--primary) / 0.25); }
+  to { box-shadow: 0 0 35px hsl(var(--primary) / 0.6); }
 }
 
 @keyframes slideUp {
-  from { 
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to { 
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(40px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: translateY(0); }
 }
