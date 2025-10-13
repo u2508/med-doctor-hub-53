@@ -235,7 +235,7 @@ const LandingPage = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1.1, duration: 0.8 }}
           >
-            <div className="text-center mb-24">
+            <div className="mt-32 text-center mb-24">
               <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6 font-display tracking-tight">Everything You Need</h2>
               <p className="text-lg md:text-xl text-muted-foreground/80 max-w-2xl mx-auto font-medium">Comprehensive features for your mental and physical health journey</p>
             </div>
@@ -263,7 +263,7 @@ const LandingPage = () => {
             <Card className="bg-gradient-to-br from-destructive-light/60 to-destructive-light/40 border-destructive/40 shadow-elegant overflow-hidden relative backdrop-blur-sm">
               <div className="absolute inset-0 bg-gradient-to-br from-destructive/5 to-transparent"></div>
               <CardContent className="p-12 lg:p-16 relative">
-                <div className="flex items-center mb-8">
+                <div className="mt-32 flex items-center mb-32">
                   <div className="w-16 h-16 bg-destructive rounded-2xl flex items-center justify-center mr-5 shadow-lg">
                     <span className="text-destructive-foreground text-2xl">🚨</span>
                   </div>
