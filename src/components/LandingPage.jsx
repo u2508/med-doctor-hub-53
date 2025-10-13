@@ -104,7 +104,7 @@ const LandingPage = () => {
             Seamlessly integrate mental health support with medical care services. 
             Track your mood, connect with doctors, and manage your well-being all in one place.
           </p>
-          <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
+          <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <Button
               size="lg"
               onClick={() => navigate('/user-signin')}
@@ -214,7 +214,7 @@ const LandingPage = () => {
       </section>
 
       {/* Footer */}
-      <footer className="mt-20 border-t bg-muted/30">
+      <footer className="mt-32 border-t bg-muted/30">
         <div className="container py-16">
           <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-3">
             <div>
