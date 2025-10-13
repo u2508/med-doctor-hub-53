@@ -223,7 +223,7 @@ const LandingPage = () => {
           </div>
 
           {/* Stats Section */}
-          <div className="mt-40 lg:mt-48 grid grid-cols-1 md:grid-cols-3 gap-8 mb-32">
+          <div className="mt-32 lg:mt-40 grid grid-cols-1 md:grid-cols-3 gap-8 mb-40">
             <StatCard number="10K+" label="Active Users" color="primary" delay={0.5} />
             <StatCard number="500+" label="Verified Doctors" color="success" delay={0.7} />
             <StatCard number="50K+" label="Mood Entries" color="warning" delay={0.9} />
@@ -234,14 +234,13 @@ const LandingPage = () => {
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1.1, duration: 0.8 }}
-            className="mb-32"
           >
             <div className="mt-32 text-center mb-24">
               <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6 font-display tracking-tight">Everything You Need</h2>
               <p className="text-lg md:text-xl text-muted-foreground/80 max-w-2xl mx-auto font-medium">Comprehensive features for your mental and physical health journey</p>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 mb-20">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-40">
               {features.map((feature, index) => (
                 <motion.div
                   key={index}
@@ -260,7 +259,6 @@ const LandingPage = () => {
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1.8, duration: 0.8 }}
-            className="mb-32"
           >
             <Card className="bg-gradient-to-br from-destructive-light/60 to-destructive-light/40 border-destructive/40 shadow-elegant overflow-hidden relative backdrop-blur-sm">
               <div className="absolute inset-0 bg-gradient-to-br from-destructive/5 to-transparent"></div>
@@ -295,7 +293,7 @@ const LandingPage = () => {
       </main>
 
       {/* Footer */}
-      <footer className="bg-gradient-to-br from-primary via-primary-dark to-primary text-primary-foreground relative overflow-hidden mt-48">
+      <footer className="bg-gradient-to-r from-primary via-primary-dark to-primary text-primary-foreground relative overflow-hidden mt-32">
         <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-success/5"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 relative">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
