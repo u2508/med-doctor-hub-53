@@ -214,7 +214,7 @@ const LandingPage = () => {
       </section>
 
       {/* Footer */}
-      <footer className="mt-32 border-t bg-muted/30">
+      <footer className="mt-32 border-t bg-gradient-to-br from-primary via-primary-dark to-primary text-primary-foreground">
         <div className="container py-16">
           <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-3">
             <div>
