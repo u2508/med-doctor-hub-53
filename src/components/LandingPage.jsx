@@ -67,11 +67,25 @@ const FeatureCard = ({ icon, title, desc, gradient }) => (
 );
 
 const StatCard = ({ number, label, color, delay }) => {
-  const colorClasses = {
-    primary: 'from-primary/5 to-primary/10 border-primary/20 text-primary',
-    success: 'from-success/5 to-success/10 border-success/20 text-success',
-    warning: 'from-warning/5 to-warning/10 border-warning/20 text-warning'
+  const colorConfig = {
+    primary: {
+      gradient: 'from-primary/5 to-primary/10',
+      border: 'border-primary/20',
+      text: 'text-primary'
+    },
+    success: {
+      gradient: 'from-success/5 to-success/10',
+      border: 'border-success/20',
+      text: 'text-success'
+    },
+    warning: {
+      gradient: 'from-warning/5 to-warning/10',
+      border: 'border-warning/20',
+      text: 'text-warning'
+    }
   };
+  
+  const config = colorConfig[color];
   
   return (
     <motion.div
@@ -79,10 +93,10 @@ const StatCard = ({ number, label, color, delay }) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.8 }}
     >
-      <Card className={`text-center card-elevated bg-gradient-to-br ${colorClasses[color].split(' ')[0]} ${colorClasses[color].split(' ')[1]} border hover-lift`}>
+      <Card className={`text-center card-elevated bg-gradient-to-br ${config.gradient} ${config.border} hover-lift`}>
         <CardContent className="p-10">
           <motion.div 
-            className={`text-6xl font-bold ${colorClasses[color].split(' ')[2]} mb-4 font-display`}
+            className={`text-6xl font-bold ${config.text} mb-4 font-display`}
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: delay + 0.3, type: "spring", stiffness: 200 }}
