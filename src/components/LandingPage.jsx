@@ -211,11 +211,12 @@ const LandingPage = () => {
             transition={{ delay: 1.1, duration: 0.8 }}
             className="mt-16"
           >
+            <br>
             <div className="text-center mb-20">
               <h2 className="text-5xl font-bold text-foreground mb-6 font-display">Everything You Need</h2>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">Comprehensive features for your mental and physical health journey</p>
             </div>
-            
+            <br>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-32">
               {features.map((feature, index) => (
                 <motion.div
@@ -229,7 +230,7 @@ const LandingPage = () => {
               ))}
             </div>
           </motion.div>
-
+            <br>
           {/* Emergency Support Section */}
           <motion.div
             initial={{ opacity: 0, y: 40 }}
@@ -267,10 +268,11 @@ const LandingPage = () => {
             </Card>
           </motion.div>
         </div>
+              <br>
       </main>
-
+<br>
       {/* Footer */}
-      <footer className="bg-gradient-to-r from-primary via-primary-dark to-primary text-primary-foreground relative overflow-hidden mt-32">
+      <footer className="bg-gradient-to-r from-primary via-primary-dark to-primary text-primary-foreground relative overflow-hidden mt-32 rounded-t-[20px]">
         <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-success/5"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 relative">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
