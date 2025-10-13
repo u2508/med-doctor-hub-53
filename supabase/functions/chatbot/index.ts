@@ -1,11 +1,24 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Define strict validation schemas
+const HistoryMessageSchema = z.object({
+  sender: z.enum(['user', 'bot']),
+  text: z.string().min(1).max(2000),
+  timestamp: z.string().optional()
+});
+
+const RequestSchema = z.object({
+  message: z.string().min(1).max(2000),
+  history: z.array(HistoryMessageSchema).max(20).optional()
+});
 
 // Initialize Supabase client
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;  
@@ -76,18 +89,34 @@ serve(async (req) => {
       });
     }
 
-    const { message, history } = await req.json();
+    const body = await req.json();
 
-    // Validate input
-    if (!message || typeof message !== 'string') {
-      return new Response(JSON.stringify({ error: 'Invalid message format' }), {
+    // Validate input with Zod schema
+    const validationResult = RequestSchema.safeParse(body);
+    if (!validationResult.success) {
+      return new Response(JSON.stringify({ 
+        error: 'Invalid request format. Please check your message and try again.',
+        details: validationResult.error.issues 
+      }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
+    const { message, history } = validationResult.data;
+
     // Sanitize message input (basic XSS protection)
     const sanitizedMessage = message.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+
+    // Sanitize and validate history
+    const sanitizedHistory = (history || []).map(h => ({
+      role: h.sender === 'user' ? 'user' : 'model',
+      parts: [{ 
+        text: h.text
+          .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+          .substring(0, 2000)
+      }]
+    }));
 
     // Call Gemini API
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${geminiApiKey}`, {
@@ -97,10 +126,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         contents: [
-          ...((history || []).map((h: any) => ({
-            role: h.sender === "user" ? "user" : "model",
-            parts: [{ text: h.text }]
-          }))),
+          ...sanitizedHistory,
           {
             role: 'user',
             parts: [{ text: sanitizedMessage }]
