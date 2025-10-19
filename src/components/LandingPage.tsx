@@ -1,8 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { Heart, Brain, MessageCircle, UserCheck, Shield, BarChart3, Activity, ArrowRight, Sparkles, CheckCircle2, Star, Users, Clock, Award } from 'lucide-react';
+import { Heart, Brain, MessageCircle, UserCheck, Shield, BarChart3, Activity, ArrowRight, Sparkles, CheckCircle2, Star, Users, Clock, Award, ChevronDown, Quote, Mail, Phone, MapPin, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -65,6 +66,54 @@ const LandingPage = () => {
     'Community support network'
   ];
 
+  const testimonials = [
+    {
+      name: 'Sarah Johnson',
+      role: 'Patient',
+      content: 'MedDoctor Hub transformed how I manage my mental health. The mood tracking and AI chatbot have been invaluable.',
+      rating: 5
+    },
+    {
+      name: 'Dr. Michael Chen',
+      role: 'Psychiatrist',
+      content: 'An excellent platform for connecting with patients and monitoring their progress. The analytics are incredibly detailed.',
+      rating: 5
+    },
+    {
+      name: 'Emily Rodriguez',
+      role: 'Patient',
+      content: 'Finding qualified doctors was so easy, and the stress management tools have become part of my daily routine.',
+      rating: 5
+    }
+  ];
+
+  const faqs = [
+    {
+      question: 'How does MedDoctor Hub protect my privacy?',
+      answer: 'We use enterprise-grade encryption and comply with HIPAA regulations. Your data is stored securely and never shared without your explicit consent. All communications between you and healthcare providers are encrypted end-to-end.'
+    },
+    {
+      question: 'Is the AI chatbot a replacement for professional therapy?',
+      answer: 'No, the AI chatbot is designed to provide support and guidance between sessions with healthcare professionals. It\'s a complementary tool, not a replacement for professional medical advice or therapy.'
+    },
+    {
+      question: 'How do I find and connect with doctors?',
+      answer: 'Use our Doctor Finder feature to search for qualified healthcare professionals by specialty, location, and availability. You can view profiles, read reviews, and book appointments directly through the platform.'
+    },
+    {
+      question: 'What features are included in the free plan?',
+      answer: 'The free plan includes basic mood tracking, access to the AI chatbot, stress management exercises, and the ability to connect with doctors. Premium features include advanced analytics and priority support.'
+    },
+    {
+      question: 'Can I use MedDoctor Hub on mobile devices?',
+      answer: 'Yes! MedDoctor Hub is fully responsive and works seamlessly on all devices including smartphones, tablets, and desktop computers. We also offer dedicated mobile apps for iOS and Android.'
+    },
+    {
+      question: 'What should I do in a mental health emergency?',
+      answer: 'In case of emergency, immediately call 102 (Emergency Services), 112 (Crisis Helpline), or 1-800-273-8255 (Suicide Prevention). MedDoctor Hub is not designed for emergency situations.'
+    }
+  ];
+
   return (
     <div className="min-h-screen bg-background">
       {/* Animated Header */}
@@ -105,6 +154,16 @@ const LandingPage = () => {
                 >
                   Doctor Portal
                   <ArrowRight className="w-4 h-4" />
+                </Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button 
+                  onClick={() => navigate('/support')}
+                  variant="ghost"
+                  className="gap-2"
+                >
+                  <HelpCircle className="w-4 h-4" />
+                  Support
                 </Button>
               </motion.div>
             </div>
@@ -271,6 +330,112 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* Testimonials Section */}
+      <section className="py-24 bg-gradient-to-br from-muted/30 to-background">
+        <div className="container mx-auto px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16 space-y-4"
+          >
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold">
+              Trusted by Thousands
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              See what our users and healthcare professionals have to say
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {testimonials.map((testimonial, index) => (
+              <motion.div
+                key={testimonial.name}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1, duration: 0.6 }}
+                whileHover={{ y: -8 }}
+              >
+                <Card className="h-full hover:shadow-elegant transition-all duration-300">
+                  <CardContent className="p-8 space-y-6">
+                    <Quote className="w-10 h-10 text-primary/30" />
+                    <p className="text-muted-foreground leading-relaxed italic">
+                      "{testimonial.content}"
+                    </p>
+                    <div className="flex items-center gap-1 mb-4">
+                      {[...Array(testimonial.rating)].map((_, i) => (
+                        <Star key={i} className="w-4 h-4 fill-primary text-primary" />
+                      ))}
+                    </div>
+                    <div className="pt-4 border-t">
+                      <div className="font-semibold">{testimonial.name}</div>
+                      <div className="text-sm text-muted-foreground">{testimonial.role}</div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQs Section */}
+      <section className="py-24">
+        <div className="container mx-auto px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16 space-y-4"
+          >
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold">
+              Frequently Asked Questions
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              Find answers to common questions about MedDoctor Hub
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="max-w-3xl mx-auto"
+          >
+            <Accordion type="single" collapsible className="space-y-4">
+              {faqs.map((faq, index) => (
+                <AccordionItem 
+                  key={index} 
+                  value={`item-${index}`}
+                  className="border rounded-xl px-6 bg-card hover:shadow-card transition-shadow"
+                >
+                  <AccordionTrigger className="text-left hover:no-underline py-6">
+                    <span className="text-lg font-semibold pr-4">{faq.question}</span>
+                  </AccordionTrigger>
+                  <AccordionContent className="text-muted-foreground pb-6 leading-relaxed">
+                    {faq.answer}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+
+            <div className="text-center mt-12">
+              <p className="text-muted-foreground mb-4">Still have questions?</p>
+              <Button
+                size="lg"
+                variant="outline"
+                onClick={() => navigate('/support')}
+                className="gap-2"
+              >
+                <HelpCircle className="w-5 h-5" />
+                Visit Support Center
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="py-24">
         <div className="container mx-auto px-6">
@@ -375,10 +540,19 @@ const LandingPage = () => {
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Resources</h3>
               <ul className="space-y-3">
-                {['Doctor Portal', 'Find Doctors', 'Health Analytics', 'Support', 'FAQs'].map((item) => (
-                  <li key={item}>
-                    <button className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                      {item}
+                {[
+                  { label: 'Doctor Portal', path: '/doctor-portal' },
+                  { label: 'Find Doctors', path: '/doctor-finder' },
+                  { label: 'Health Analytics', path: '/user-dashboard' },
+                  { label: 'Support Center', path: '/support' },
+                  { label: 'FAQs', path: '/#faqs' }
+                ].map((item) => (
+                  <li key={item.label}>
+                    <button 
+                      onClick={() => navigate(item.path)}
+                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {item.label}
                     </button>
                   </li>
                 ))}
