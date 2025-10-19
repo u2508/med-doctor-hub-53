@@ -218,26 +218,55 @@ const StressManagement: React.FC = () => {
   // visualizer settings
   const [vizType, setVizType] = useState<'bars' | 'wave'>('bars');
 
-  // fetch tracks once (Supabase example)
+  // fetch tracks once (fallback to local media)
   useEffect(() => {
     const fetchTracks = async () => {
       setLoadingTracks(true);
       try {
-        const { data, error } = await supabase.from('audio_tracks').select('*');
-        if (!error && Array.isArray(data)) {
-          // minimal validation / mapping
-          const mapped: AudioTrack[] = data.map((r: any) => ({
-            id: String(r.id),
-            title: r.title || r.name || 'Untitled',
-            duration: r.duration || '0:00',
-            file: r.file || r.url || '',
-            description: r.description || '',
-            category: r.category || 'ambient'
-          }));
-          setTracks(mapped);
-        } else {
-          console.warn('Supabase fetch error', error);
-        }
+        // Fallback to local audio files
+        const fallbackTracks: AudioTrack[] = [
+          {
+            id: '1',
+            title: 'Aroma of the Sea',
+            duration: '3:45',
+            file: '/media/Aroma of the Sea-1.mp3',
+            description: 'Calming ocean waves and sea breeze',
+            category: 'nature'
+          },
+          {
+            id: '2',
+            title: 'Chirps of the Nightingale',
+            duration: '4:20',
+            file: '/media/Chirps of the Nightingale-1.mp3',
+            description: 'Peaceful bird songs at dawn',
+            category: 'nature'
+          },
+          {
+            id: '3',
+            title: 'Fireplace Woods',
+            duration: '5:10',
+            file: '/media/Fireplace Woods-1.mp3',
+            description: 'Crackling fire sounds for comfort',
+            category: 'ambient'
+          },
+          {
+            id: '4',
+            title: 'Nightly Shimmer',
+            duration: '4:55',
+            file: '/media/Nightly Shimmer-1.mp3',
+            description: 'Gentle night ambience',
+            category: 'meditation'
+          },
+          {
+            id: '5',
+            title: 'Patters of Rain',
+            duration: '4:30',
+            file: '/media/Patters of Rain-1.mp3',
+            description: 'Soothing rainfall sounds',
+            category: 'nature'
+          }
+        ];
+        setTracks(fallbackTracks);
       } catch (err) {
         console.error('fetchTracks error', err);
       } finally {

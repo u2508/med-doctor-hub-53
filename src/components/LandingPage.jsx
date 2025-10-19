@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Heart, Brain, MessageCircle, UserCheck, Shield, BarChart3, Sparkles, ChevronRight, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { InteractiveShowcase } from '@/components/InteractiveShowcase';
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -180,6 +181,9 @@ const LandingPage = () => {
           ))}
         </div>
       </section>
+
+      {/* Interactive Showcase Section */}
+      <InteractiveShowcase />
 
       {/* Emergency Support Section */}
       <section className="container pb-24">
