@@ -527,10 +527,19 @@ const LandingPage = () => {
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Platform</h3>
               <ul className="space-y-3">
-                {['Home', 'Sign In', 'Mood Tracker', 'Chatbot', 'Stress Management'].map((item) => (
-                  <li key={item}>
-                    <button className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                      {item}
+                {[
+                  { label: 'Home', path: '/' },
+                  { label: 'Sign In', path: '/user-signin' },
+                  { label: 'Mood Tracker', path: '/mood-tracker' },
+                  { label: 'Chatbot', path: '/chatbot' },
+                  { label: 'Stress Management', path: '/stress-management' }
+                ].map((item) => (
+                  <li key={item.label}>
+                    <button 
+                      onClick={() => navigate(item.path)}
+                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {item.label}
                     </button>
                   </li>
                 ))}
@@ -543,7 +552,7 @@ const LandingPage = () => {
                 {[
                   { label: 'Doctor Portal', path: '/doctor-portal' },
                   { label: 'Find Doctors', path: '/doctor-finder' },
-                  { label: 'Health Analytics', path: '/user-dashboard' },
+                  { label: 'Health Analytics', path: '/health-analytics' },
                   { label: 'Support Center', path: '/support' },
                   { label: 'FAQs', path: '/#faqs' }
                 ].map((item) => (

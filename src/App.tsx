@@ -20,6 +20,7 @@ const MoodTracker = lazy(() => import("@/components/MoodTracker"));
 const Chatbot = lazy(() => import("@/components/Chatbot"));
 const StressManagement = lazy(() => import("@/components/StressManagement"));
 const Support = lazy(() => import("@/components/Support"));
+const HealthAnalytics = lazy(() => import("@/components/HealthAnalytics"));
 
 // Optimized query client with better caching and background updates
 const queryClient = new QueryClient({
@@ -120,6 +121,7 @@ const App = () => {
               <Route path="/mood-tracker" element={<MoodTracker />} />
               <Route path="/chatbot" element={<Chatbot />} />
               <Route path="/stress-management" element={<StressManagement />} />
+              <Route path="/health-analytics" element={<HealthAnalytics />} />
               
               {/* Support */}
               <Route path="/support" element={<Support />} />
