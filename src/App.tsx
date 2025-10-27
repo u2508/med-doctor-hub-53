@@ -113,7 +113,7 @@ const App = () => {
               <Route path="/doctor-registration" element={<DoctorRegistration setUser={setUser} setUserType={handleSetUserType} />} />
               
               {/* Dashboard Routes */}
-              <Route path="/doctor-dashboard" element={<DoctorDashboard user={user} />} />
+              <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
               <Route path="/user-dashboard" element={<UserDashboard user={user} />} />
               
               {/* Mental Health Features */}
