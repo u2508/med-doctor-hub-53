@@ -163,7 +163,6 @@ const StressManagement: React.FC = () => {
   const navigate = useNavigate();
   const [uiMode, setUiMode] = useState<'breathe' | 'relax' | 'focus'>('relax');
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'nature' | 'ambient' | 'meditation' | 'focus'>('all');
-  const [loadingTracks, setLoadingTracks] = useState(false);
   const [audioState, setAudioState] = useState({
     currentTrack: null as AudioTrack | null,
     isPlaying: false,
@@ -175,14 +174,77 @@ const StressManagement: React.FC = () => {
 
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  // Sample tracks - in a real app, these would come from an API
-  const allTracks: AudioTrack[] = [
-    { id: '1', title: 'Aroma of the Sea', duration: '3:24', file: '/media/Aroma of the Sea-1.mp3', description: 'Gentle ocean waves with distant seagulls', category: 'nature' },
-    { id: '2', title: 'Chirps of the Nightingale', duration: '4:12', file: '/media/Chirps of the Nightingale-1.mp3', description: 'Peaceful night sounds with bird calls', category: 'nature' },
-    { id: '3', title: 'Fireplace Woods', duration: '5:01', file: '/media/Fireplace Woods-1.mp3', description: 'Crackling fire in a cozy cabin', category: 'ambient' },
-    { id: '4', title: 'Nightly Shimmer', duration: '3:45', file: '/media/Nightly Shimmer-1.mp3', description: 'Soft ambient music for deep relaxation', category: 'meditation' },
-    { id: '5', title: 'Patterns of Rain', duration: '4:33', file: '/media/Patters of Rain-1.mp3', description: 'Rhythmic rain on a window pane', category: 'nature' },
-  ];
+  // Load tracks from Supabase storage bucket 'media'
+  const [allTracks, setAllTracks] = useState<AudioTrack[]>([]);
+  const [loadingTracks, setLoadingTracks] = useState(true);
+
+  useEffect(() => {
+    const loadTracksFromSupabase = async () => {
+      try {
+        const { data, error } = await supabase.storage
+          .from('media')
+          .list('', {
+            limit: 100,
+            sortBy: { column: 'name', order: 'asc' }
+          });
+
+        if (error) throw error;
+
+        const tracks: AudioTrack[] = data
+          .filter(file => file.name.endsWith('.mp3'))
+          .map(file => {
+            const name = file.name.replace('.mp3', '');
+            let category: 'nature' | 'ambient' | 'meditation' | 'focus' = 'nature';
+            let description = '';
+
+            // Categorize based on filename
+            if (name.includes('Sea') || name.includes('Rain') || name.includes('Nightingale')) {
+              category = 'nature';
+              if (name.includes('Sea')) description = 'Gentle ocean waves with calming sea sounds';
+              else if (name.includes('Rain')) description = 'Rhythmic rain patterns and soothing droplets';
+              else if (name.includes('Nightingale')) description = 'Peaceful night sounds with bird calls';
+            } else if (name.includes('Fireplace')) {
+              category = 'ambient';
+              description = 'Crackling fire in a cozy cabin atmosphere';
+            } else if (name.includes('Shimmer')) {
+              category = 'meditation';
+              description = 'Soft ambient music for deep relaxation and meditation';
+            }
+
+            return {
+              id: file.id || name.toLowerCase().replace(/\s+/g, '-'),
+              title: name,
+              duration: '3:00', // Default duration, will be updated when loaded
+              file: supabase.storage.from('media').getPublicUrl(file.name).data.publicUrl,
+              description,
+              category
+            };
+          });
+
+        setAllTracks(tracks);
+      } catch (error) {
+        console.error('Error loading tracks from Supabase:', error);
+        // Fallback to local files if Supabase fails
+        const fallbackTracks: AudioTrack[] = [
+          { id: 'aroma-sea-1', title: 'Aroma of the Sea-1', duration: '3:24', file: '/media/Aroma of the Sea-1.mp3', description: 'Gentle ocean waves with distant seagulls', category: 'nature' },
+          { id: 'aroma-sea-2', title: 'Aroma of the Sea-2', duration: '3:45', file: '/media/Aroma of the Sea-2.mp3', description: 'Ocean waves with calming sea sounds', category: 'nature' },
+          { id: 'nightingale-1', title: 'Chirps of the Nightingale-1', duration: '4:12', file: '/media/Chirps of the Nightingale-1.mp3', description: 'Peaceful night sounds with bird calls', category: 'nature' },
+          { id: 'nightingale-2', title: 'Chirps of the Nightingale-2', duration: '4:30', file: '/media/Chirps of the Nightingale-2.mp3', description: 'Evening bird songs and night ambiance', category: 'nature' },
+          { id: 'fireplace-1', title: 'Fireplace Woods-1', duration: '5:01', file: '/media/Fireplace Woods-1.mp3', description: 'Crackling fire in a cozy cabin', category: 'ambient' },
+          { id: 'fireplace-2', title: 'Fireplace Woods-2', duration: '5:15', file: '/media/Fireplace Woods-2.mp3', description: 'Warm fireplace sounds with wood crackling', category: 'ambient' },
+          { id: 'nightly-shimmer-1', title: 'Nightly Shimmer-1', duration: '3:45', file: '/media/Nightly Shimmer-1.mp3', description: 'Soft ambient music for deep relaxation', category: 'meditation' },
+          { id: 'nightly-shimmer-2', title: 'Nightly Shimmer-2', duration: '4:02', file: '/media/Nightly Shimmer-2.mp3', description: 'Gentle ambient tones for meditation', category: 'meditation' },
+          { id: 'rain-1', title: 'Patters of Rain-1', duration: '4:33', file: '/media/Patters of Rain-1.mp3', description: 'Rhythmic rain on a window pane', category: 'nature' },
+          { id: 'rain-2', title: 'Patters of Rain-2', duration: '4:50', file: '/media/Patters of Rain-2.mp3', description: 'Soothing rain patterns and droplets', category: 'nature' },
+        ];
+        setAllTracks(fallbackTracks);
+      } finally {
+        setLoadingTracks(false);
+      }
+    };
+
+    loadTracksFromSupabase();
+  }, []);
 
   const filteredTracks = selectedCategory === 'all'
     ? allTracks
@@ -412,11 +474,14 @@ const StressManagement: React.FC = () => {
           ref={audioRef}
           onTimeUpdate={handleTimeUpdate}
           onEnded={() => {
-            setAudioState(prev => ({ ...prev, isPlaying: false }));
-            // Log completed meditation session
-            if (prev.currentTrack) {
-              logMeditationInteraction(prev.currentTrack, prev.duration);
-            }
+            setAudioState(prev => {
+              const newState = { ...prev, isPlaying: false };
+              // Log completed meditation session
+              if (prev.currentTrack) {
+                logMeditationInteraction(prev.currentTrack, prev.duration);
+              }
+              return newState;
+            });
           }}
         />
       </div>
