@@ -250,25 +250,11 @@ const StressManagement: React.FC = () => {
     ? allTracks
     : allTracks.filter(track => track.category === selectedCategory);
 
-  // Log meditation interaction to Supabase
+  // Log meditation interaction (could be added to mood_entries or separate analytics table if needed)
   const logMeditationInteraction = async (track: AudioTrack, duration: number) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      await supabase
-        .from('user_interactions')
-        .insert({
-          user_id: user.id,
-          interaction_type: 'meditation',
-          description: `Listened to "${track.title}" for ${Math.round(duration)} seconds`,
-          metadata: {
-            track_id: track.id,
-            track_title: track.title,
-            duration_seconds: duration,
-            category: track.category
-          }
-        });
+      // Analytics logging could be added here if needed
+      console.log(`Meditation session: ${track.title} for ${Math.round(duration)} seconds`);
     } catch (error) {
       console.error('Error logging meditation interaction:', error);
     }

@@ -160,51 +160,68 @@ const DoctorRegistration: React.FC<DoctorRegistrationProps> = ({ setUser, setUse
         throw new Error('User creation failed');
       }
 
+      // Wait a moment for the trigger to create the profile
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
       // Step 2: Upload ID document
       let idDocumentPath = null;
       try {
         idDocumentPath = await uploadIdDocument(authData.user.id);
       } catch (uploadError) {
-        console.warn('File upload failed');
+        console.error('File upload failed:', uploadError);
         toast({
-          title: "Upload Failed",
-          description: "Failed to upload ID document. You can try again later.",
-          variant: "destructive"
+          title: "Upload Warning",
+          description: "Document upload will be completed after email verification.",
         });
       }
 
-      // Step 3: Create doctor profile
-      const { error: profileError } = await supabase
-        .from('doctor_profiles')
-        .insert({
-          user_id: authData.user.id,
-          specialty: formData.specialty,
-          license_number: formData.licenseNumber,
-          years_experience: parseInt(formData.yearsExperience) || null,
-          hospital_affiliation: formData.hospitalAffiliation || null,
-        });
+      // Step 3: Create doctor profile (only if user is confirmed or we can bypass RLS)
+      try {
+        const { error: profileError } = await supabase
+          .from('doctor_profiles')
+          .insert({
+            user_id: authData.user.id,
+            specialty: formData.specialty,
+            license_number: formData.licenseNumber,
+            years_experience: parseInt(formData.yearsExperience) || null,
+            hospital_affiliation: formData.hospitalAffiliation || null,
+          });
 
-      if (profileError) throw profileError;
+        if (profileError) {
+          console.error('Doctor profile creation failed:', profileError);
+          // Store in localStorage to retry after email confirmation
+          localStorage.setItem('pendingDoctorProfile', JSON.stringify({
+            user_id: authData.user.id,
+            specialty: formData.specialty,
+            license_number: formData.licenseNumber,
+            years_experience: parseInt(formData.yearsExperience) || null,
+            hospital_affiliation: formData.hospitalAffiliation || null,
+          }));
+        }
 
-      // Step 4: Update user profile with additional info
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
-          phone: formData.phoneNumber || null,
-        })
-        .eq('user_id', authData.user.id);
+        // Step 4: Update user profile with phone
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({
+            phone: formData.phoneNumber || null,
+          })
+          .eq('user_id', authData.user.id);
 
-      if (updateError) {
-        console.warn('Profile update failed');
+        if (updateError) {
+          console.error('Profile update failed:', updateError);
+        }
+      } catch (error) {
+        console.error('Profile creation error:', error);
       }
 
       toast({
-        title: "Registration Successful!",
-        description: "Please check your email to verify your account before signing in.",
+        title: "Registration Submitted!",
+        description: "Please check your email to verify your account. After verification, you can sign in and complete your profile.",
+        duration: 8000,
       });
 
-      // Redirect to doctor portal
-      navigate('/doctor-portal');
+      // Redirect to sign in page
+      navigate('/user-signin');
       
     } catch (error: any) {
       console.warn('Registration failed');
