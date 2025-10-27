@@ -231,7 +231,7 @@ const LandingPage = () => {
                 <Button
                   size="lg"
                   variant="outline"
-                  onClick={() => navigate('/doctor-portal')}
+                  onClick={() => navigate('/doctor-registration')}
                   className="px-8 py-6 text-lg"
                 >
                   Join as Doctor

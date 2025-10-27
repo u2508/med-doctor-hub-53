@@ -32,7 +32,7 @@ function checkRateLimit(userId: string): boolean {
   const userRequests = requestCounts.get(userKey) || [];
 
   // Cleanup old timestamps
-  const validRequests = userRequests.filter((t) => now - t < RATE_WINDOW);
+  const validRequests = userRequests.filter((t: number) => now - t < RATE_WINDOW);
 
   if (validRequests.length >= RATE_LIMIT) return false;
 
@@ -67,7 +67,7 @@ serve(async (req) => {
 
   // Health check route
   if (new URL(req.url).pathname === "/health") {
-    return new Response(JSON.stringify({ status: "ok", uptime: Deno.uptime() }), {
+    return new Response(JSON.stringify({ status: "ok", timestamp: Date.now() }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
@@ -182,8 +182,9 @@ serve(async (req) => {
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (error) {
-    console.error("❌ Chatbot Server Error:", error.message || error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("❌ Chatbot Server Error:", errorMessage);
     return new Response(JSON.stringify({
       error: "Server encountered an issue. Please try again later.",
     }), {

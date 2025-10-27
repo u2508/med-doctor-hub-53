@@ -182,7 +182,7 @@ const StressManagement: React.FC = () => {
     const loadTracksFromSupabase = async () => {
       try {
         const { data, error } = await supabase.storage
-          .from('media')
+          .from('audio_tracks')
           .list('', {
             limit: 100,
             sortBy: { column: 'name', order: 'asc' }
@@ -215,7 +215,7 @@ const StressManagement: React.FC = () => {
               id: file.id || name.toLowerCase().replace(/\s+/g, '-'),
               title: name,
               duration: '3:00', // Default duration, will be updated when loaded
-              file: supabase.storage.from('media').getPublicUrl(file.name).data.publicUrl,
+              file: supabase.storage.from('audio_tracks').getPublicUrl(file.name).data.publicUrl,
               description,
               category
             };
