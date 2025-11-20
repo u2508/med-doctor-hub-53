@@ -84,51 +84,27 @@ const AdminDashboard: React.FC = () => {
     try {
       setLoading(true);
 
-      // Fetch pending doctor registrations
+      // Fetch pending doctor registrations with profiles
       const { data: pendingData, error: pendingError } = await supabase
         .from('doctor_profiles')
-        .select(`
-          *,
-          profiles:user_id (
-            full_name,
-            email,
-            phone
-          )
-        `)
+        .select('*, profiles!inner(*)')
         .eq('is_approved', false)
         .order('created_at', { ascending: false });
 
       if (pendingError) throw pendingError;
 
-      // Fetch approved doctors
+      // Fetch approved doctors with profiles
       const { data: approvedData, error: approvedError } = await supabase
         .from('doctor_profiles')
-        .select(`
-          *,
-          profiles:user_id (
-            full_name,
-            email,
-            phone
-          )
-        `)
+        .select('*, profiles!inner(*)')
         .eq('is_approved', true)
         .order('approved_at', { ascending: false })
         .limit(50);
 
       if (approvedError) throw approvedError;
 
-      // Fetch audit logs
-      const { data: auditData, error: auditError } = await supabase
-        .from('doctor_approval_audit')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(100);
-
-      if (auditError) throw auditError;
-
       setPendingDoctors(pendingData || []);
       setApprovedDoctors(approvedData || []);
-      setAuditLogs(auditData || []);
     } catch (error: any) {
       console.error('Error fetching data:', error);
       toast({
@@ -192,14 +168,6 @@ const AdminDashboard: React.FC = () => {
           description: `${doctor.profiles.full_name} has been approved and notified`,
         });
       } else {
-        // Log the rejection
-        await supabase.rpc('log_doctor_approval_action', {
-          p_doctor_profile_id: doctor.id,
-          p_action: 'rejected',
-          p_admin_user_id: user.id,
-          p_reason: rejectionReason
-        });
-
         // Delete the doctor profile for rejected applications
         const { error: deleteError } = await supabase
           .from('doctor_profiles')
