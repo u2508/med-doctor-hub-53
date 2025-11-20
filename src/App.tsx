@@ -16,6 +16,7 @@ const LandingPage = lazy(() => import("@/components/LandingPage.tsx"));
 const UserSignIn = lazy(() => import("@/components/UserSignIn"));
 const DoctorRegistration = lazy(() => import("@/components/DoctorRegistration"));
 const DoctorDashboard = lazy(() => import("@/components/DoctorDashboard"));
+const AdminDashboard = lazy(() => import("@/components/AdminDashboard"));
 const DoctorProfile = lazy(() => import("@/pages/DoctorProfile"));
 const UserDashboard = lazy(() => import("@/components/UserDashboard"));
 const DoctorFinder = lazy(() => import("@/components/DoctorFinder"));
@@ -118,6 +119,7 @@ const App = () => {
               
               {/* Dashboard Routes */}
               <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
+              <Route path="/admin-dashboard" element={<AdminDashboard />} />
               <Route path="/doctor-profile" element={<DoctorProfile />} />
               <Route path="/user-dashboard" element={<UserDashboard user={user} />} />
               
