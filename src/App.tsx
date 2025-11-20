@@ -10,6 +10,8 @@ import type { Session, User as SupabaseUser } from '@supabase/supabase-js';
 // Lazy load components for better performance
 const Index = lazy(() => import("./pages/Index"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const LandingPage = lazy(() => import("@/components/LandingPage.tsx"));
 const UserSignIn = lazy(() => import("@/components/UserSignIn"));
 const DoctorRegistration = lazy(() => import("@/components/DoctorRegistration"));
@@ -106,10 +108,11 @@ const App = () => {
               <Route path="/" element={<LandingPage />} />
               {/* Medical Dashboard Routes */}
               <Route path="/doctor-portal" element={<Index />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               
               {/* Authentication Routes */}
               <Route path="/user-signin" element={<UserSignIn setUser={setUser} setUserType={handleSetUserType} />} />
-              
               <Route path="/doctor-registration" element={<DoctorRegistration setUser={setUser} setUserType={handleSetUserType} />} />
               
               {/* Dashboard Routes */}
