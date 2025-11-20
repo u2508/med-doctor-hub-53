@@ -391,7 +391,39 @@ const StressManagement = () => {
 
       {/* MAIN */}
       <main className="max-w-7xl mx-auto px-6 py-12 space-y-12">
-        
+
+        {/* Welcome Message and CTA */}
+        <motion.section
+          className="text-center py-12 px-8 rounded-2xl border border-slate-700/50 bg-slate-800/50 backdrop-blur-xl shadow-2xl"
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+        >
+          <div className="flex justify-center mb-6">
+            <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-cyan-400 rounded-2xl flex items-center justify-center shadow-md">
+              <Heart className="w-8 h-8 text-white" />
+            </div>
+          </div>
+          <h2 className="text-3xl font-bold text-cyan-300 mb-4">Welcome to Stress Management</h2>
+          <p className="text-slate-400 max-w-2xl mx-auto mb-8">
+            Take a moment to breathe, relax, and find your inner peace. Choose from guided breathing exercises, soothing audio tracks, or practical stress tips to help you unwind.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <button
+              onClick={startBreathingExercise}
+              className="px-8 py-3 bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-cyan-500/25"
+            >
+              Start Breathing Exercise
+            </button>
+            <button
+              onClick={() => document.getElementById('audio-section').scrollIntoView({ behavior: 'smooth' })}
+              className="px-8 py-3 bg-slate-700/50 hover:bg-slate-600/50 rounded-xl font-medium transition-all duration-200"
+            >
+              Explore Audio Library
+            </button>
+          </div>
+        </motion.section>
+
         {/* Breathing Section */}
         <motion.section
           className="p-8 rounded-2xl border border-slate-700/50 bg-slate-800/50 backdrop-blur-xl shadow-2xl"
@@ -472,6 +504,7 @@ const StressManagement = () => {
 
         {/* Audio Player */}
         <motion.section
+          id="audio-section"
           className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-slate-700/50"
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
