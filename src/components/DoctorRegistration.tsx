@@ -193,16 +193,8 @@ const DoctorRegistration: React.FC<DoctorRegistrationProps> = ({ setUser, setUse
         throw new Error('User creation failed');
       }
 
-      // Ensure session is established before proceeding
-      if (authData.session) {
-        await supabase.auth.setSession({
-          access_token: authData.session.access_token,
-          refresh_token: authData.session.refresh_token,
-        });
-      }
-
-      // Wait a moment for the trigger to create the profile and session to be fully established
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Wait a moment for the trigger to create the profile
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Step 2: Upload ID document
       let idDocumentPath = null;
@@ -277,7 +269,7 @@ const DoctorRegistration: React.FC<DoctorRegistrationProps> = ({ setUser, setUse
       });
 
       // Redirect to sign in page
-      navigate('/doctor-portal');
+      navigate('/user-signin');
       
     } catch (error: any) {
       console.warn('Registration failed');
