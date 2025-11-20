@@ -9,6 +9,32 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Progress } from "@/components/ui/progress";
+import { z } from "zod";
+
+// Validation schemas
+const step1Schema = z.object({
+  fullName: z.string().trim().min(2, "Full name must be at least 2 characters").max(100, "Full name is too long"),
+  email: z.string().trim().email("Please enter a valid email address").max(255, "Email is too long"),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number")
+    .regex(/[@$!%*?&]/, "Password must contain at least one special character"),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
+const step2Schema = z.object({
+  specialty: z.string().trim().min(2, "Specialty is required").max(100, "Specialty is too long"),
+  licenseNumber: z.string().trim().min(3, "License number is required").max(50, "License number is too long"),
+  yearsExperience: z.string().regex(/^\d+$/, "Must be a valid number").optional().or(z.literal("")),
+  hospitalAffiliation: z.string().trim().max(200, "Hospital affiliation is too long").optional().or(z.literal("")),
+  phoneNumber: z.string().trim().regex(/^[+]?[(]?[0-9]{1,4}[)]?[-\s.]?[(]?[0-9]{1,4}[)]?[-\s.]?[0-9]{1,9}$/, "Please enter a valid phone number").optional().or(z.literal("")),
+});
 
 interface DoctorRegistrationProps {
   setUser?: (user: any) => void;
@@ -109,24 +135,31 @@ const DoctorRegistration: React.FC<DoctorRegistrationProps> = ({ setUser, setUse
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Strong password validation
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-    if (!passwordRegex.test(formData.password)) {
-      toast({
-        title: "Weak Password",
-        description: "Password must be at least 8 characters with uppercase, lowercase, number, and special character.",
-        variant: "destructive"
+    // Validate all steps
+    try {
+      step1Schema.parse({
+        fullName: formData.fullName,
+        email: formData.email,
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
       });
-      return;
-    }
 
-    if (formData.password !== formData.confirmPassword) {
-      toast({
-        title: "Password Mismatch",
-        description: "Passwords don't match!",
-        variant: "destructive"
+      step2Schema.parse({
+        specialty: formData.specialty,
+        licenseNumber: formData.licenseNumber,
+        yearsExperience: formData.yearsExperience,
+        hospitalAffiliation: formData.hospitalAffiliation,
+        phoneNumber: formData.phoneNumber,
       });
-      return;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast({
+          title: "Validation Error",
+          description: error.errors[0].message,
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     if (!uploadedFile) {
@@ -237,24 +270,48 @@ const DoctorRegistration: React.FC<DoctorRegistrationProps> = ({ setUser, setUse
   };
 
   const nextStep = () => {
+    // Validate current step before proceeding
     if (step === 1) {
-      if (!formData.fullName || !formData.email || !formData.password || !formData.confirmPassword) {
-        toast({
-          title: "Missing Information",
-          description: "Please fill in all required fields",
-          variant: "destructive"
+      try {
+        step1Schema.parse({
+          fullName: formData.fullName,
+          email: formData.email,
+          password: formData.password,
+          confirmPassword: formData.confirmPassword,
         });
-        return;
-      }
-      if (formData.password !== formData.confirmPassword) {
-        toast({
-          title: "Password Mismatch",
-          description: "Passwords don't match!",
-          variant: "destructive"
-        });
-        return;
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          toast({
+            title: "Validation Error",
+            description: error.errors[0].message,
+            variant: "destructive",
+          });
+          return;
+        }
       }
     }
+
+    if (step === 2) {
+      try {
+        step2Schema.parse({
+          specialty: formData.specialty,
+          licenseNumber: formData.licenseNumber,
+          yearsExperience: formData.yearsExperience,
+          hospitalAffiliation: formData.hospitalAffiliation,
+          phoneNumber: formData.phoneNumber,
+        });
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          toast({
+            title: "Validation Error",
+            description: error.errors[0].message,
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+    }
+
     setStep(step + 1);
   };
 
