@@ -84,27 +84,52 @@ const AdminDashboard: React.FC = () => {
     try {
       setLoading(true);
 
-      // Fetch pending doctor registrations with profiles
+      // Fetch pending doctor registrations
       const { data: pendingData, error: pendingError } = await supabase
         .from('doctor_profiles')
-        .select('*, profiles!inner(*)')
+        .select('*')
         .eq('is_approved', false)
         .order('created_at', { ascending: false });
 
       if (pendingError) throw pendingError;
 
-      // Fetch approved doctors with profiles
+      // Fetch approved doctors
       const { data: approvedData, error: approvedError } = await supabase
         .from('doctor_profiles')
-        .select('*, profiles!inner(*)')
+        .select('*')
         .eq('is_approved', true)
         .order('approved_at', { ascending: false })
         .limit(50);
 
       if (approvedError) throw approvedError;
 
-      setPendingDoctors(pendingData || []);
-      setApprovedDoctors(approvedData || []);
+      // Fetch profiles for pending doctors
+      const pendingUserIds = pendingData?.map(d => d.user_id) || [];
+      const { data: pendingProfiles } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, email, phone')
+        .in('user_id', pendingUserIds);
+
+      // Fetch profiles for approved doctors
+      const approvedUserIds = approvedData?.map(d => d.user_id) || [];
+      const { data: approvedProfiles } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, email, phone')
+        .in('user_id', approvedUserIds);
+
+      // Merge profiles with doctor data
+      const pendingWithProfiles = pendingData?.map(doc => ({
+        ...doc,
+        profiles: pendingProfiles?.find(p => p.user_id === doc.user_id) || { full_name: '', email: '', phone: null }
+      })) || [];
+
+      const approvedWithProfiles = approvedData?.map(doc => ({
+        ...doc,
+        profiles: approvedProfiles?.find(p => p.user_id === doc.user_id) || { full_name: '', email: '', phone: null }
+      })) || [];
+
+      setPendingDoctors(pendingWithProfiles);
+      setApprovedDoctors(approvedWithProfiles);
     } catch (error: any) {
       console.error('Error fetching data:', error);
       toast({
@@ -146,13 +171,6 @@ const AdminDashboard: React.FC = () => {
           .eq('id', doctor.id);
 
         if (updateError) throw updateError;
-
-        // Log the action
-        await supabase.rpc('log_doctor_approval_action', {
-          p_doctor_profile_id: doctor.id,
-          p_action: 'approved',
-          p_admin_user_id: user.id
-        });
 
         // Notify the doctor
         await supabase.functions.invoke('notify-doctor-approval', {
