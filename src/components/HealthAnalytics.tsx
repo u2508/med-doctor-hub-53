@@ -50,12 +50,11 @@ export default function HealthAnalytics() {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        toast({
-          title: "Authentication Required",
-          description: "Please sign in to view your health analytics",
-          variant: "destructive",
-        });
-        navigate("/user-signin");
+        setLoading(false);
+        // Wait 5 seconds before redirecting
+        setTimeout(() => {
+          navigate("/user-signin");
+        }, 5000);
         return;
       }
 
@@ -63,7 +62,10 @@ export default function HealthAnalytics() {
       await fetchHealthData(user.id);
     } catch (error) {
       console.error("Error checking auth:", error);
-      navigate("/user-signin");
+      setLoading(false);
+      setTimeout(() => {
+        navigate("/user-signin");
+      }, 5000);
     } finally {
       setLoading(false);
     }
@@ -136,6 +138,36 @@ export default function HealthAnalytics() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // Show sign in required message if no user
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-background to-background/80 flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+        >
+          <Card className="max-w-md w-full shadow-elegant">
+            <CardHeader className="text-center space-y-4">
+              <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto">
+                <AlertCircle className="h-8 w-8 text-destructive" />
+              </div>
+              <CardTitle className="text-2xl">Sign In Required</CardTitle>
+              <CardDescription className="text-base">
+                You need to be signed in to view your health analytics.
+                Redirecting you to sign in page in 5 seconds...
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex justify-center">
+              <Button onClick={() => navigate("/user-signin")}>
+                Sign In Now
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
     );
   }
