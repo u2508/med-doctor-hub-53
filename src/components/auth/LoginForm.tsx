@@ -151,7 +151,11 @@ export function LoginForm({ onLogin, loading = false }: LoginFormProps) {
               </Button>
               
               <div className="flex items-center justify-between text-sm">
-                <Button variant="link" className="text-sm p-0 h-auto">
+                <Button 
+                  variant="link" 
+                  className="text-sm p-0 h-auto"
+                  onClick={() => navigate('/forgot-password')}
+                >
                   Forgot Password?
                 </Button>
                 <span className="text-muted-foreground">•</span>
