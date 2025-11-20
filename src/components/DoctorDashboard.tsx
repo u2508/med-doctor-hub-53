@@ -1,14 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, Calendar, DollarSign, Star, Users, Clock, FileText, LogOut, User, Stethoscope, TrendingUp } from 'lucide-react';
+import { Calendar, Users, Clock, FileText, LogOut, User, Stethoscope, TrendingUp, Activity, CheckCircle2, XCircle, ClockIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -42,7 +38,12 @@ const DoctorDashboard = () => {
   const [profile, setProfile] = useState<DoctorProfile | null>(null);
   const [doctorDetails, setDoctorDetails] = useState<DoctorDetails | null>(null);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [isEditing, setIsEditing] = useState(false);
+  const [stats, setStats] = useState({
+    total: 0,
+    completed: 0,
+    upcoming: 0,
+    cancelled: 0
+  });
 
   useEffect(() => {
     fetchDoctorData();
@@ -91,6 +92,21 @@ const DoctorDashboard = () => {
         console.error('Error fetching appointments:', appointmentsError);
       } else if (appointmentsData) {
         setAppointments(appointmentsData);
+        
+        // Calculate stats
+        const now = new Date();
+        const completed = appointmentsData.filter(apt => apt.status === 'completed').length;
+        const upcoming = appointmentsData.filter(apt => 
+          apt.status === 'scheduled' && new Date(apt.appointment_date) > now
+        ).length;
+        const cancelled = appointmentsData.filter(apt => apt.status === 'cancelled').length;
+        
+        setStats({
+          total: appointmentsData.length,
+          completed,
+          upcoming,
+          cancelled
+        });
       }
     } catch (error) {
       console.error('Error fetching doctor data:', error);
