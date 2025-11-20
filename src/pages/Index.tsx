@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { LoginForm } from "@/components/auth/LoginForm";
@@ -9,6 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Heart, ArrowLeft, Stethoscope, ShieldCheck, Activity } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import type { User } from "@supabase/supabase-js";
 
 type AppState = "login" | "dashboard" | "patient-details";
 
@@ -21,29 +23,55 @@ const fadeVariants = {
 const Index = () => {
   const [currentState, setCurrentState] = useState<AppState>("login");
   const [selectedPatientId, setSelectedPatientId] = useState<string>("");
+  const [user, setUser] = useState<User | null>(null);
   const [doctorName, setDoctorName] = useState<string>("");
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // --- Core functions remain unchanged ---
-  const handleLogin = (email: string, password: string) => {
-    if (email && password) {
-      setDoctorName("Dr. Sarah Wilson");
-      setCurrentState("dashboard");
-      toast({
-        title: "Login Successful",
-        description: "Welcome to MediCare Portal",
-      });
-    } else {
-      toast({
-        title: "Login Failed",
-        description: "Please check your credentials",
-        variant: "destructive",
-      });
+  // Check authentication status
+  useEffect(() => {
+    // Check current session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser(session.user);
+        loadDoctorProfile(session.user.id);
+      }
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        setUser(session.user);
+        loadDoctorProfile(session.user.id);
+        setCurrentState("dashboard");
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setDoctorName("");
+        setCurrentState("login");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const loadDoctorProfile = async (userId: string) => {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('user_id', userId)
+        .single();
+      
+      if (profile?.full_name) {
+        setDoctorName(profile.full_name);
+      }
+    } catch (error) {
+      console.error('Error loading doctor profile:', error);
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     setCurrentState("login");
     setDoctorName("");
     setSelectedPatientId("");
@@ -194,7 +222,7 @@ const Index = () => {
                   </div>
               </CardHeader>
               <CardContent>
-                <LoginForm onLogin={handleLogin} />
+                <LoginForm />
               </CardContent>
             </Card>
           </motion.div>
