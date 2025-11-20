@@ -230,6 +230,21 @@ const DoctorRegistration: React.FC<DoctorRegistrationProps> = ({ setUser, setUse
             years_experience: parseInt(formData.yearsExperience) || null,
             hospital_affiliation: formData.hospitalAffiliation || null,
           }));
+        } else {
+          // Step 3.5: Notify admins about new doctor registration
+          try {
+            await supabase.functions.invoke('notify-admins-doctor-registration', {
+              body: {
+                doctorName: formData.fullName,
+                doctorEmail: formData.email,
+                specialty: formData.specialty,
+                licenseNumber: formData.licenseNumber,
+              }
+            });
+          } catch (notifyError) {
+            console.error('Failed to notify admins:', notifyError);
+            // Don't fail registration if notification fails
+          }
         }
 
         // Step 4: Update user profile with phone
@@ -249,8 +264,8 @@ const DoctorRegistration: React.FC<DoctorRegistrationProps> = ({ setUser, setUse
 
       toast({
         title: "Registration Submitted!",
-        description: "Please check your email to verify your account. After verification, you can sign in and complete your profile.",
-        duration: 8000,
+        description: "Please check your email to verify your account. Your registration will be reviewed by our admin team for approval before you can access the portal.",
+        duration: 10000,
       });
 
       // Redirect to sign in page

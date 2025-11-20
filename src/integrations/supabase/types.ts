@@ -55,9 +55,12 @@ export type Database = {
       }
       doctor_profiles: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
           created_at: string
           hospital_affiliation: string | null
           id: string
+          is_approved: boolean
           license_number: string
           specialty: string
           updated_at: string
@@ -65,9 +68,12 @@ export type Database = {
           years_experience: number | null
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           hospital_affiliation?: string | null
           id?: string
+          is_approved?: boolean
           license_number: string
           specialty: string
           updated_at?: string
@@ -75,9 +81,12 @@ export type Database = {
           years_experience?: number | null
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           hospital_affiliation?: string | null
           id?: string
+          is_approved?: boolean
           license_number?: string
           specialty?: string
           updated_at?: string

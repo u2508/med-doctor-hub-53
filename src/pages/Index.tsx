@@ -56,6 +56,35 @@ const Index = () => {
 
   const loadDoctorProfile = async (userId: string) => {
     try {
+      // Check if user is a doctor and if they're approved
+      const { data: userRole } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .single();
+
+      if (userRole?.role === 'doctor') {
+        // Check approval status
+        const { data: doctorProfile } = await supabase
+          .from('doctor_profiles')
+          .select('is_approved')
+          .eq('user_id', userId)
+          .single();
+
+        if (doctorProfile && !doctorProfile.is_approved) {
+          // Doctor is not approved yet
+          await supabase.auth.signOut();
+          toast({
+            title: "Pending Approval",
+            description: "Your registration is under review. You'll receive an email once approved by our admin team.",
+            variant: "destructive",
+            duration: 8000,
+          });
+          setCurrentState("login");
+          return;
+        }
+      }
+
       const { data: profile } = await supabase
         .from('profiles')
         .select('full_name')
