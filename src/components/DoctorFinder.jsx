@@ -309,11 +309,11 @@ const DoctorFinder = () => {
         {/* Search and Filter Bar */}
         <div className="mb-10">
           <div className="flex flex-col lg:flex-row gap-4 items-center">
-            <div className="relative flex-1 w-full h-7">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-4" />
+            <div className="relative flex-1 w-full">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
               <input
                 type="text"
-                placeholder="   Search doctors by name, specialty, or location..."
+                placeholder="Search doctors by name, specialty, or location..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-12 pr-4 py-3.5 bg-card border border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-all shadow-sm text-foreground placeholder:text-muted-foreground"
