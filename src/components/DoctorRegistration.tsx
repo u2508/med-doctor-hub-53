@@ -270,7 +270,7 @@ const DoctorRegistration: React.FC<DoctorRegistrationProps> = ({ setUser, setUse
       });
 
       // Redirect to sign in page
-      navigate('/user-signin');
+      navigate('/doctor-portal');
       
     } catch (error: any) {
       console.warn('Registration failed');
