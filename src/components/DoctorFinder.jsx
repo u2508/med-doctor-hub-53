@@ -196,7 +196,7 @@ const DoctorFinder = () => {
           patient_id: currentUser.id,
           doctor_id: selectedDoctor.id,
           appointment_date: appointmentDateTime.toISOString(),
-          status: 'pending',
+          status: 'scheduled',
           notes: bookingNotes || null
         });
 
