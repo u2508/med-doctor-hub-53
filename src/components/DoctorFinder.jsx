@@ -45,36 +45,50 @@ const DoctorFinder = () => {
       try {
         setLoading(true);
         
-        // Fetch doctors from Supabase
+        // Fetch approved doctors
         const { data: doctorProfiles, error } = await supabase
           .from('doctor_profiles')
-          .select(`
-            *,
-            profiles:user_id (
-              full_name,
-              phone,
-              email
-            )
-          `)
+          .select('*')
           .eq('is_approved', true);
 
         if (error) throw error;
 
+        if (!doctorProfiles || doctorProfiles.length === 0) {
+          setDoctors([]);
+          setFilteredDoctors([]);
+          setLoading(false);
+          return;
+        }
+
+        // Fetch corresponding profiles for doctor names and contact
+        const userIds = doctorProfiles.map((doctor) => doctor.user_id);
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('user_id, full_name, phone, email')
+          .in('user_id', userIds);
+
+        if (profilesError) throw profilesError;
+
+        const profileMap = new Map((profilesData || []).map((profile) => [profile.user_id, profile]));
+
         // Transform data to match component structure
-        const transformedDoctors = doctorProfiles?.map((doctor) => ({
-          id: doctor.user_id,
-          name: doctor.profiles?.full_name || 'Doctor',
-          specialty: doctor.specialty,
-          experience: doctor.years_experience || 0,
-          fee: 150, // Default fee, can be added to doctor_profiles later
-          consultationType: 'video',
-          rating: 4.8,
-          reviews: Math.floor(Math.random() * 500) + 50,
-          image: "/placeholder.svg",
-          location: doctor.hospital_affiliation || "Not specified",
-          availability: "Available",
-          licenseNumber: doctor.license_number
-        })) || [];
+        const transformedDoctors = doctorProfiles.map((doctor) => {
+          const profile = profileMap.get(doctor.user_id);
+          return {
+            id: doctor.user_id,
+            name: profile?.full_name || 'Doctor',
+            specialty: doctor.specialty,
+            experience: doctor.years_experience || 0,
+            fee: 150, // Default fee, can be added to doctor_profiles later
+            consultationType: 'video',
+            rating: 4.8,
+            reviews: Math.floor(Math.random() * 500) + 50,
+            image: '/placeholder.svg',
+            location: doctor.hospital_affiliation || 'Not specified',
+            availability: 'Available',
+            licenseNumber: doctor.license_number,
+          };
+        });
 
         setDoctors(transformedDoctors);
         setFilteredDoctors(transformedDoctors);
