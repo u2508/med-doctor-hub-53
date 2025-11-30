@@ -65,7 +65,10 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
             });
             
             // Redirect based on user role
-            if (profile?.role === 'doctor') {
+            if (profile?.role === 'admin') {
+              setUserType('user');
+              navigate('/admin-dashboard');
+            } else if (profile?.role === 'doctor') {
               setUserType('doctor');
               navigate('/doctor-dashboard');
             } else {
@@ -96,7 +99,10 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
         });
         
         // Redirect based on user role
-        if (profile?.role === 'doctor') {
+        if (profile?.role === 'admin') {
+          setUserType('user');
+          navigate('/admin-dashboard');
+        } else if (profile?.role === 'doctor') {
           setUserType('doctor');
           navigate('/doctor-dashboard');
         } else {
