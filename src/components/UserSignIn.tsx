@@ -223,7 +223,7 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
       const { error } = await supabase.auth.signInWithOtp({
         email: magicLinkEmail,
         options: {
-          emailRedirectTo: `${window.location.origin}/user-dashboard`,
+          emailRedirectTo: `${window.location.origin}/user-signin`,
         }
       });
 
@@ -251,7 +251,7 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/user-dashboard`,
+          redirectTo: `${window.location.origin}/user-signin`,
         }
       });
 
