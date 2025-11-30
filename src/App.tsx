@@ -16,6 +16,7 @@ const LandingPage = lazy(() => import("@/components/LandingPage.tsx"));
 const UserSignIn = lazy(() => import("@/components/UserSignIn"));
 const DoctorRegistration = lazy(() => import("@/components/DoctorRegistration"));
 const DoctorDashboard = lazy(() => import("@/components/DoctorDashboard"));
+const AppointmentHistory = lazy(() => import("@/components/doctor/AppointmentHistory"));
 const AdminDashboard = lazy(() => import("@/components/AdminDashboard"));
 const DoctorProfile = lazy(() => import("@/pages/DoctorProfile"));
 const UserDashboard = lazy(() => import("@/components/UserDashboard"));
@@ -119,7 +120,8 @@ const App = () => {
               <Route path="/doctor-registration" element={<DoctorRegistration setUser={setUser} setUserType={handleSetUserType} />} />
               
               {/* Dashboard Routes */}
-              <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
+          <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
+          <Route path="/appointment-history" element={<AppointmentHistory />} />
               <Route path="/admin-dashboard" element={<AdminDashboard />} />
               <Route path="/doctor-profile" element={<DoctorProfile />} />
               <Route path="/user-dashboard" element={<UserDashboard user={user} />} />

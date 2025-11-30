@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Users, Clock, FileText, LogOut, User, Stethoscope, TrendingUp, Activity, CheckCircle2, XCircle, ClockIcon, Heart, Star } from 'lucide-react';
+import { Calendar, Users, Clock, FileText, LogOut, User, Stethoscope, TrendingUp, Activity, CheckCircle2, XCircle, ClockIcon, Heart, Star, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -9,8 +9,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { PatientDetailsDialog } from '@/components/doctor/PatientDetailsDialog';
 
 interface DoctorProfile {
   full_name: string;
@@ -55,6 +57,10 @@ const DoctorDashboard = () => {
     upcoming: 0,
     cancelled: 0
   });
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
+  const [selectedAppointmentStatus, setSelectedAppointmentStatus] = useState<string>('');
+  const [editingAppointmentId, setEditingAppointmentId] = useState<string | null>(null);
+  const [appointmentUpdates, setAppointmentUpdates] = useState<{[key: string]: {diagnosis: string, prescription: string}}>({});
 
   useEffect(() => {
     fetchDoctorData();
@@ -267,60 +273,52 @@ const DoctorDashboard = () => {
     await handleUpdateAppointmentStatus(appointmentId, 'completed');
   };
 
-  const handleViewPatientDetails = async (patientId: string, appointmentStatus: string) => {
-    // Only allow viewing detailed patient data for confirmed appointments
-    if (appointmentStatus !== 'confirmed') {
-      toast({
-        title: 'Access Restricted',
-        description: 'Patient details are only available for confirmed appointments',
-        variant: 'destructive'
-      });
-      return;
-    }
+  const handleViewPatientDetails = (patientId: string, appointmentStatus: string) => {
+    setSelectedPatientId(patientId);
+    setSelectedAppointmentStatus(appointmentStatus);
+  };
+
+  const handleUpdateAppointmentDetails = async (appointmentId: string) => {
+    const updates = appointmentUpdates[appointmentId];
+    if (!updates) return;
 
     try {
-      const { data: patientData, error } = await supabase
-        .from('patients')
-        .select('*')
-        .eq('user_id', patientId)
-        .maybeSingle();
+      const { error } = await supabase
+        .from('appointments')
+        .update({
+          diagnosis: updates.diagnosis,
+          prescription: updates.prescription
+        })
+        .eq('id', appointmentId);
 
-      if (error) {
-        throw error;
-      }
-
-      if (!patientData) {
-        toast({
-          title: 'No Patient Data',
-          description: 'Patient has not completed their medical profile',
-        });
-        return;
-      }
-
-      // Show detailed patient information
-      const details = [
-        patientData.date_of_birth ? `DOB: ${new Date(patientData.date_of_birth).toLocaleDateString()}` : null,
-        patientData.gender ? `Gender: ${patientData.gender}` : null,
-        patientData.blood_type ? `Blood Type: ${patientData.blood_type}` : null,
-        patientData.allergies?.length ? `Allergies: ${patientData.allergies.join(', ')}` : null,
-        patientData.current_medications?.length ? `Medications: ${patientData.current_medications.join(', ')}` : null,
-        patientData.emergency_contact_name ? `Emergency Contact: ${patientData.emergency_contact_name}` : null,
-        patientData.emergency_contact_phone ? `Emergency Phone: ${patientData.emergency_contact_phone}` : null,
-      ].filter(Boolean).join('\n');
+      if (error) throw error;
 
       toast({
-        title: 'Patient Medical Details',
-        description: details || 'No additional medical information available',
-        duration: 10000,
+        title: 'Success',
+        description: 'Appointment details updated successfully'
       });
+
+      setEditingAppointmentId(null);
+      fetchDoctorData();
     } catch (error) {
-      console.error('Error fetching patient details:', error);
+      console.error('Error updating appointment details:', error);
       toast({
-        title: 'Access Denied',
-        description: 'Unable to access patient details. Ensure the appointment is confirmed and within 7 days.',
+        title: 'Error',
+        description: 'Failed to update appointment details',
         variant: 'destructive'
       });
     }
+  };
+
+  const initializeAppointmentEdit = (appointment: Appointment) => {
+    setEditingAppointmentId(appointment.id);
+    setAppointmentUpdates(prev => ({
+      ...prev,
+      [appointment.id]: {
+        diagnosis: appointment.diagnosis || '',
+        prescription: appointment.prescription || ''
+      }
+    }));
   };
 
   if (loading) {
@@ -350,14 +348,24 @@ const DoctorDashboard = () => {
               </div>
             </div>
             
-            <Button 
-              onClick={handleSignOut}
-              variant="outline"
-              className="gap-2"
-            >
-              <LogOut className="w-4 h-4" />
-              Sign Out
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                onClick={() => navigate('/appointment-history')}
+                variant="outline"
+                className="gap-2"
+              >
+                <History className="w-4 h-4" />
+                History
+              </Button>
+              <Button 
+                onClick={handleSignOut}
+                variant="outline"
+                className="gap-2"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign Out
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -656,13 +664,85 @@ const DoctorDashboard = () => {
                                   {appointment.status}
                                 </Badge>
                               </div>
+
+                              {/* Diagnosis and Prescription Section */}
+                              {editingAppointmentId === appointment.id ? (
+                                <div className="space-y-3 pt-3 border-t border-border">
+                                  <div className="space-y-2">
+                                    <Label htmlFor={`diagnosis-${appointment.id}`}>Diagnosis</Label>
+                                    <Textarea
+                                      id={`diagnosis-${appointment.id}`}
+                                      placeholder="Enter diagnosis..."
+                                      value={appointmentUpdates[appointment.id]?.diagnosis || ''}
+                                      onChange={(e) => setAppointmentUpdates(prev => ({
+                                        ...prev,
+                                        [appointment.id]: {
+                                          ...prev[appointment.id],
+                                          diagnosis: e.target.value
+                                        }
+                                      }))}
+                                      rows={2}
+                                    />
+                                  </div>
+                                  <div className="space-y-2">
+                                    <Label htmlFor={`prescription-${appointment.id}`}>Prescription</Label>
+                                    <Textarea
+                                      id={`prescription-${appointment.id}`}
+                                      placeholder="Enter prescription details..."
+                                      value={appointmentUpdates[appointment.id]?.prescription || ''}
+                                      onChange={(e) => setAppointmentUpdates(prev => ({
+                                        ...prev,
+                                        [appointment.id]: {
+                                          ...prev[appointment.id],
+                                          prescription: e.target.value
+                                        }
+                                      }))}
+                                      rows={3}
+                                    />
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleUpdateAppointmentDetails(appointment.id)}
+                                    >
+                                      Save Details
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => setEditingAppointmentId(null)}
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <>
+                                  {(appointment.diagnosis || appointment.prescription) && (
+                                    <div className="space-y-2 pt-3 border-t border-border text-sm">
+                                      {appointment.diagnosis && (
+                                        <div>
+                                          <span className="font-medium text-foreground">Diagnosis: </span>
+                                          <span className="text-muted-foreground">{appointment.diagnosis}</span>
+                                        </div>
+                                      )}
+                                      {appointment.prescription && (
+                                        <div>
+                                          <span className="font-medium text-foreground">Prescription: </span>
+                                          <span className="text-muted-foreground">{appointment.prescription}</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </>
+                              )}
                               
                               <div className="flex flex-wrap items-center gap-2">
                                 <Select
                                   value={appointment.status}
                                   onValueChange={(value) => handleUpdateAppointmentStatus(appointment.id, value)}
                                 >
-                                  <SelectTrigger className="w-[160px]">
+                                  <SelectTrigger className="w-[140px]">
                                     <SelectValue placeholder="Update Status" />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -672,14 +752,24 @@ const DoctorDashboard = () => {
                                     <SelectItem value="cancelled">Cancelled</SelectItem>
                                   </SelectContent>
                                 </Select>
+
+                                {editingAppointmentId !== appointment.id && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => initializeAppointmentEdit(appointment)}
+                                  >
+                                    <FileText className="w-4 h-4 mr-1" />
+                                    Add Details
+                                  </Button>
+                                )}
                                 
                                 <Button
                                   size="sm"
                                   variant={appointment.status === 'confirmed' ? 'default' : 'outline'}
                                   onClick={() => handleViewPatientDetails(appointment.patient_id, appointment.status)}
-                                  disabled={appointment.status !== 'confirmed'}
                                 >
-                                  View Details
+                                  View Patient
                                 </Button>
                                 
                                 {appointment.status !== 'cancelled' && appointment.status !== 'completed' && (
@@ -704,6 +794,14 @@ const DoctorDashboard = () => {
            </div>
          </div>
        </main>
+
+       {/* Patient Details Dialog */}
+       <PatientDetailsDialog
+         isOpen={!!selectedPatientId}
+         onClose={() => setSelectedPatientId(null)}
+         patientId={selectedPatientId || ''}
+         appointmentStatus={selectedAppointmentStatus}
+       />
      </div>
    );
  };
