@@ -191,9 +191,97 @@ const DoctorDashboard = () => {
     return aptDate === today;
   }).length;
 
+  const pendingAppointments = appointments.filter(apt => apt.status === 'pending');
+  
   const upcomingAppointments = appointments.filter(apt => 
-    new Date(apt.appointment_date) > new Date()
+    apt.status === 'confirmed' && new Date(apt.appointment_date) > new Date()
   );
+
+  const handleApproveAppointment = async (appointmentId: string) => {
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .update({ status: 'confirmed' })
+        .eq('id', appointmentId);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Appointment Approved',
+        description: 'The patient will be notified'
+      });
+
+      fetchDoctorData();
+    } catch (error) {
+      console.error('Error approving appointment:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to approve appointment',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleDenyAppointment = async (appointmentId: string) => {
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .update({ status: 'cancelled' })
+        .eq('id', appointmentId);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Appointment Denied',
+        description: 'The appointment has been cancelled'
+      });
+
+      fetchDoctorData();
+    } catch (error) {
+      console.error('Error denying appointment:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to deny appointment',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleViewPatientDetails = async (patientId: string) => {
+    try {
+      const { data: patientData, error } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('user_id', patientId)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          toast({
+            title: 'No Patient Data',
+            description: 'Patient profile not found',
+            variant: 'destructive'
+          });
+        } else {
+          throw error;
+        }
+        return;
+      }
+
+      // Show patient details in a dialog or navigate to details page
+      toast({
+        title: 'Patient Details',
+        description: `Viewing details for patient ${patientId}`
+      });
+    } catch (error) {
+      console.error('Error fetching patient details:', error);
+      toast({
+        title: 'Access Denied',
+        description: 'You can only view patient details for confirmed appointments within 7 days',
+        variant: 'destructive'
+      });
+    }
+  };
 
   if (loading) {
     return (
@@ -295,8 +383,69 @@ const DoctorDashboard = () => {
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Doctor Profile Card */}
-          <div className="lg:col-span-1">
+          {/* Left Column */}
+          <div className="lg:col-span-1 space-y-6">
+            {/* Pending Appointments */}
+            {pendingAppointments.length > 0 && (
+              <Card className="border-border/50 shadow-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ClockIcon className="w-5 h-5 text-accent" />
+                    Pending Approvals
+                  </CardTitle>
+                  <CardDescription>
+                    Review and approve appointment requests
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {pendingAppointments.map((appointment) => (
+                      <Card key={appointment.id} className="border-accent/30 bg-accent/5">
+                        <CardContent className="p-4">
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2 text-sm">
+                              <Calendar className="w-4 h-4 text-muted-foreground" />
+                              <span className="font-medium">
+                                {new Date(appointment.appointment_date).toLocaleDateString()}
+                              </span>
+                              <span className="text-muted-foreground">
+                                {new Date(appointment.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                            {appointment.notes && (
+                              <p className="text-sm text-muted-foreground">
+                                {appointment.notes}
+                              </p>
+                            )}
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                onClick={() => handleApproveAppointment(appointment.id)}
+                                className="flex-1 gap-1"
+                              >
+                                <CheckCircle2 className="w-4 h-4" />
+                                Approve
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => handleDenyAppointment(appointment.id)}
+                                className="flex-1 gap-1"
+                              >
+                                <XCircle className="w-4 h-4" />
+                                Deny
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Doctor Profile Card */}
             <Card className="border-border/50 shadow-card">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -444,26 +593,35 @@ const DoctorDashboard = () => {
                               {appointment.notes && (
                                 <p className="text-sm text-muted-foreground flex items-start gap-2">
                                   <FileText className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                                  {appointment.notes}
-                                </p>
-                              )}
-                            </div>
-                            <Badge className={getStatusColor(appointment.status)}>
-                              {appointment.status}
-                            </Badge>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </main>
-    </div>
-  );
-};
-
-export default DoctorDashboard;
+                                   {appointment.notes}
+                                 </p>
+                               )}
+                             </div>
+                             <div className="flex items-center gap-2">
+                               <Badge className={getStatusColor(appointment.status)}>
+                                 {appointment.status}
+                               </Badge>
+                               <Button
+                                 size="sm"
+                                 variant="outline"
+                                 onClick={() => handleViewPatientDetails(appointment.patient_id)}
+                               >
+                                 View Patient
+                               </Button>
+                             </div>
+                           </div>
+                         </CardContent>
+                       </Card>
+                     ))}
+                   </div>
+                 )}
+               </CardContent>
+             </Card>
+           </div>
+         </div>
+       </main>
+     </div>
+   );
+ };
+ 
+ export default DoctorDashboard;

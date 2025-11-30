@@ -2,9 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Filter, Star, Clock, DollarSign, MapPin, Video, Building2, X, Heart, Calendar, Award } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 const DoctorFinder = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [doctors, setDoctors] = useState([]);
   const [filteredDoctors, setFilteredDoctors] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -16,85 +23,70 @@ const DoctorFinder = () => {
   });
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedDoctor, setSelectedDoctor] = useState(null);
+  const [showBookingDialog, setShowBookingDialog] = useState(false);
+  const [bookingDate, setBookingDate] = useState('');
+  const [bookingTime, setBookingTime] = useState('');
+  const [bookingNotes, setBookingNotes] = useState('');
+  const [currentUser, setCurrentUser] = useState(null);
 
-  // Fetch doctors from API
+  // Check authentication
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUser(user);
+    };
+    checkAuth();
+  }, []);
+
+  // Fetch doctors from Supabase
   useEffect(() => {
     const fetchDoctors = async () => {
       try {
         setLoading(true);
-        const response = await fetch('https://srijandubey.github.io/campus-api-mock/SRM-C1-25.json');
-        if (!response.ok) {
-          throw new Error('Failed to fetch doctors');
-        }
-        const data = await response.json();
         
-        // Transform data to match our component structure
-        const transformedDoctors = data.map((doctor, index) => ({
-          id: index + 1,
-          name: doctor.name,
-          specialty: doctor.specialization,
-          experience: doctor.experience,
-          fee: doctor.consultation_fee,
-          consultationType: doctor.consultation_type.toLowerCase(),
-          rating: doctor.rating,
-          image: doctor.image || "/placeholder.svg",
+        // Fetch doctors from Supabase
+        const { data: doctorProfiles, error } = await supabase
+          .from('doctor_profiles')
+          .select(`
+            *,
+            profiles:user_id (
+              full_name,
+              phone,
+              email
+            )
+          `)
+          .eq('is_approved', true);
+
+        if (error) throw error;
+
+        // Transform data to match component structure
+        const transformedDoctors = doctorProfiles?.map((doctor) => ({
+          id: doctor.user_id,
+          name: doctor.profiles?.full_name || 'Doctor',
+          specialty: doctor.specialty,
+          experience: doctor.years_experience || 0,
+          fee: 150, // Default fee, can be added to doctor_profiles later
+          consultationType: 'video',
+          rating: 4.8,
           reviews: Math.floor(Math.random() * 500) + 50,
-          location: doctor.location || "New York, NY",
-          availability: doctor.availability || "Available Today"
-        }));
-        
+          image: "/placeholder.svg",
+          location: doctor.hospital_affiliation || "Not specified",
+          availability: "Available",
+          licenseNumber: doctor.license_number
+        })) || [];
+
         setDoctors(transformedDoctors);
         setFilteredDoctors(transformedDoctors);
         setLoading(false);
       } catch (err) {
-        console.warn('Failed to fetch doctors');
+        console.error('Failed to fetch doctors:', err);
+        toast({
+          title: 'Error',
+          description: 'Failed to load doctors',
+          variant: 'destructive'
+        });
         setLoading(false);
-        
-        // Fallback to mock data if API fails
-        const mockDoctors = [
-          {
-            id: 1,
-            name: "Dr. Sarah Johnson",
-            specialty: "General Physician",
-            experience: 12,
-            fee: 150,
-            consultationType: "video",
-            rating: 4.8,
-            reviews: 234,
-            image: "/placeholder.svg",
-            location: "New York, NY",
-            availability: "Available Today"
-          },
-          {
-            id: 2,
-            name: "Dr. Michael Chen",
-            specialty: "Dermatologist",
-            experience: 8,
-            fee: 200,
-            consultationType: "clinic",
-            rating: 4.6,
-            reviews: 189,
-            image: "/placeholder.svg",
-            location: "San Francisco, CA",
-            availability: "Next Available: Tomorrow"
-          },
-          {
-            id: 3,
-            name: "Dr. Emily Rodriguez",
-            specialty: "Psychiatrist",
-            experience: 15,
-            fee: 250,
-            consultationType: "video",
-            rating: 4.9,
-            reviews: 312,
-            image: "/placeholder.svg",
-            location: "Los Angeles, CA",
-            availability: "Available Today"
-          }
-        ];
-        
-        setDoctors(mockDoctors);
-        setFilteredDoctors(mockDoctors);
       }
     };
 
@@ -152,6 +144,68 @@ const DoctorFinder = () => {
       priceRange: [0, 1000]
     });
     setSearchTerm('');
+  };
+
+  const handleBookAppointment = (doctor) => {
+    if (!currentUser) {
+      toast({
+        title: 'Authentication Required',
+        description: 'Please sign in to book an appointment',
+        variant: 'destructive'
+      });
+      navigate('/user-signin');
+      return;
+    }
+    setSelectedDoctor(doctor);
+    setShowBookingDialog(true);
+    // Set minimum date to today
+    const today = new Date().toISOString().split('T')[0];
+    setBookingDate(today);
+  };
+
+  const handleConfirmBooking = async () => {
+    if (!bookingDate || !bookingTime) {
+      toast({
+        title: 'Missing Information',
+        description: 'Please select date and time',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    try {
+      const appointmentDateTime = new Date(`${bookingDate}T${bookingTime}`);
+      
+      const { error } = await supabase
+        .from('appointments')
+        .insert({
+          patient_id: currentUser.id,
+          doctor_id: selectedDoctor.id,
+          appointment_date: appointmentDateTime.toISOString(),
+          status: 'pending',
+          notes: bookingNotes || null
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Appointment Requested',
+        description: 'Your appointment request has been sent to the doctor for approval'
+      });
+
+      setShowBookingDialog(false);
+      setBookingDate('');
+      setBookingTime('');
+      setBookingNotes('');
+      setSelectedDoctor(null);
+    } catch (error) {
+      console.error('Error booking appointment:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to book appointment. Please try again.',
+        variant: 'destructive'
+      });
+    }
   };
 
   const DoctorCard = ({ doctor }) => (
@@ -214,7 +268,10 @@ const DoctorFinder = () => {
           </div>
         </div>
 
-        <button className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white py-3 rounded-xl font-semibold hover:from-indigo-600 hover:to-purple-700 transition-all duration-300">
+        <button 
+          onClick={() => handleBookAppointment(doctor)}
+          className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white py-3 rounded-xl font-semibold hover:from-indigo-600 hover:to-purple-700 transition-all duration-300"
+        >
           Book Appointment
         </button>
       </div>
@@ -397,6 +454,63 @@ const DoctorFinder = () => {
           </div>
         )}
       </main>
+
+      {/* Booking Dialog */}
+      <Dialog open={showBookingDialog} onOpenChange={setShowBookingDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Book Appointment with {selectedDoctor?.name}</DialogTitle>
+            <DialogDescription>
+              Select your preferred date and time for the appointment
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="date">Date</Label>
+              <Input
+                id="date"
+                type="date"
+                value={bookingDate}
+                onChange={(e) => setBookingDate(e.target.value)}
+                min={new Date().toISOString().split('T')[0]}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="time">Time</Label>
+              <Input
+                id="time"
+                type="time"
+                value={bookingTime}
+                onChange={(e) => setBookingTime(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes (Optional)</Label>
+              <Input
+                id="notes"
+                placeholder="Any specific concerns or symptoms..."
+                value={bookingNotes}
+                onChange={(e) => setBookingNotes(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowBookingDialog(false)}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleConfirmBooking}
+              className="flex-1"
+            >
+              Confirm Booking
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
