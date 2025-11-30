@@ -1,7 +1,7 @@
 import React, { memo, useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Heart, UserCheck, MessageCircle, BarChart3, Clock, Loader2, Sparkles } from 'lucide-react';
+import { Heart, UserCheck, MessageCircle, BarChart3, Clock, Loader2, Sparkles, Calendar } from 'lucide-react';
 import { useUserActivity } from '@/hooks/useUserActivity';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -139,6 +139,12 @@ const UserDashboard = memo(({ user }: UserDashboardProps) => {
       description: 'Find and connect with qualified doctors for in-person or video consultations.',
       icon: <UserCheck className="w-8 h-8" />,
       path: '/doctor-finder'
+    },
+    {
+      title: 'My Appointments',
+      description: 'View and manage your scheduled appointments with doctors.',
+      icon: <Calendar className="w-8 h-8" />,
+      path: '/my-appointments'
     },
     {
       title: 'Mood Tracker',

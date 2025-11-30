@@ -19,6 +19,7 @@ const DoctorDashboard = lazy(() => import("@/components/DoctorDashboard"));
 const AdminDashboard = lazy(() => import("@/components/AdminDashboard"));
 const DoctorProfile = lazy(() => import("@/pages/DoctorProfile"));
 const UserDashboard = lazy(() => import("@/components/UserDashboard"));
+const PatientAppointments = lazy(() => import("@/components/PatientAppointments"));
 const DoctorFinder = lazy(() => import("@/components/DoctorFinder"));
 const MoodTracker = lazy(() => import("@/components/MoodTracker"));
 const Chatbot = lazy(() => import("@/components/Chatbot"));
@@ -125,6 +126,7 @@ const App = () => {
               
               {/* Mental Health Features */}
               <Route path="/doctor-finder" element={<DoctorFinder />} />
+              <Route path="/my-appointments" element={<PatientAppointments />} />
               <Route path="/mood-tracker" element={<MoodTracker />} />
               <Route path="/chatbot" element={<Chatbot />} />
               <Route path="/stress-management" element={<StressManagement />} />

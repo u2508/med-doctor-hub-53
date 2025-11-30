@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -175,11 +176,13 @@ const DoctorDashboard = () => {
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case 'confirmed':
-        return 'bg-primary/10 text-primary border-primary/20';
-      case 'pending':
-        return 'bg-accent/10 text-accent border-accent/20';
+        return 'bg-success/10 text-success border-success/20';
+      case 'scheduled':
+        return 'bg-warning/10 text-warning border-warning/20';
       case 'completed':
-        return 'bg-muted text-muted-foreground border-border';
+        return 'bg-primary/10 text-primary border-primary/20';
+      case 'cancelled':
+        return 'bg-destructive/10 text-destructive border-destructive/20';
       default:
         return 'bg-muted text-muted-foreground border-border';
     }
@@ -191,60 +194,58 @@ const DoctorDashboard = () => {
     return aptDate === today;
   }).length;
 
-  const pendingAppointments = appointments.filter(apt => apt.status === 'pending');
+  const pendingAppointments = appointments.filter(apt => apt.status === 'scheduled');
   
   const upcomingAppointments = appointments.filter(apt => 
-    apt.status === 'confirmed' && new Date(apt.appointment_date) > new Date()
+    (apt.status === 'confirmed' || apt.status === 'scheduled') && new Date(apt.appointment_date) > new Date()
   );
 
-  const handleApproveAppointment = async (appointmentId: string) => {
+  const handleUpdateAppointmentStatus = async (appointmentId: string, newStatus: string) => {
     try {
       const { error } = await supabase
         .from('appointments')
-        .update({ status: 'confirmed' })
+        .update({ status: newStatus })
         .eq('id', appointmentId);
 
       if (error) throw error;
 
+      const statusMessages = {
+        confirmed: 'Appointment Confirmed',
+        completed: 'Appointment Completed',
+        cancelled: 'Appointment Cancelled',
+        scheduled: 'Appointment Scheduled'
+      };
+
       toast({
-        title: 'Appointment Approved',
-        description: 'The patient will be notified'
+        title: statusMessages[newStatus as keyof typeof statusMessages] || 'Status Updated',
+        description: `Appointment status changed to ${newStatus}`
       });
 
       fetchDoctorData();
     } catch (error) {
-      console.error('Error approving appointment:', error);
+      console.error('Error updating appointment status:', error);
       toast({
         title: 'Error',
-        description: 'Failed to approve appointment',
+        description: 'Failed to update appointment status',
         variant: 'destructive'
       });
     }
   };
 
+  const handleApproveAppointment = async (appointmentId: string) => {
+    await handleUpdateAppointmentStatus(appointmentId, 'confirmed');
+  };
+
   const handleDenyAppointment = async (appointmentId: string) => {
-    try {
-      const { error } = await supabase
-        .from('appointments')
-        .update({ status: 'cancelled' })
-        .eq('id', appointmentId);
+    await handleUpdateAppointmentStatus(appointmentId, 'cancelled');
+  };
 
-      if (error) throw error;
+  const handleCancelAppointment = async (appointmentId: string) => {
+    await handleUpdateAppointmentStatus(appointmentId, 'cancelled');
+  };
 
-      toast({
-        title: 'Appointment Denied',
-        description: 'The appointment has been cancelled'
-      });
-
-      fetchDoctorData();
-    } catch (error) {
-      console.error('Error denying appointment:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to deny appointment',
-        variant: 'destructive'
-      });
-    }
+  const handleCompleteAppointment = async (appointmentId: string) => {
+    await handleUpdateAppointmentStatus(appointmentId, 'completed');
   };
 
   const handleViewPatientDetails = async (patientId: string) => {
@@ -385,22 +386,22 @@ const DoctorDashboard = () => {
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Left Column */}
           <div className="lg:col-span-1 space-y-6">
-            {/* Pending Appointments */}
+            {/* Scheduled Appointments */}
             {pendingAppointments.length > 0 && (
               <Card className="border-border/50 shadow-card">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <ClockIcon className="w-5 h-5 text-accent" />
-                    Pending Approvals
+                    <ClockIcon className="w-5 h-5 text-warning" />
+                    Scheduled Appointments
                   </CardTitle>
                   <CardDescription>
-                    Review and approve appointment requests
+                    Review and confirm appointment requests
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     {pendingAppointments.map((appointment) => (
-                      <Card key={appointment.id} className="border-accent/30 bg-accent/5">
+                      <Card key={appointment.id} className="border-warning/30 bg-warning/5">
                         <CardContent className="p-4">
                           <div className="space-y-3">
                             <div className="flex items-center gap-2 text-sm">
@@ -424,16 +425,16 @@ const DoctorDashboard = () => {
                                 className="flex-1 gap-1"
                               >
                                 <CheckCircle2 className="w-4 h-4" />
-                                Approve
+                                Confirm
                               </Button>
                               <Button 
                                 size="sm" 
-                                variant="outline"
+                                variant="destructive"
                                 onClick={() => handleDenyAppointment(appointment.id)}
                                 className="flex-1 gap-1"
                               >
                                 <XCircle className="w-4 h-4" />
-                                Deny
+                                Decline
                               </Button>
                             </div>
                           </div>
@@ -576,31 +577,49 @@ const DoctorDashboard = () => {
                     <Calendar className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
                     <p className="text-muted-foreground">No upcoming appointments</p>
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    {upcomingAppointments.map((appointment) => (
-                      <Card key={appointment.id} className="border-border/50 hover:shadow-card transition-all">
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between">
-                            <div className="space-y-2 flex-1">
-                              <div className="flex items-center gap-2">
-                                <Clock className="w-4 h-4 text-muted-foreground" />
-                                <span className="font-medium">
-                                  {new Date(appointment.appointment_date).toLocaleDateString()} at{' '}
-                                  {new Date(appointment.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                              </div>
-                              {appointment.notes && (
-                                <p className="text-sm text-muted-foreground flex items-start gap-2">
-                                  <FileText className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                                   {appointment.notes}
-                                 </p>
-                               )}
-                             </div>
-                             <div className="flex items-center gap-2">
+                 ) : (
+                   <div className="space-y-4">
+                     {upcomingAppointments.map((appointment) => (
+                       <Card key={appointment.id} className="border-border/50 hover:shadow-card transition-all">
+                         <CardContent className="p-4">
+                           <div className="flex flex-col gap-4">
+                             <div className="flex items-start justify-between">
+                               <div className="space-y-2 flex-1">
+                                 <div className="flex items-center gap-2">
+                                   <Clock className="w-4 h-4 text-muted-foreground" />
+                                   <span className="font-medium">
+                                     {new Date(appointment.appointment_date).toLocaleDateString()} at{' '}
+                                     {new Date(appointment.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                   </span>
+                                 </div>
+                                 {appointment.notes && (
+                                   <p className="text-sm text-muted-foreground flex items-start gap-2">
+                                     <FileText className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                     {appointment.notes}
+                                   </p>
+                                 )}
+                               </div>
                                <Badge className={getStatusColor(appointment.status)}>
                                  {appointment.status}
                                </Badge>
+                             </div>
+                             
+                             <div className="flex flex-wrap items-center gap-2">
+                               <Select
+                                 value={appointment.status}
+                                 onValueChange={(value) => handleUpdateAppointmentStatus(appointment.id, value)}
+                               >
+                                 <SelectTrigger className="w-[160px]">
+                                   <SelectValue placeholder="Update Status" />
+                                 </SelectTrigger>
+                                 <SelectContent>
+                                   <SelectItem value="scheduled">Scheduled</SelectItem>
+                                   <SelectItem value="confirmed">Confirmed</SelectItem>
+                                   <SelectItem value="completed">Completed</SelectItem>
+                                   <SelectItem value="cancelled">Cancelled</SelectItem>
+                                 </SelectContent>
+                               </Select>
+                               
                                <Button
                                  size="sm"
                                  variant="outline"
@@ -608,6 +627,17 @@ const DoctorDashboard = () => {
                                >
                                  View Patient
                                </Button>
+                               
+                               {appointment.status !== 'cancelled' && appointment.status !== 'completed' && (
+                                 <Button
+                                   size="sm"
+                                   variant="destructive"
+                                   onClick={() => handleCancelAppointment(appointment.id)}
+                                 >
+                                   <XCircle className="w-4 h-4 mr-1" />
+                                   Cancel
+                                 </Button>
+                               )}
                              </div>
                            </div>
                          </CardContent>
