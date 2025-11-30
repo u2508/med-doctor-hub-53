@@ -309,7 +309,7 @@ const DoctorFinder = () => {
         {/* Search and Filter Bar */}
         <div className="mb-10">
           <div className="flex flex-col lg:flex-row gap-4 items-center">
-            <div className="relative flex-1 w-full">
+            <div className="relative flex-[3] w-full">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
               <input
                 type="text"
@@ -322,7 +322,7 @@ const DoctorFinder = () => {
             <Button
               onClick={() => setShowFilters(!showFilters)}
               variant="default"
-              className="flex items-center space-x-2 shadow-sm"
+              className="flex items-center space-x-2 shadow-sm lg:w-auto w-full"
             >
               <Filter className="w-5 h-5" />
               <span>Filters</span>
