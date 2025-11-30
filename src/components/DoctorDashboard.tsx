@@ -25,6 +25,11 @@ interface DoctorDetails {
   hospital_affiliation?: string;
 }
 
+interface PatientProfile {
+  full_name: string;
+  email?: string;
+}
+
 interface Appointment {
   id: string;
   appointment_date: string;
@@ -33,6 +38,7 @@ interface Appointment {
   patient_id: string;
   diagnosis?: string;
   prescription?: string;
+  patient_profile?: PatientProfile;
 }
 
 const DoctorDashboard = () => {
@@ -96,7 +102,20 @@ const DoctorDashboard = () => {
       if (appointmentsError && appointmentsError.code !== 'PGRST116') {
         console.error('Error fetching appointments:', appointmentsError);
       } else if (appointmentsData) {
-        setAppointments(appointmentsData);
+        // Fetch patient profiles for appointments
+        const patientIds = appointmentsData.map(apt => apt.patient_id);
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('user_id, full_name, email')
+          .in('user_id', patientIds);
+
+        // Map profiles to appointments
+        const appointmentsWithProfiles = appointmentsData.map(apt => ({
+          ...apt,
+          patient_profile: profilesData?.find(p => p.user_id === apt.patient_id)
+        }));
+
+        setAppointments(appointmentsWithProfiles);
         
         // Calculate stats
         const now = new Date();
@@ -248,37 +267,57 @@ const DoctorDashboard = () => {
     await handleUpdateAppointmentStatus(appointmentId, 'completed');
   };
 
-  const handleViewPatientDetails = async (patientId: string) => {
+  const handleViewPatientDetails = async (patientId: string, appointmentStatus: string) => {
+    // Only allow viewing detailed patient data for confirmed appointments
+    if (appointmentStatus !== 'confirmed') {
+      toast({
+        title: 'Access Restricted',
+        description: 'Patient details are only available for confirmed appointments',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     try {
       const { data: patientData, error } = await supabase
         .from('patients')
         .select('*')
         .eq('user_id', patientId)
-        .single();
+        .maybeSingle();
 
       if (error) {
-        if (error.code === 'PGRST116') {
-          toast({
-            title: 'No Patient Data',
-            description: 'Patient profile not found',
-            variant: 'destructive'
-          });
-        } else {
-          throw error;
-        }
+        throw error;
+      }
+
+      if (!patientData) {
+        toast({
+          title: 'No Patient Data',
+          description: 'Patient has not completed their medical profile',
+        });
         return;
       }
 
-      // Show patient details in a dialog or navigate to details page
+      // Show detailed patient information
+      const details = [
+        patientData.date_of_birth ? `DOB: ${new Date(patientData.date_of_birth).toLocaleDateString()}` : null,
+        patientData.gender ? `Gender: ${patientData.gender}` : null,
+        patientData.blood_type ? `Blood Type: ${patientData.blood_type}` : null,
+        patientData.allergies?.length ? `Allergies: ${patientData.allergies.join(', ')}` : null,
+        patientData.current_medications?.length ? `Medications: ${patientData.current_medications.join(', ')}` : null,
+        patientData.emergency_contact_name ? `Emergency Contact: ${patientData.emergency_contact_name}` : null,
+        patientData.emergency_contact_phone ? `Emergency Phone: ${patientData.emergency_contact_phone}` : null,
+      ].filter(Boolean).join('\n');
+
       toast({
-        title: 'Patient Details',
-        description: `Viewing details for patient ${patientId}`
+        title: 'Patient Medical Details',
+        description: details || 'No additional medical information available',
+        duration: 10000,
       });
     } catch (error) {
       console.error('Error fetching patient details:', error);
       toast({
         title: 'Access Denied',
-        description: 'You can only view patient details for confirmed appointments within 7 days',
+        description: 'Unable to access patient details. Ensure the appointment is confirmed and within 7 days.',
         variant: 'destructive'
       });
     }
@@ -404,6 +443,14 @@ const DoctorDashboard = () => {
                       <Card key={appointment.id} className="border-warning/30 bg-warning/5">
                         <CardContent className="p-4">
                           <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <User className="w-4 h-4 text-primary" />
+                                <span className="font-semibold text-foreground">
+                                  {appointment.patient_profile?.full_name || 'Unknown Patient'}
+                                </span>
+                              </div>
+                            </div>
                             <div className="flex items-center gap-2 text-sm">
                               <Calendar className="w-4 h-4 text-muted-foreground" />
                               <span className="font-medium">
@@ -581,67 +628,74 @@ const DoctorDashboard = () => {
                    <div className="space-y-4">
                      {upcomingAppointments.map((appointment) => (
                        <Card key={appointment.id} className="border-border/50 hover:shadow-card transition-all">
-                         <CardContent className="p-4">
-                           <div className="flex flex-col gap-4">
-                             <div className="flex items-start justify-between">
-                               <div className="space-y-2 flex-1">
-                                 <div className="flex items-center gap-2">
-                                   <Clock className="w-4 h-4 text-muted-foreground" />
-                                   <span className="font-medium">
-                                     {new Date(appointment.appointment_date).toLocaleDateString()} at{' '}
-                                     {new Date(appointment.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                   </span>
-                                 </div>
-                                 {appointment.notes && (
-                                   <p className="text-sm text-muted-foreground flex items-start gap-2">
-                                     <FileText className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                                     {appointment.notes}
-                                   </p>
-                                 )}
-                               </div>
-                               <Badge className={getStatusColor(appointment.status)}>
-                                 {appointment.status}
-                               </Badge>
-                             </div>
-                             
-                             <div className="flex flex-wrap items-center gap-2">
-                               <Select
-                                 value={appointment.status}
-                                 onValueChange={(value) => handleUpdateAppointmentStatus(appointment.id, value)}
-                               >
-                                 <SelectTrigger className="w-[160px]">
-                                   <SelectValue placeholder="Update Status" />
-                                 </SelectTrigger>
-                                 <SelectContent>
-                                   <SelectItem value="scheduled">Scheduled</SelectItem>
-                                   <SelectItem value="confirmed">Confirmed</SelectItem>
-                                   <SelectItem value="completed">Completed</SelectItem>
-                                   <SelectItem value="cancelled">Cancelled</SelectItem>
-                                 </SelectContent>
-                               </Select>
-                               
-                               <Button
-                                 size="sm"
-                                 variant="outline"
-                                 onClick={() => handleViewPatientDetails(appointment.patient_id)}
-                               >
-                                 View Patient
-                               </Button>
-                               
-                               {appointment.status !== 'cancelled' && appointment.status !== 'completed' && (
-                                 <Button
-                                   size="sm"
-                                   variant="destructive"
-                                   onClick={() => handleCancelAppointment(appointment.id)}
-                                 >
-                                   <XCircle className="w-4 h-4 mr-1" />
-                                   Cancel
-                                 </Button>
-                               )}
-                             </div>
-                           </div>
-                         </CardContent>
-                       </Card>
+                          <CardContent className="p-4">
+                            <div className="flex flex-col gap-4">
+                              <div className="flex items-start justify-between">
+                                <div className="space-y-2 flex-1">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <User className="w-4 h-4 text-primary" />
+                                    <span className="font-semibold text-foreground">
+                                      {appointment.patient_profile?.full_name || 'Unknown Patient'}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Clock className="w-4 h-4 text-muted-foreground" />
+                                    <span className="font-medium">
+                                      {new Date(appointment.appointment_date).toLocaleDateString()} at{' '}
+                                      {new Date(appointment.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                  </div>
+                                  {appointment.notes && (
+                                    <p className="text-sm text-muted-foreground flex items-start gap-2">
+                                      <FileText className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                      {appointment.notes}
+                                    </p>
+                                  )}
+                                </div>
+                                <Badge className={getStatusColor(appointment.status)}>
+                                  {appointment.status}
+                                </Badge>
+                              </div>
+                              
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Select
+                                  value={appointment.status}
+                                  onValueChange={(value) => handleUpdateAppointmentStatus(appointment.id, value)}
+                                >
+                                  <SelectTrigger className="w-[160px]">
+                                    <SelectValue placeholder="Update Status" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="scheduled">Scheduled</SelectItem>
+                                    <SelectItem value="confirmed">Confirmed</SelectItem>
+                                    <SelectItem value="completed">Completed</SelectItem>
+                                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                
+                                <Button
+                                  size="sm"
+                                  variant={appointment.status === 'confirmed' ? 'default' : 'outline'}
+                                  onClick={() => handleViewPatientDetails(appointment.patient_id, appointment.status)}
+                                  disabled={appointment.status !== 'confirmed'}
+                                >
+                                  View Details
+                                </Button>
+                                
+                                {appointment.status !== 'cancelled' && appointment.status !== 'completed' && (
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => handleCancelAppointment(appointment.id)}
+                                  >
+                                    <XCircle className="w-4 h-4 mr-1" />
+                                    Cancel
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
                      ))}
                    </div>
                  )}
