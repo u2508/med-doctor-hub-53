@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Session, User as SupabaseUser } from '@supabase/supabase-js';
 
@@ -54,11 +54,45 @@ const LoadingFallback = () => (
   </div>
 );
 
-const App = () => {
+// Protected routes that require authentication
+const PROTECTED_ROUTES = [
+  '/doctor-dashboard',
+  '/admin-dashboard',
+  '/doctor-profile',
+  '/user-dashboard',
+  '/doctor-finder',
+  '/my-appointments',
+  '/mood-tracker',
+  '/chatbot',
+  '/stress-management',
+  '/health-analytics',
+  '/appointment-history',
+];
+
+// Auth wrapper component to handle redirects
+const AuthWrapper = ({ children, user, loading }: { children: React.ReactNode; user: SupabaseUser | null; loading: boolean }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (loading) return;
+
+    const isProtectedRoute = PROTECTED_ROUTES.some(route => location.pathname.startsWith(route));
+    
+    if (!user && isProtectedRoute) {
+      navigate('/', { replace: true });
+    }
+  }, [user, loading, location.pathname, navigate]);
+
+  return <>{children}</>;
+};
+
+const AppContent = () => {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [userType, setUserType] = useState<"doctor" | "user" | null>(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
   
   const handleSetUserType = (type: string) => {
     setUserType(type as "doctor" | "user");
@@ -67,23 +101,30 @@ const App = () => {
   // Set up auth state listener
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         
+        if (event === 'SIGNED_OUT') {
+          setUserType(null);
+          navigate('/', { replace: true });
+        }
+        
         if (session?.user) {
-          // Get user profile to determine role
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('user_id', session.user.id)
-            .single();
-          
-          if (profile?.role === 'doctor') {
-            setUserType('doctor');
-          } else {
-            setUserType('user');
-          }
+          // Defer profile fetch to avoid deadlock
+          setTimeout(async () => {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('role')
+              .eq('user_id', session.user.id)
+              .single();
+            
+            if (profile?.role === 'doctor') {
+              setUserType('doctor');
+            } else {
+              setUserType('user');
+            }
+          }, 0);
         } else {
           setUserType(null);
         }
@@ -95,52 +136,75 @@ const App = () => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        supabase
+          .from('profiles')
+          .select('role')
+          .eq('user_id', session.user.id)
+          .single()
+          .then(({ data: profile }) => {
+            if (profile?.role === 'doctor') {
+              setUserType('doctor');
+            } else {
+              setUserType('user');
+            }
+          });
+      }
       setLoading(false);
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [navigate]);
 
+  return (
+    <AuthWrapper user={user} loading={loading}>
+      <Suspense fallback={<LoadingFallback />}>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          {/* Medical Dashboard Routes */}
+          <Route path="/doctor-portal" element={<Index />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          
+          {/* Authentication Routes */}
+          <Route path="/user-signin" element={<UserSignIn setUser={setUser} setUserType={handleSetUserType} />} />
+          <Route path="/doctor-registration" element={<DoctorRegistration setUser={setUser} setUserType={handleSetUserType} />} />
+          
+          {/* Dashboard Routes */}
+          <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
+          <Route path="/appointment-history" element={<AppointmentHistory />} />
+          <Route path="/admin-dashboard" element={<AdminDashboard />} />
+          <Route path="/doctor-profile" element={<DoctorProfile />} />
+          <Route path="/user-dashboard" element={<UserDashboard user={user} />} />
+          
+          {/* Mental Health Features */}
+          <Route path="/doctor-finder" element={<DoctorFinder />} />
+          <Route path="/my-appointments" element={<PatientAppointments />} />
+          <Route path="/mood-tracker" element={<MoodTracker />} />
+          <Route path="/chatbot" element={<Chatbot />} />
+          <Route path="/stress-management" element={<StressManagement />} />
+          <Route path="/health-analytics" element={<HealthAnalytics />} />
+          
+          {/* Support */}
+          <Route path="/support" element={<Support />} />
+          
+          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
+    </AuthWrapper>
+  );
+};
+
+const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Suspense fallback={<LoadingFallback />}>
-            <Routes>
-              <Route path="/" element={<LandingPage />} />
-              {/* Medical Dashboard Routes */}
-              <Route path="/doctor-portal" element={<Index />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              
-              {/* Authentication Routes */}
-              <Route path="/user-signin" element={<UserSignIn setUser={setUser} setUserType={handleSetUserType} />} />
-              <Route path="/doctor-registration" element={<DoctorRegistration setUser={setUser} setUserType={handleSetUserType} />} />
-              
-              {/* Dashboard Routes */}
-          <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
-          <Route path="/appointment-history" element={<AppointmentHistory />} />
-              <Route path="/admin-dashboard" element={<AdminDashboard />} />
-              <Route path="/doctor-profile" element={<DoctorProfile />} />
-              <Route path="/user-dashboard" element={<UserDashboard user={user} />} />
-              
-              {/* Mental Health Features */}
-              <Route path="/doctor-finder" element={<DoctorFinder />} />
-              <Route path="/my-appointments" element={<PatientAppointments />} />
-              <Route path="/mood-tracker" element={<MoodTracker />} />
-              <Route path="/chatbot" element={<Chatbot />} />
-              <Route path="/stress-management" element={<StressManagement />} />
-              <Route path="/health-analytics" element={<HealthAnalytics />} />
-              
-              {/* Support */}
-              <Route path="/support" element={<Support />} />
-              
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
+          <AppContent />
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
