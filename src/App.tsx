@@ -8,7 +8,6 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Session, User as SupabaseUser } from '@supabase/supabase-js';
 
 // Lazy load components for better performance
-const Index = lazy(() => import("./pages/Index"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
@@ -111,7 +110,7 @@ const App = () => {
             <Routes>
               <Route path="/" element={<LandingPage />} />
               {/* Medical Dashboard Routes */}
-              <Route path="/doctor-portal" element={<Index />} />
+              <Route path="/doctor-portal" element={<DoctorDashboard />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               

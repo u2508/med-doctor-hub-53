@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Users, Clock, FileText, LogOut, User, Stethoscope, TrendingUp, Activity, CheckCircle2, XCircle, ClockIcon, Heart, Star, History, CalendarDays, ChevronDown } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Calendar, Users, Clock, FileText, LogOut, User, Stethoscope, TrendingUp, Activity, CheckCircle2, XCircle, ClockIcon, Heart, Star, History, CalendarDays, ChevronDown, ArrowLeft, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -23,6 +24,7 @@ import { useToast } from '@/hooks/use-toast';
 import { PatientDetailsDialog } from '@/components/doctor/PatientDetailsDialog';
 import AppointmentCalendar from '@/components/doctor/AppointmentCalendar';
 import CompleteAppointmentDialog from '@/components/doctor/CompleteAppointmentDialog';
+import { LoginForm } from '@/components/auth/LoginForm';
 
 interface DoctorProfile {
   full_name: string;
@@ -53,9 +55,16 @@ interface Appointment {
   patient_profile?: PatientProfile;
 }
 
+const fadeVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -20 },
+};
+
 const DoctorDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [profile, setProfile] = useState<DoctorProfile | null>(null);
@@ -75,16 +84,87 @@ const DoctorDashboard = () => {
   const [selectedAppointmentForComplete, setSelectedAppointmentForComplete] = useState<Appointment | null>(null);
   const [activeTab, setActiveTab] = useState('list');
 
+  // Check authentication status on mount
   useEffect(() => {
-    fetchDoctorData();
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const isApproved = await checkDoctorApproval(session.user.id);
+        if (isApproved) {
+          setIsAuthenticated(true);
+          fetchDoctorData();
+        } else {
+          setIsAuthenticated(false);
+          setLoading(false);
+        }
+      } else {
+        setIsAuthenticated(false);
+        setLoading(false);
+      }
+    };
+
+    checkAuth();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        const isApproved = await checkDoctorApproval(session.user.id);
+        if (isApproved) {
+          setIsAuthenticated(true);
+          fetchDoctorData();
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setIsAuthenticated(false);
+        setProfile(null);
+        setDoctorDetails(null);
+        setAppointments([]);
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
+
+  const checkDoctorApproval = async (userId: string): Promise<boolean> => {
+    try {
+      const { data: userRole } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .single();
+
+      if (userRole?.role === 'doctor') {
+        const { data: doctorProfile } = await supabase
+          .from('doctor_profiles')
+          .select('is_approved')
+          .eq('user_id', userId)
+          .single();
+
+        if (doctorProfile && !doctorProfile.is_approved) {
+          await supabase.auth.signOut();
+          toast({
+            title: "Pending Approval",
+            description: "Your registration is under review. You'll receive an email once approved by our admin team.",
+            variant: "destructive",
+            duration: 8000,
+          });
+          return false;
+        }
+      }
+      return true;
+    } catch (error) {
+      console.error('Error checking doctor approval:', error);
+      return true;
+    }
+  };
 
   const fetchDoctorData = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        navigate('/doctor-portal');
+        setIsAuthenticated(false);
+        setLoading(false);
         return;
       }
 
@@ -208,7 +288,11 @@ const DoctorDashboard = () => {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    navigate('/doctor-portal');
+    setIsAuthenticated(false);
+    toast({
+      title: "Logged Out",
+      description: "You have been successfully logged out",
+    });
   };
 
   const getStatusColor = (status: string) => {
@@ -366,17 +450,152 @@ const DoctorDashboard = () => {
     }));
   };
 
+  // Loading state
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
           <Heart className="w-12 h-12 text-primary animate-pulse mx-auto" />
-          <p className="text-muted-foreground">Loading dashboard...</p>
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
   }
 
+  // Login Page (not authenticated)
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-blue-100 text-foreground overflow-hidden">
+        {/* Top Header */}
+        <header className="bg-card/80 backdrop-blur-md border-b border-border shadow-sm sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center py-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-blue-400 rounded-2xl flex items-center justify-center shadow-card">
+                  <Stethoscope className="w-7 h-7 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-foreground">Doctor Portal</h1>
+                  <p className="text-sm text-muted-foreground">
+                    Professional Healthcare Dashboard
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Button
+                  onClick={() => navigate("/doctor-registration")}
+                  variant="outline"
+                  className="flex items-center gap-2 text-blue-700 hover:bg-blue-50 border-blue-200"
+                >
+                  <Stethoscope className="w-4 h-4" />
+                  Doctor Registration
+                </Button>
+                <Button
+                  onClick={() => navigate("/")}
+                  variant="ghost"
+                  className="flex items-center gap-2 text-blue-600 hover:bg-blue-50"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Back to Home
+                </Button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main className="container mx-auto px-4 py-10 sm:py-16 relative">
+          <AnimatePresence mode="wait">
+            <motion.section
+              key="login"
+              variants={fadeVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              transition={{ duration: 0.5 }}
+              className="flex flex-col-reverse lg:flex-row items-center justify-between gap-10"
+            >
+              {/* Left Branding Panel */}
+              <div className="space-x-0 lg:space-x-10 w-full lg:w-1/2 flex flex-col items-start">
+                <h1 className="text-6xl font-extrabold leading-tight bg-gradient-to-r from-blue-700 via-blue-500 to-blue-400 bg-clip-text text-transparent">
+                  Welcome to Your<br />
+                  <span className="text-blue-600">Professional Space</span>
+                </h1>
+                <p className="mt-6 text-base text-gray-600 max-w-md">
+                  Join thousands of healthcare professionals using MediCare Portal to
+                  manage patients, monitor real-time insights, and elevate care quality
+                  with AI-powered precision.
+                </p>
+
+                <div className="bg-white/70 backdrop-blur-md rounded-2xl shadow-md p-6 border border-blue-100 space-y-4 mt-8">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 rounded-xl bg-blue-100">
+                      <Stethoscope className="w-5 h-5 text-blue-700" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-semibold text-gray-800">
+                        Smart Patient Tracking
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        Real-time updates and automated reports.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 rounded-xl bg-blue-100">
+                      <ShieldCheck className="w-5 h-5 text-blue-700" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-semibold text-gray-800">
+                        Secure & Compliant
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        HIPAA-grade data encryption and privacy control.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 rounded-xl bg-blue-100">
+                      <Activity className="w-5 h-5 text-blue-700" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-semibold text-gray-800">
+                        AI-Assisted Analytics
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        Data-driven insights for better clinical outcomes.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Auth Panel */}
+              <motion.div
+                initial={{ opacity: 0, x: 40 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5 }}
+                className="flex flex-col justify-center items-center w-full lg:w-1/2 px-6 sm:px-10 lg:px-20"
+              >
+                <Card className="w-full max-w-md shadow-xl border border-blue-100/50 bg-white/90 backdrop-blur-sm">
+                  <CardHeader className="text-center space-y-3">
+                    <div className="flex justify-center"></div>
+                  </CardHeader>
+                  <CardContent>
+                    <LoginForm />
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </motion.section>
+          </AnimatePresence>
+        </main>
+      </div>
+    );
+  }
+
+  // Dashboard (authenticated)
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background">
       {/* Header */}
@@ -482,423 +701,345 @@ const DoctorDashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Rating</p>
-                  <p className="text-3xl font-bold text-foreground mt-2">4.8</p>
+                  <div className="flex items-center gap-1 mt-2">
+                    <p className="text-3xl font-bold text-foreground">4.9</p>
+                    <Star className="w-5 h-5 text-warning fill-warning" />
+                  </div>
                 </div>
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                  <Star className="w-6 h-6 text-primary fill-primary" />
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-warning/20 to-warning/5 flex items-center justify-center">
+                  <Star className="w-6 h-6 text-warning" />
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Left Column */}
+        {/* Main Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column - Appointments Requiring Action */}
           <div className="lg:col-span-1 space-y-6">
             {/* Scheduled Appointments */}
-            {pendingAppointments.length > 0 && (
-              <Card className="border-border/50 shadow-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <ClockIcon className="w-5 h-5 text-warning" />
-                    Scheduled Appointments
-                  </CardTitle>
-                  <CardDescription>
-                    Review and confirm appointment requests
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {pendingAppointments.map((appointment) => (
-                      <Card key={appointment.id} className="border-warning/30 bg-warning/5">
-                        <CardContent className="p-4">
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <User className="w-4 h-4 text-primary" />
-                                <span className="font-semibold text-foreground">
-                                  {appointment.patient_profile?.full_name || 'Unknown Patient'}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm">
-                              <Calendar className="w-4 h-4 text-muted-foreground" />
-                              <span className="font-medium">
-                                {new Date(appointment.appointment_date).toLocaleDateString()}
-                              </span>
-                              <span className="text-muted-foreground">
-                                {new Date(appointment.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                            </div>
-                            {appointment.notes && (
-                              <p className="text-sm text-muted-foreground">
-                                {appointment.notes}
-                              </p>
-                            )}
-                            <div className="flex gap-2">
-                              <Button 
-                                size="sm" 
-                                onClick={() => handleApproveAppointment(appointment.id)}
-                                className="flex-1 gap-1"
-                              >
-                                <CheckCircle2 className="w-4 h-4" />
-                                Confirm
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="destructive"
-                                onClick={() => handleDenyAppointment(appointment.id)}
-                                className="flex-1 gap-1"
-                              >
-                                <XCircle className="w-4 h-4" />
-                                Decline
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            <Card className="border-border/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <ClockIcon className="w-5 h-5 text-warning" />
+                  Requires Confirmation
+                </CardTitle>
+                <CardDescription>
+                  {pendingAppointments.length} appointment(s) awaiting your response
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {pendingAppointments.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No pending appointments
+                  </p>
+                ) : (
+                  pendingAppointments.slice(0, 5).map((apt) => (
+                    <div key={apt.id} className="p-4 rounded-xl border border-border/50 bg-card/50 hover:bg-card transition-colors">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <p className="font-medium text-foreground">{apt.patient_profile?.full_name || 'Unknown Patient'}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {new Date(apt.appointment_date).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                        </div>
+                        <Badge className={getStatusColor(apt.status)}>
+                          {apt.status}
+                        </Badge>
+                      </div>
+                      {apt.notes && (
+                        <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{apt.notes}</p>
+                      )}
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          className="flex-1 gap-1"
+                          onClick={() => handleApproveAppointment(apt.id)}
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                          Approve
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="flex-1 gap-1"
+                          onClick={() => handleDenyAppointment(apt.id)}
+                        >
+                          <XCircle className="w-4 h-4" />
+                          Deny
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
 
-            {/* Doctor Profile Card */}
-            <Card className="border-border/50 shadow-card">
-              <CardHeader>
+            {/* Profile Card */}
+            <Card className="border-border/50">
+              <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <Stethoscope className="w-5 h-5 text-primary" />
-                    Doctor Profile
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <User className="w-5 h-5 text-primary" />
+                    Profile
                   </CardTitle>
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    onClick={() => setIsEditing(!isEditing)}
+                    onClick={() => isEditing ? handleUpdateProfile() : setIsEditing(true)}
                   >
-                    {isEditing ? 'Cancel' : 'Edit'}
+                    {isEditing ? 'Save' : 'Edit'}
                   </Button>
                 </div>
-                <CardDescription>Manage your professional information</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex flex-col items-center text-center pb-4">
-                  <Avatar className="w-24 h-24 border-4 border-primary/20">
-                    <AvatarFallback className="bg-gradient-to-br from-primary to-primary-dark text-primary-foreground text-2xl">
-                      {profile?.full_name?.charAt(0) || 'D'}
+              <CardContent className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-16 w-16">
+                    <AvatarFallback className="bg-primary text-primary-foreground text-xl">
+                      {profile?.full_name?.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <h3 className="text-xl font-semibold mt-4">{profile?.full_name}</h3>
-                  <p className="text-muted-foreground">{doctorDetails?.specialty || 'Specialist'}</p>
-                  {doctorDetails?.hospital_affiliation && (
-                    <Badge variant="outline" className="mt-2">
-                      {doctorDetails.hospital_affiliation}
-                    </Badge>
-                  )}
+                  <div>
+                    {isEditing ? (
+                      <Input 
+                        value={profile?.full_name || ''} 
+                        onChange={(e) => setProfile(prev => prev ? {...prev, full_name: e.target.value} : null)}
+                        className="font-medium"
+                      />
+                    ) : (
+                      <p className="font-medium text-foreground">{profile?.full_name}</p>
+                    )}
+                    <p className="text-sm text-muted-foreground">{doctorDetails?.specialty}</p>
+                  </div>
                 </div>
-
                 <Separator />
-
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="full_name">Full Name</Label>
-                    <Input
-                      id="full_name"
-                      value={profile?.full_name || ''}
-                      onChange={(e) => setProfile(prev => prev ? {...prev, full_name: e.target.value} : null)}
-                      disabled={!isEditing}
-                    />
+                <div className="space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Email</span>
+                    <span className="text-foreground">{profile?.email}</span>
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={profile?.email || ''}
-                      disabled
-                    />
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">License</span>
+                    <span className="text-foreground">{doctorDetails?.license_number}</span>
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone</Label>
-                    <Input
-                      id="phone"
-                      value={profile?.phone || ''}
-                      onChange={(e) => setProfile(prev => prev ? {...prev, phone: e.target.value} : null)}
-                      disabled={!isEditing}
-                      placeholder="Enter phone number"
-                    />
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Hospital</span>
+                    <span className="text-foreground">{doctorDetails?.hospital_affiliation || 'N/A'}</span>
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="specialty">Specialty</Label>
-                    <Input
-                      id="specialty"
-                      value={doctorDetails?.specialty || ''}
-                      onChange={(e) => setDoctorDetails(prev => prev ? {...prev, specialty: e.target.value} : null)}
-                      disabled={!isEditing}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="experience">Years of Experience</Label>
-                    <Input
-                      id="experience"
-                      type="number"
-                      value={doctorDetails?.years_experience || ''}
-                      onChange={(e) => setDoctorDetails(prev => prev ? {...prev, years_experience: parseInt(e.target.value)} : null)}
-                      disabled={!isEditing}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="hospital">Hospital Affiliation</Label>
-                    <Input
-                      id="hospital"
-                      value={doctorDetails?.hospital_affiliation || ''}
-                      onChange={(e) => setDoctorDetails(prev => prev ? {...prev, hospital_affiliation: e.target.value} : null)}
-                      disabled={!isEditing}
-                      placeholder="Enter hospital name"
-                    />
-                  </div>
-
-                  {isEditing && (
-                    <Button 
-                      onClick={handleUpdateProfile}
-                      className="w-full"
-                    >
-                      Save Changes
-                    </Button>
-                  )}
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Appointments Section */}
+          {/* Right Column - Appointments View */}
           <div className="lg:col-span-2">
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <div className="flex items-center justify-between mb-4">
-                <TabsList>
-                  <TabsTrigger value="list" className="gap-2">
-                    <Clock className="w-4 h-4" />
-                    List View
-                  </TabsTrigger>
-                  <TabsTrigger value="calendar" className="gap-2">
-                    <CalendarDays className="w-4 h-4" />
-                    Calendar
-                  </TabsTrigger>
-                </TabsList>
-              </div>
-
-              <TabsContent value="calendar" className="mt-0">
-                <AppointmentCalendar 
-                  appointments={appointments}
-                  onSelectAppointment={(apt) => handleViewPatientDetails(apt.patient_id, apt.status)}
-                />
-              </TabsContent>
-
-              <TabsContent value="list" className="mt-0">
-                <Card className="border-border/50 shadow-card">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Calendar className="w-5 h-5 text-primary" />
-                      Upcoming Appointments
-                    </CardTitle>
-                    <CardDescription>
-                      Manage your scheduled patient appointments
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
+            <Card className="border-border/50">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <CalendarDays className="w-5 h-5 text-primary" />
+                    Appointments
+                  </CardTitle>
+                  <Tabs value={activeTab} onValueChange={setActiveTab} className="w-auto">
+                    <TabsList className="grid w-[200px] grid-cols-2">
+                      <TabsTrigger value="list">List</TabsTrigger>
+                      <TabsTrigger value="calendar">Calendar</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {activeTab === 'list' ? (
+                  <div className="space-y-4">
                     {upcomingAppointments.length === 0 ? (
-                      <div className="text-center py-12">
-                        <Calendar className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
+                      <div className="text-center py-8">
+                        <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
                         <p className="text-muted-foreground">No upcoming appointments</p>
                       </div>
                     ) : (
-                      <div className="space-y-4">
-                        {upcomingAppointments.map((appointment) => (
-                          <Card key={appointment.id} className="border-border/50 hover:shadow-card transition-all">
-                            <CardContent className="p-4">
-                              <div className="flex flex-col gap-4">
-                                <div className="flex items-start justify-between">
-                                  <div className="space-y-2 flex-1">
-                                    <div className="flex items-center gap-2 mb-2">
-                                      <User className="w-4 h-4 text-primary" />
-                                      <span className="font-semibold text-foreground">
-                                        {appointment.patient_profile?.full_name || 'Unknown Patient'}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <Clock className="w-4 h-4 text-muted-foreground" />
-                                      <span className="font-medium">
-                                        {new Date(appointment.appointment_date).toLocaleDateString()} at{' '}
-                                        {new Date(appointment.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                      </span>
-                                    </div>
-                                    {appointment.notes && (
-                                      <p className="text-sm text-muted-foreground flex items-start gap-2">
-                                        <FileText className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                                        {appointment.notes}
-                                      </p>
-                                    )}
-                                  </div>
-                                  <Badge className={getStatusColor(appointment.status)}>
-                                    {appointment.status}
-                                  </Badge>
-                                </div>
+                      upcomingAppointments.map((apt) => (
+                        <div key={apt.id} className="p-4 rounded-xl border border-border/50 bg-card/50 hover:bg-card transition-colors">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-10 w-10">
+                                <AvatarFallback className="bg-accent text-accent-foreground">
+                                  {apt.patient_profile?.full_name?.charAt(0).toUpperCase() || 'P'}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="font-medium text-foreground">{apt.patient_profile?.full_name || 'Unknown Patient'}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {new Date(apt.appointment_date).toLocaleDateString('en-US', {
+                                    weekday: 'short',
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge className={getStatusColor(apt.status)}>
+                                {apt.status}
+                              </Badge>
+                              <Select
+                                value={apt.status}
+                                onValueChange={(value) => handleUpdateAppointmentStatus(apt.id, value)}
+                              >
+                                <SelectTrigger className="w-[130px]">
+                                  <SelectValue placeholder="Status" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-card border-border z-50">
+                                  <SelectItem value="scheduled">Scheduled</SelectItem>
+                                  <SelectItem value="confirmed">Confirmed</SelectItem>
+                                  <SelectItem value="completed">Completed</SelectItem>
+                                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          
+                          {apt.notes && (
+                            <p className="text-sm text-muted-foreground mb-3 pl-13">{apt.notes}</p>
+                          )}
 
-                                {/* Diagnosis and Prescription Section */}
-                                {editingAppointmentId === appointment.id ? (
-                                  <div className="space-y-3 pt-3 border-t border-border">
-                                    <div className="space-y-2">
-                                      <Label htmlFor={`diagnosis-${appointment.id}`}>Diagnosis</Label>
-                                      <Textarea
-                                        id={`diagnosis-${appointment.id}`}
-                                        placeholder="Enter diagnosis..."
-                                        value={appointmentUpdates[appointment.id]?.diagnosis || ''}
-                                        onChange={(e) => setAppointmentUpdates(prev => ({
-                                          ...prev,
-                                          [appointment.id]: {
-                                            ...prev[appointment.id],
-                                            diagnosis: e.target.value
-                                          }
-                                        }))}
-                                        rows={2}
-                                      />
-                                    </div>
-                                    <div className="space-y-2">
-                                      <Label htmlFor={`prescription-${appointment.id}`}>Prescription</Label>
-                                      <Textarea
-                                        id={`prescription-${appointment.id}`}
-                                        placeholder="Enter prescription details..."
-                                        value={appointmentUpdates[appointment.id]?.prescription || ''}
-                                        onChange={(e) => setAppointmentUpdates(prev => ({
-                                          ...prev,
-                                          [appointment.id]: {
-                                            ...prev[appointment.id],
-                                            prescription: e.target.value
-                                          }
-                                        }))}
-                                        rows={3}
-                                      />
-                                    </div>
-                                    <div className="flex gap-2">
-                                      <Button
-                                        size="sm"
-                                        onClick={() => handleUpdateAppointmentDetails(appointment.id)}
-                                      >
-                                        Save & Notify
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => setEditingAppointmentId(null)}
-                                      >
-                                        Cancel
-                                      </Button>
-                                    </div>
+                          {/* Diagnosis and Prescription Section */}
+                          {apt.status === 'confirmed' && (
+                            <div className="mt-4 pt-4 border-t border-border/50">
+                              {editingAppointmentId === apt.id ? (
+                                <div className="space-y-3">
+                                  <div>
+                                    <Label className="text-sm">Diagnosis</Label>
+                                    <Textarea
+                                      value={appointmentUpdates[apt.id]?.diagnosis || ''}
+                                      onChange={(e) => setAppointmentUpdates(prev => ({
+                                        ...prev,
+                                        [apt.id]: { ...prev[apt.id], diagnosis: e.target.value }
+                                      }))}
+                                      placeholder="Enter diagnosis..."
+                                      className="mt-1"
+                                    />
                                   </div>
-                                ) : (
-                                  <>
-                                    {(appointment.diagnosis || appointment.prescription) && (
-                                      <div className="space-y-2 pt-3 border-t border-border text-sm">
-                                        {appointment.diagnosis && (
-                                          <div>
-                                            <span className="font-medium text-foreground">Diagnosis: </span>
-                                            <span className="text-muted-foreground">{appointment.diagnosis}</span>
-                                          </div>
-                                        )}
-                                        {appointment.prescription && (
-                                          <div>
-                                            <span className="font-medium text-foreground">Prescription: </span>
-                                            <span className="text-muted-foreground">{appointment.prescription}</span>
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
-                                  </>
-                                )}
-                                
-                                <div className="flex flex-wrap items-center gap-2">
-                                  {editingAppointmentId !== appointment.id && (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => initializeAppointmentEdit(appointment)}
-                                    >
-                                      <FileText className="w-4 h-4 mr-1" />
-                                      Add Details
+                                  <div>
+                                    <Label className="text-sm">Prescription</Label>
+                                    <Textarea
+                                      value={appointmentUpdates[apt.id]?.prescription || ''}
+                                      onChange={(e) => setAppointmentUpdates(prev => ({
+                                        ...prev,
+                                        [apt.id]: { ...prev[apt.id], prescription: e.target.value }
+                                      }))}
+                                      placeholder="Enter prescription..."
+                                      className="mt-1"
+                                    />
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Button size="sm" onClick={() => handleUpdateAppointmentDetails(apt.id)}>
+                                      Save & Notify
                                     </Button>
-                                  )}
-                                  
-                                  <Button
-                                    size="sm"
-                                    variant={appointment.status === 'confirmed' ? 'default' : 'outline'}
-                                    onClick={() => handleViewPatientDetails(appointment.patient_id, appointment.status)}
-                                  >
-                                    View Patient
-                                  </Button>
-                                  
-                                  {appointment.status === 'confirmed' && (
-                                    <Button
-                                      size="sm"
-                                      className="bg-success hover:bg-success/90 text-success-foreground"
-                                      onClick={() => handleOpenCompleteDialog(appointment)}
-                                    >
-                                      <CheckCircle2 className="w-4 h-4 mr-1" />
-                                      Complete
-                                    </Button>
-                                  )}
-                                  
-                                  {appointment.status !== 'cancelled' && appointment.status !== 'completed' && (
-                                    <Button
-                                      size="sm"
-                                      variant="destructive"
-                                      onClick={() => handleCancelAppointment(appointment.id)}
-                                    >
-                                      <XCircle className="w-4 h-4 mr-1" />
+                                    <Button size="sm" variant="outline" onClick={() => setEditingAppointmentId(null)}>
                                       Cancel
                                     </Button>
-                                  )}
+                                  </div>
                                 </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
+                              ) : (
+                                <div className="space-y-2">
+                                  {apt.diagnosis && (
+                                    <div>
+                                      <span className="text-xs font-medium text-muted-foreground">Diagnosis:</span>
+                                      <p className="text-sm">{apt.diagnosis}</p>
+                                    </div>
+                                  )}
+                                  {apt.prescription && (
+                                    <div>
+                                      <span className="text-xs font-medium text-muted-foreground">Prescription:</span>
+                                      <p className="text-sm">{apt.prescription}</p>
+                                    </div>
+                                  )}
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    onClick={() => initializeAppointmentEdit(apt)}
+                                    className="mt-2"
+                                  >
+                                    <FileText className="w-4 h-4 mr-1" />
+                                    {apt.diagnosis || apt.prescription ? 'Update Details' : 'Add Diagnosis/Prescription'}
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          <div className="flex gap-2 mt-4">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleViewPatientDetails(apt.patient_id, apt.status)}
+                            >
+                              View Patient
+                            </Button>
+                            {apt.status === 'confirmed' && (
+                              <Button
+                                size="sm"
+                                onClick={() => handleOpenCompleteDialog(apt)}
+                              >
+                                <CheckCircle2 className="w-4 h-4 mr-1" />
+                                Complete
+                              </Button>
+                            )}
+                            {apt.status !== 'cancelled' && apt.status !== 'completed' && (
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleCancelAppointment(apt.id)}
+                              >
+                                Cancel
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))
                     )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
+                  </div>
+                ) : (
+                  <AppointmentCalendar appointments={appointments} />
+                )}
+              </CardContent>
+            </Card>
           </div>
         </div>
       </main>
 
       {/* Patient Details Dialog */}
       <PatientDetailsDialog
-        isOpen={!!selectedPatientId}
-        onClose={() => setSelectedPatientId(null)}
         patientId={selectedPatientId || ''}
         appointmentStatus={selectedAppointmentStatus}
+        isOpen={!!selectedPatientId}
+        onClose={() => setSelectedPatientId(null)}
       />
 
       {/* Complete Appointment Dialog */}
-      {selectedAppointmentForComplete && (
-        <CompleteAppointmentDialog
-          open={completeDialogOpen}
-          onOpenChange={setCompleteDialogOpen}
-          appointmentId={selectedAppointmentForComplete.id}
-          patientEmail={selectedAppointmentForComplete.patient_profile?.email || ''}
-          patientName={selectedAppointmentForComplete.patient_profile?.full_name || 'Patient'}
-          doctorName={profile?.full_name || 'Doctor'}
-          currentDiagnosis={selectedAppointmentForComplete.diagnosis}
-          currentPrescription={selectedAppointmentForComplete.prescription}
-          onComplete={fetchDoctorData}
-        />
-      )}
+      <CompleteAppointmentDialog
+        open={completeDialogOpen}
+        onOpenChange={setCompleteDialogOpen}
+        appointmentId={selectedAppointmentForComplete?.id || ''}
+        patientEmail={selectedAppointmentForComplete?.patient_profile?.email || ''}
+        patientName={selectedAppointmentForComplete?.patient_profile?.full_name || 'Patient'}
+        doctorName={profile?.full_name || 'Doctor'}
+        currentDiagnosis={selectedAppointmentForComplete?.diagnosis || ''}
+        currentPrescription={selectedAppointmentForComplete?.prescription || ''}
+        onComplete={() => {
+          setCompleteDialogOpen(false);
+          setSelectedAppointmentForComplete(null);
+          fetchDoctorData();
+        }}
+      />
     </div>
   );
 };
