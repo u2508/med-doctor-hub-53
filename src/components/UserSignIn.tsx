@@ -45,70 +45,64 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
 
   // Set up auth state listener
   useEffect(() => {
+    const handleUserRedirect = async (userId: string, userEmail: string | undefined, userMetadata: any) => {
+      // Get user profile to determine role
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role, full_name')
+        .eq('user_id', userId)
+        .single();
+      
+      setUser({ 
+        name: profile?.full_name || userMetadata?.full_name || 'User', 
+        email: userEmail 
+      });
+      
+      // Redirect based on user role
+      if (profile?.role === 'admin') {
+        setUserType('user');
+        navigate('/admin-dashboard');
+      } else if (profile?.role === 'doctor') {
+        setUserType('doctor');
+        navigate('/doctor-dashboard');
+      } else {
+        // Check if patient profile exists for regular users
+        const { data: patient } = await supabase
+          .from('patients')
+          .select('id')
+          .eq('user_id', userId)
+          .single();
+        
+        setUserType('user');
+        if (!patient) {
+          // First time login, redirect to onboarding
+          navigate('/patient-onboarding');
+        } else {
+          navigate('/user-dashboard');
+        }
+      }
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         setSession(session);
         setUserState(session?.user ?? null);
         
         if (session?.user) {
-          // Get user profile to determine role
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role, full_name')
-            .eq('user_id', session.user.id)
-            .single();
-          
           setTimeout(() => {
-            setUser({ 
-              name: profile?.full_name || session.user.user_metadata?.full_name || 'User', 
-              email: session.user.email 
-            });
-            
-            // Redirect based on user role
-            if (profile?.role === 'admin') {
-              setUserType('user');
-              navigate('/admin-dashboard');
-            } else if (profile?.role === 'doctor') {
-              setUserType('doctor');
-              navigate('/doctor-dashboard');
-            } else {
-              setUserType('user');
-              navigate('/user-dashboard');
-            }
+            handleUserRedirect(session.user.id, session.user.email, session.user.user_metadata);
           }, 0);
         }
       }
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUserState(session?.user ?? null);
       
       if (session?.user) {
-        // Get user profile to determine role
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role, full_name')
-          .eq('user_id', session.user.id)
-          .single();
-          
-        setUser({ 
-          name: profile?.full_name || session.user.user_metadata?.full_name || 'User', 
-          email: session.user.email 
-        });
-        
-        // Redirect based on user role
-        if (profile?.role === 'admin') {
-          setUserType('user');
-          navigate('/admin-dashboard');
-        } else if (profile?.role === 'doctor') {
-          setUserType('doctor');
-          navigate('/doctor-dashboard');
-        } else {
-          setUserType('user');
-          navigate('/user-dashboard');
-        }
+        handleUserRedirect(session.user.id, session.user.email, session.user.user_metadata);
       }
     });
 
