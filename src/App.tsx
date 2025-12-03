@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Session, User as SupabaseUser } from '@supabase/supabase-js';
 
 // Lazy load components for better performance
+const Index = lazy(() => import("./pages/Index"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
@@ -15,7 +16,6 @@ const LandingPage = lazy(() => import("@/components/LandingPage.tsx"));
 const UserSignIn = lazy(() => import("@/components/UserSignIn"));
 const DoctorRegistration = lazy(() => import("@/components/DoctorRegistration"));
 const DoctorDashboard = lazy(() => import("@/components/DoctorDashboard"));
-const DoctorPortal = lazy(() => import("@/components/DoctorPortal"));
 const AppointmentHistory = lazy(() => import("@/components/doctor/AppointmentHistory"));
 const AdminDashboard = lazy(() => import("@/components/AdminDashboard"));
 const DoctorProfile = lazy(() => import("@/pages/DoctorProfile"));
@@ -111,7 +111,7 @@ const App = () => {
             <Routes>
               <Route path="/" element={<LandingPage />} />
               {/* Medical Dashboard Routes */}
-              <Route path="/doctor-portal" element={<DoctorPortal />} />
+              <Route path="/doctor-portal" element={<Index />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               
