@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Users, Clock, FileText, LogOut, User, Stethoscope, TrendingUp, Activity, CheckCircle2, XCircle, ClockIcon, Heart, Star, History } from 'lucide-react';
+import { Calendar, Users, Clock, FileText, LogOut, User, Stethoscope, TrendingUp, Activity, CheckCircle2, XCircle, ClockIcon, Heart, Star, History, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -10,9 +10,12 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { PatientDetailsDialog } from '@/components/doctor/PatientDetailsDialog';
+import AppointmentCalendar from '@/components/doctor/AppointmentCalendar';
+import CompleteAppointmentDialog from '@/components/doctor/CompleteAppointmentDialog';
 
 interface DoctorProfile {
   full_name: string;
@@ -61,6 +64,9 @@ const DoctorDashboard = () => {
   const [selectedAppointmentStatus, setSelectedAppointmentStatus] = useState<string>('');
   const [editingAppointmentId, setEditingAppointmentId] = useState<string | null>(null);
   const [appointmentUpdates, setAppointmentUpdates] = useState<{[key: string]: {diagnosis: string, prescription: string}}>({});
+  const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
+  const [selectedAppointmentForComplete, setSelectedAppointmentForComplete] = useState<Appointment | null>(null);
+  const [activeTab, setActiveTab] = useState('list');
 
   useEffect(() => {
     fetchDoctorData();
@@ -283,6 +289,7 @@ const DoctorDashboard = () => {
     if (!updates) return;
 
     try {
+      const appointment = appointments.find(a => a.id === appointmentId);
       const { error } = await supabase
         .from('appointments')
         .update({
@@ -293,9 +300,35 @@ const DoctorDashboard = () => {
 
       if (error) throw error;
 
+      // Send email notification for diagnosis/prescription update
+      if (appointment?.patient_profile?.email) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            const emailType = updates.diagnosis && updates.prescription 
+              ? 'diagnosis_update' 
+              : updates.prescription ? 'prescription_update' : 'diagnosis_update';
+            
+            await supabase.functions.invoke('send-prescription-email', {
+              body: {
+                type: emailType,
+                appointment_id: appointmentId,
+                patient_email: appointment.patient_profile.email,
+                patient_name: appointment.patient_profile.full_name || 'Patient',
+                doctor_name: profile?.full_name || 'Doctor',
+                diagnosis: updates.diagnosis,
+                prescription: updates.prescription
+              }
+            });
+          }
+        } catch (emailError) {
+          console.error('Email notification error:', emailError);
+        }
+      }
+
       toast({
         title: 'Success',
-        description: 'Appointment details updated successfully'
+        description: 'Appointment details updated and patient notified'
       });
 
       setEditingAppointmentId(null);
@@ -308,6 +341,11 @@ const DoctorDashboard = () => {
         variant: 'destructive'
       });
     }
+  };
+
+  const handleOpenCompleteDialog = (appointment: Appointment) => {
+    setSelectedAppointmentForComplete(appointment);
+    setCompleteDialogOpen(true);
   };
 
   const initializeAppointmentEdit = (appointment: Appointment) => {
@@ -614,196 +652,231 @@ const DoctorDashboard = () => {
             </Card>
           </div>
 
-          {/* Appointments List */}
+          {/* Appointments Section */}
           <div className="lg:col-span-2">
-            <Card className="border-border/50 shadow-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-primary" />
-                  Upcoming Appointments
-                </CardTitle>
-                <CardDescription>
-                  Manage your scheduled patient appointments
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {upcomingAppointments.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Calendar className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
-                    <p className="text-muted-foreground">No upcoming appointments</p>
-                  </div>
-                 ) : (
-                   <div className="space-y-4">
-                     {upcomingAppointments.map((appointment) => (
-                       <Card key={appointment.id} className="border-border/50 hover:shadow-card transition-all">
-                          <CardContent className="p-4">
-                            <div className="flex flex-col gap-4">
-                              <div className="flex items-start justify-between">
-                                <div className="space-y-2 flex-1">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <User className="w-4 h-4 text-primary" />
-                                    <span className="font-semibold text-foreground">
-                                      {appointment.patient_profile?.full_name || 'Unknown Patient'}
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <Clock className="w-4 h-4 text-muted-foreground" />
-                                    <span className="font-medium">
-                                      {new Date(appointment.appointment_date).toLocaleDateString()} at{' '}
-                                      {new Date(appointment.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                    </span>
-                                  </div>
-                                  {appointment.notes && (
-                                    <p className="text-sm text-muted-foreground flex items-start gap-2">
-                                      <FileText className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                                      {appointment.notes}
-                                    </p>
-                                  )}
-                                </div>
-                                <Badge className={getStatusColor(appointment.status)}>
-                                  {appointment.status}
-                                </Badge>
-                              </div>
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <div className="flex items-center justify-between mb-4">
+                <TabsList>
+                  <TabsTrigger value="list" className="gap-2">
+                    <Clock className="w-4 h-4" />
+                    List View
+                  </TabsTrigger>
+                  <TabsTrigger value="calendar" className="gap-2">
+                    <CalendarDays className="w-4 h-4" />
+                    Calendar
+                  </TabsTrigger>
+                </TabsList>
+              </div>
 
-                              {/* Diagnosis and Prescription Section */}
-                              {editingAppointmentId === appointment.id ? (
-                                <div className="space-y-3 pt-3 border-t border-border">
-                                  <div className="space-y-2">
-                                    <Label htmlFor={`diagnosis-${appointment.id}`}>Diagnosis</Label>
-                                    <Textarea
-                                      id={`diagnosis-${appointment.id}`}
-                                      placeholder="Enter diagnosis..."
-                                      value={appointmentUpdates[appointment.id]?.diagnosis || ''}
-                                      onChange={(e) => setAppointmentUpdates(prev => ({
-                                        ...prev,
-                                        [appointment.id]: {
-                                          ...prev[appointment.id],
-                                          diagnosis: e.target.value
-                                        }
-                                      }))}
-                                      rows={2}
-                                    />
+              <TabsContent value="calendar" className="mt-0">
+                <AppointmentCalendar 
+                  appointments={appointments}
+                  onSelectAppointment={(apt) => handleViewPatientDetails(apt.patient_id, apt.status)}
+                />
+              </TabsContent>
+
+              <TabsContent value="list" className="mt-0">
+                <Card className="border-border/50 shadow-card">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Calendar className="w-5 h-5 text-primary" />
+                      Upcoming Appointments
+                    </CardTitle>
+                    <CardDescription>
+                      Manage your scheduled patient appointments
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {upcomingAppointments.length === 0 ? (
+                      <div className="text-center py-12">
+                        <Calendar className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
+                        <p className="text-muted-foreground">No upcoming appointments</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {upcomingAppointments.map((appointment) => (
+                          <Card key={appointment.id} className="border-border/50 hover:shadow-card transition-all">
+                            <CardContent className="p-4">
+                              <div className="flex flex-col gap-4">
+                                <div className="flex items-start justify-between">
+                                  <div className="space-y-2 flex-1">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <User className="w-4 h-4 text-primary" />
+                                      <span className="font-semibold text-foreground">
+                                        {appointment.patient_profile?.full_name || 'Unknown Patient'}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <Clock className="w-4 h-4 text-muted-foreground" />
+                                      <span className="font-medium">
+                                        {new Date(appointment.appointment_date).toLocaleDateString()} at{' '}
+                                        {new Date(appointment.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                      </span>
+                                    </div>
+                                    {appointment.notes && (
+                                      <p className="text-sm text-muted-foreground flex items-start gap-2">
+                                        <FileText className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                        {appointment.notes}
+                                      </p>
+                                    )}
                                   </div>
-                                  <div className="space-y-2">
-                                    <Label htmlFor={`prescription-${appointment.id}`}>Prescription</Label>
-                                    <Textarea
-                                      id={`prescription-${appointment.id}`}
-                                      placeholder="Enter prescription details..."
-                                      value={appointmentUpdates[appointment.id]?.prescription || ''}
-                                      onChange={(e) => setAppointmentUpdates(prev => ({
-                                        ...prev,
-                                        [appointment.id]: {
-                                          ...prev[appointment.id],
-                                          prescription: e.target.value
-                                        }
-                                      }))}
-                                      rows={3}
-                                    />
+                                  <Badge className={getStatusColor(appointment.status)}>
+                                    {appointment.status}
+                                  </Badge>
+                                </div>
+
+                                {/* Diagnosis and Prescription Section */}
+                                {editingAppointmentId === appointment.id ? (
+                                  <div className="space-y-3 pt-3 border-t border-border">
+                                    <div className="space-y-2">
+                                      <Label htmlFor={`diagnosis-${appointment.id}`}>Diagnosis</Label>
+                                      <Textarea
+                                        id={`diagnosis-${appointment.id}`}
+                                        placeholder="Enter diagnosis..."
+                                        value={appointmentUpdates[appointment.id]?.diagnosis || ''}
+                                        onChange={(e) => setAppointmentUpdates(prev => ({
+                                          ...prev,
+                                          [appointment.id]: {
+                                            ...prev[appointment.id],
+                                            diagnosis: e.target.value
+                                          }
+                                        }))}
+                                        rows={2}
+                                      />
+                                    </div>
+                                    <div className="space-y-2">
+                                      <Label htmlFor={`prescription-${appointment.id}`}>Prescription</Label>
+                                      <Textarea
+                                        id={`prescription-${appointment.id}`}
+                                        placeholder="Enter prescription details..."
+                                        value={appointmentUpdates[appointment.id]?.prescription || ''}
+                                        onChange={(e) => setAppointmentUpdates(prev => ({
+                                          ...prev,
+                                          [appointment.id]: {
+                                            ...prev[appointment.id],
+                                            prescription: e.target.value
+                                          }
+                                        }))}
+                                        rows={3}
+                                      />
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <Button
+                                        size="sm"
+                                        onClick={() => handleUpdateAppointmentDetails(appointment.id)}
+                                      >
+                                        Save & Notify
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => setEditingAppointmentId(null)}
+                                      >
+                                        Cancel
+                                      </Button>
+                                    </div>
                                   </div>
-                                  <div className="flex gap-2">
-                                    <Button
-                                      size="sm"
-                                      onClick={() => handleUpdateAppointmentDetails(appointment.id)}
-                                    >
-                                      Save Details
-                                    </Button>
+                                ) : (
+                                  <>
+                                    {(appointment.diagnosis || appointment.prescription) && (
+                                      <div className="space-y-2 pt-3 border-t border-border text-sm">
+                                        {appointment.diagnosis && (
+                                          <div>
+                                            <span className="font-medium text-foreground">Diagnosis: </span>
+                                            <span className="text-muted-foreground">{appointment.diagnosis}</span>
+                                          </div>
+                                        )}
+                                        {appointment.prescription && (
+                                          <div>
+                                            <span className="font-medium text-foreground">Prescription: </span>
+                                            <span className="text-muted-foreground">{appointment.prescription}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </>
+                                )}
+                                
+                                <div className="flex flex-wrap items-center gap-2">
+                                  {editingAppointmentId !== appointment.id && (
                                     <Button
                                       size="sm"
                                       variant="outline"
-                                      onClick={() => setEditingAppointmentId(null)}
+                                      onClick={() => initializeAppointmentEdit(appointment)}
                                     >
+                                      <FileText className="w-4 h-4 mr-1" />
+                                      Add Details
+                                    </Button>
+                                  )}
+                                  
+                                  <Button
+                                    size="sm"
+                                    variant={appointment.status === 'confirmed' ? 'default' : 'outline'}
+                                    onClick={() => handleViewPatientDetails(appointment.patient_id, appointment.status)}
+                                  >
+                                    View Patient
+                                  </Button>
+                                  
+                                  {appointment.status === 'confirmed' && (
+                                    <Button
+                                      size="sm"
+                                      className="bg-success hover:bg-success/90 text-success-foreground"
+                                      onClick={() => handleOpenCompleteDialog(appointment)}
+                                    >
+                                      <CheckCircle2 className="w-4 h-4 mr-1" />
+                                      Complete
+                                    </Button>
+                                  )}
+                                  
+                                  {appointment.status !== 'cancelled' && appointment.status !== 'completed' && (
+                                    <Button
+                                      size="sm"
+                                      variant="destructive"
+                                      onClick={() => handleCancelAppointment(appointment.id)}
+                                    >
+                                      <XCircle className="w-4 h-4 mr-1" />
                                       Cancel
                                     </Button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <>
-                                  {(appointment.diagnosis || appointment.prescription) && (
-                                    <div className="space-y-2 pt-3 border-t border-border text-sm">
-                                      {appointment.diagnosis && (
-                                        <div>
-                                          <span className="font-medium text-foreground">Diagnosis: </span>
-                                          <span className="text-muted-foreground">{appointment.diagnosis}</span>
-                                        </div>
-                                      )}
-                                      {appointment.prescription && (
-                                        <div>
-                                          <span className="font-medium text-foreground">Prescription: </span>
-                                          <span className="text-muted-foreground">{appointment.prescription}</span>
-                                        </div>
-                                      )}
-                                    </div>
                                   )}
-                                </>
-                              )}
-                              
-                              <div className="flex flex-wrap items-center gap-2">
-                                <Select
-                                  value={appointment.status}
-                                  onValueChange={(value) => handleUpdateAppointmentStatus(appointment.id, value)}
-                                >
-                                  <SelectTrigger className="w-[140px]">
-                                    <SelectValue placeholder="Update Status" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="scheduled">Scheduled</SelectItem>
-                                    <SelectItem value="confirmed">Confirmed</SelectItem>
-                                    <SelectItem value="completed">Completed</SelectItem>
-                                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                                  </SelectContent>
-                                </Select>
-
-                                {editingAppointmentId !== appointment.id && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => initializeAppointmentEdit(appointment)}
-                                  >
-                                    <FileText className="w-4 h-4 mr-1" />
-                                    Add Details
-                                  </Button>
-                                )}
-                                
-                                <Button
-                                  size="sm"
-                                  variant={appointment.status === 'confirmed' ? 'default' : 'outline'}
-                                  onClick={() => handleViewPatientDetails(appointment.patient_id, appointment.status)}
-                                >
-                                  View Patient
-                                </Button>
-                                
-                                {appointment.status !== 'cancelled' && appointment.status !== 'completed' && (
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    onClick={() => handleCancelAppointment(appointment.id)}
-                                  >
-                                    <XCircle className="w-4 h-4 mr-1" />
-                                    Cancel
-                                  </Button>
-                                )}
+                                </div>
                               </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                     ))}
-                   </div>
-                 )}
-               </CardContent>
-             </Card>
-           </div>
-         </div>
-       </main>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </div>
+      </main>
 
-       {/* Patient Details Dialog */}
-       <PatientDetailsDialog
-         isOpen={!!selectedPatientId}
-         onClose={() => setSelectedPatientId(null)}
-         patientId={selectedPatientId || ''}
-         appointmentStatus={selectedAppointmentStatus}
-       />
-     </div>
-   );
- };
- 
- export default DoctorDashboard;
+      {/* Patient Details Dialog */}
+      <PatientDetailsDialog
+        isOpen={!!selectedPatientId}
+        onClose={() => setSelectedPatientId(null)}
+        patientId={selectedPatientId || ''}
+        appointmentStatus={selectedAppointmentStatus}
+      />
+
+      {/* Complete Appointment Dialog */}
+      {selectedAppointmentForComplete && (
+        <CompleteAppointmentDialog
+          open={completeDialogOpen}
+          onOpenChange={setCompleteDialogOpen}
+          appointmentId={selectedAppointmentForComplete.id}
+          patientEmail={selectedAppointmentForComplete.patient_profile?.email || ''}
+          patientName={selectedAppointmentForComplete.patient_profile?.full_name || 'Patient'}
+          doctorName={profile?.full_name || 'Doctor'}
+          currentDiagnosis={selectedAppointmentForComplete.diagnosis}
+          currentPrescription={selectedAppointmentForComplete.prescription}
+          onComplete={fetchDoctorData}
+        />
+      )}
+    </div>
+  );
+};
+
+export default DoctorDashboard;
