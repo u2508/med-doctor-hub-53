@@ -276,6 +276,14 @@ const AdminDashboard: React.FC = () => {
                 <span className="hidden sm:inline">User Dashboard</span>
               </Button>
               <Button
+                onClick={() => navigate('/doctor-dashboard')}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <User className="w-4 h-4" />
+                <span className="hidden sm:inline">doctor Dashboard</span>
+              </Button>
+              <Button
                 onClick={() => navigate('/')}
                 variant="ghost"
                 className="flex items-center gap-2"
