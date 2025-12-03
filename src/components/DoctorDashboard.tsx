@@ -1,28 +1,20 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Users, Clock, FileText, LogOut, User, Stethoscope, TrendingUp, Activity, CheckCircle2, XCircle, ClockIcon, Heart, Star, History, CalendarDays, ChevronDown } from 'lucide-react';
+import { Calendar, Users, Clock, FileText, LogOut, Stethoscope, TrendingUp, CheckCircle2, XCircle, ClockIcon, Heart, Star, History, CalendarDays, UserRound, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { PatientDetailsDialog } from '@/components/doctor/PatientDetailsDialog';
 import AppointmentCalendar from '@/components/doctor/AppointmentCalendar';
 import CompleteAppointmentDialog from '@/components/doctor/CompleteAppointmentDialog';
+import PatientManagement from '@/components/doctor/PatientManagement';
+import PatientDetailView from '@/components/doctor/PatientDetailView';
 
 interface DoctorProfile {
   full_name: string;
@@ -57,7 +49,6 @@ const DoctorDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [isEditing, setIsEditing] = useState(false);
   const [profile, setProfile] = useState<DoctorProfile | null>(null);
   const [doctorDetails, setDoctorDetails] = useState<DoctorDetails | null>(null);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -73,7 +64,9 @@ const DoctorDashboard = () => {
   const [appointmentUpdates, setAppointmentUpdates] = useState<{[key: string]: {diagnosis: string, prescription: string}}>({});
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
   const [selectedAppointmentForComplete, setSelectedAppointmentForComplete] = useState<Appointment | null>(null);
-  const [activeTab, setActiveTab] = useState('list');
+  const [activeTab, setActiveTab] = useState('appointments');
+  const [appointmentView, setAppointmentView] = useState('list');
+  const [selectedPatientForDetail, setSelectedPatientForDetail] = useState<{patientId: string, appointment: Appointment} | null>(null);
 
   useEffect(() => {
     fetchDoctorData();
@@ -163,49 +156,6 @@ const DoctorDashboard = () => {
     }
   };
 
-  const handleUpdateProfile = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user || !profile) return;
-
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          full_name: profile.full_name,
-          phone: profile.phone
-        })
-        .eq('user_id', user.id);
-
-      if (profileError) throw profileError;
-
-      if (doctorDetails) {
-        const { error: doctorError } = await supabase
-          .from('doctor_profiles')
-          .update({
-            specialty: doctorDetails.specialty,
-            years_experience: doctorDetails.years_experience,
-            hospital_affiliation: doctorDetails.hospital_affiliation
-          })
-          .eq('user_id', user.id);
-
-        if (doctorError) throw doctorError;
-      }
-
-      toast({
-        title: 'Success',
-        description: 'Profile updated successfully',
-      });
-      setIsEditing(false);
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to update profile',
-        variant: 'destructive'
-      });
-    }
-  };
-
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate('/doctor-portal');
@@ -280,10 +230,6 @@ const DoctorDashboard = () => {
 
   const handleCancelAppointment = async (appointmentId: string) => {
     await handleUpdateAppointmentStatus(appointmentId, 'cancelled');
-  };
-
-  const handleCompleteAppointment = async (appointmentId: string) => {
-    await handleUpdateAppointmentStatus(appointmentId, 'completed');
   };
 
   const handleViewPatientDetails = (patientId: string, appointmentStatus: string) => {
@@ -366,6 +312,25 @@ const DoctorDashboard = () => {
     }));
   };
 
+  const handleViewPatientDetail = (patientId: string, status: string, appointment: Appointment) => {
+    setSelectedPatientForDetail({ patientId, appointment });
+  };
+
+  // If viewing patient detail, show that view
+  if (selectedPatientForDetail) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background">
+        <main className="container mx-auto px-6 py-8">
+          <PatientDetailView
+            patientId={selectedPatientForDetail.patientId}
+            appointment={selectedPatientForDetail.appointment}
+            onBack={() => setSelectedPatientForDetail(null)}
+          />
+        </main>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -403,30 +368,14 @@ const DoctorDashboard = () => {
                 History
               </Button>
               
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="gap-2">
-                    <Avatar className="h-6 w-6">
-                      <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                        {profile?.full_name?.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="hidden sm:inline">{profile?.full_name}</span>
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48 bg-card border-border z-50">
-                  <DropdownMenuItem onClick={() => navigate('/doctor-profile')} className="cursor-pointer">
-                    <User className="mr-2 h-4 w-4" />
-                    My Profile
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Sign Out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <Button 
+                variant="destructive"
+                onClick={handleSignOut}
+                className="gap-2"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign Out
+              </Button>
             </div>
           </div>
         </div>
@@ -492,214 +441,102 @@ const DoctorDashboard = () => {
           </Card>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Left Column */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Scheduled Appointments */}
-            {pendingAppointments.length > 0 && (
-              <Card className="border-border/50 shadow-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <ClockIcon className="w-5 h-5 text-warning" />
-                    Scheduled Appointments
-                  </CardTitle>
-                  <CardDescription>
-                    Review and confirm appointment requests
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {pendingAppointments.map((appointment) => (
-                      <Card key={appointment.id} className="border-warning/30 bg-warning/5">
-                        <CardContent className="p-4">
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <User className="w-4 h-4 text-primary" />
-                                <span className="font-semibold text-foreground">
-                                  {appointment.patient_profile?.full_name || 'Unknown Patient'}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm">
-                              <Calendar className="w-4 h-4 text-muted-foreground" />
-                              <span className="font-medium">
-                                {new Date(appointment.appointment_date).toLocaleDateString()}
-                              </span>
-                              <span className="text-muted-foreground">
-                                {new Date(appointment.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                            </div>
-                            {appointment.notes && (
-                              <p className="text-sm text-muted-foreground">
-                                {appointment.notes}
-                              </p>
-                            )}
-                            <div className="flex gap-2">
-                              <Button 
-                                size="sm" 
-                                onClick={() => handleApproveAppointment(appointment.id)}
-                                className="flex-1 gap-1"
-                              >
-                                <CheckCircle2 className="w-4 h-4" />
-                                Confirm
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="destructive"
-                                onClick={() => handleDenyAppointment(appointment.id)}
-                                className="flex-1 gap-1"
-                              >
-                                <XCircle className="w-4 h-4" />
-                                Decline
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Doctor Profile Card */}
-            <Card className="border-border/50 shadow-card">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <Stethoscope className="w-5 h-5 text-primary" />
-                    Doctor Profile
-                  </CardTitle>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => setIsEditing(!isEditing)}
-                  >
-                    {isEditing ? 'Cancel' : 'Edit'}
-                  </Button>
-                </div>
-                <CardDescription>Manage your professional information</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex flex-col items-center text-center pb-4">
-                  <Avatar className="w-24 h-24 border-4 border-primary/20">
-                    <AvatarFallback className="bg-gradient-to-br from-primary to-primary-dark text-primary-foreground text-2xl">
-                      {profile?.full_name?.charAt(0) || 'D'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <h3 className="text-xl font-semibold mt-4">{profile?.full_name}</h3>
-                  <p className="text-muted-foreground">{doctorDetails?.specialty || 'Specialist'}</p>
-                  {doctorDetails?.hospital_affiliation && (
-                    <Badge variant="outline" className="mt-2">
-                      {doctorDetails.hospital_affiliation}
-                    </Badge>
-                  )}
-                </div>
-
-                <Separator />
-
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="full_name">Full Name</Label>
-                    <Input
-                      id="full_name"
-                      value={profile?.full_name || ''}
-                      onChange={(e) => setProfile(prev => prev ? {...prev, full_name: e.target.value} : null)}
-                      disabled={!isEditing}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={profile?.email || ''}
-                      disabled
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone</Label>
-                    <Input
-                      id="phone"
-                      value={profile?.phone || ''}
-                      onChange={(e) => setProfile(prev => prev ? {...prev, phone: e.target.value} : null)}
-                      disabled={!isEditing}
-                      placeholder="Enter phone number"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="specialty">Specialty</Label>
-                    <Input
-                      id="specialty"
-                      value={doctorDetails?.specialty || ''}
-                      onChange={(e) => setDoctorDetails(prev => prev ? {...prev, specialty: e.target.value} : null)}
-                      disabled={!isEditing}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="experience">Years of Experience</Label>
-                    <Input
-                      id="experience"
-                      type="number"
-                      value={doctorDetails?.years_experience || ''}
-                      onChange={(e) => setDoctorDetails(prev => prev ? {...prev, years_experience: parseInt(e.target.value)} : null)}
-                      disabled={!isEditing}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="hospital">Hospital Affiliation</Label>
-                    <Input
-                      id="hospital"
-                      value={doctorDetails?.hospital_affiliation || ''}
-                      onChange={(e) => setDoctorDetails(prev => prev ? {...prev, hospital_affiliation: e.target.value} : null)}
-                      disabled={!isEditing}
-                      placeholder="Enter hospital name"
-                    />
-                  </div>
-
-                  {isEditing && (
-                    <Button 
-                      onClick={handleUpdateProfile}
-                      className="w-full"
-                    >
-                      Save Changes
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Appointments Section */}
-          <div className="lg:col-span-2">
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <div className="flex items-center justify-between mb-4">
-                <TabsList>
-                  <TabsTrigger value="list" className="gap-2">
-                    <Clock className="w-4 h-4" />
-                    List View
-                  </TabsTrigger>
-                  <TabsTrigger value="calendar" className="gap-2">
-                    <CalendarDays className="w-4 h-4" />
-                    Calendar
-                  </TabsTrigger>
-                </TabsList>
+        {/* Scheduled Appointments Alert */}
+        {pendingAppointments.length > 0 && (
+          <Card className="border-warning/30 bg-warning/5 mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ClockIcon className="w-5 h-5 text-warning" />
+                Pending Appointment Requests ({pendingAppointments.length})
+              </CardTitle>
+              <CardDescription>
+                Review and confirm these appointment requests
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                {pendingAppointments.slice(0, 3).map((appointment) => (
+                  <Card key={appointment.id} className="border-warning/30">
+                    <CardContent className="p-4">
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <User className="w-4 h-4 text-primary" />
+                          <span className="font-semibold text-foreground">
+                            {appointment.patient_profile?.full_name || 'Unknown Patient'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <Calendar className="w-4 h-4 text-muted-foreground" />
+                          <span className="font-medium">
+                            {new Date(appointment.appointment_date).toLocaleDateString()}
+                          </span>
+                          <span className="text-muted-foreground">
+                            {new Date(appointment.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            onClick={() => handleApproveAppointment(appointment.id)}
+                            className="flex-1 gap-1"
+                          >
+                            <CheckCircle2 className="w-4 h-4" />
+                            Confirm
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="destructive"
+                            onClick={() => handleDenyAppointment(appointment.id)}
+                            className="flex-1 gap-1"
+                          >
+                            <XCircle className="w-4 h-4" />
+                            Decline
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
+            </CardContent>
+          </Card>
+        )}
 
-              <TabsContent value="calendar" className="mt-0">
+        {/* Main Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-6">
+            <TabsTrigger value="appointments" className="gap-2">
+              <Calendar className="w-4 h-4" />
+              Appointments
+            </TabsTrigger>
+            <TabsTrigger value="patients" className="gap-2">
+              <UserRound className="w-4 h-4" />
+              Patient Management
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Appointments Tab */}
+          <TabsContent value="appointments">
+            <Tabs value={appointmentView} onValueChange={setAppointmentView}>
+              <TabsList className="mb-4">
+                <TabsTrigger value="list" className="gap-2">
+                  <Clock className="w-4 h-4" />
+                  List View
+                </TabsTrigger>
+                <TabsTrigger value="calendar" className="gap-2">
+                  <CalendarDays className="w-4 h-4" />
+                  Calendar
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="calendar">
                 <AppointmentCalendar 
                   appointments={appointments}
                   onSelectAppointment={(apt) => handleViewPatientDetails(apt.patient_id, apt.status)}
                 />
               </TabsContent>
 
-              <TabsContent value="list" className="mt-0">
+              <TabsContent value="list">
                 <Card className="border-border/50 shadow-card">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -873,8 +710,29 @@ const DoctorDashboard = () => {
                 </Card>
               </TabsContent>
             </Tabs>
-          </div>
-        </div>
+          </TabsContent>
+
+          {/* Patient Management Tab */}
+          <TabsContent value="patients">
+            <Card className="border-border/50 shadow-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <UserRound className="w-5 h-5 text-primary" />
+                  Patient Management
+                </CardTitle>
+                <CardDescription>
+                  View and manage your patients
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <PatientManagement 
+                  appointments={appointments}
+                  onViewPatient={handleViewPatientDetail}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </main>
 
       {/* Patient Details Dialog */}
