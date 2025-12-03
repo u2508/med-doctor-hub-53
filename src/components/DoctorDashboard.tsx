@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Users, Clock, FileText, LogOut, User, Stethoscope, TrendingUp, Activity, CheckCircle2, XCircle, ClockIcon, Heart, Star, History, CalendarDays, ChevronDown, ArrowLeft, ShieldCheck } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Calendar, Users, Clock, FileText, LogOut, User, Stethoscope, TrendingUp, Activity, CheckCircle2, XCircle, ClockIcon, Heart, Star, History, CalendarDays, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -24,7 +24,6 @@ import { useToast } from '@/hooks/use-toast';
 import { PatientDetailsDialog } from '@/components/doctor/PatientDetailsDialog';
 import AppointmentCalendar from '@/components/doctor/AppointmentCalendar';
 import CompleteAppointmentDialog from '@/components/doctor/CompleteAppointmentDialog';
-import { LoginForm } from '@/components/auth/LoginForm';
 
 interface DoctorProfile {
   full_name: string;
@@ -94,12 +93,12 @@ const DoctorDashboard = () => {
           setIsAuthenticated(true);
           fetchDoctorData();
         } else {
-          setIsAuthenticated(false);
-          setLoading(false);
+          // Not approved or not a doctor - redirect to login
+          navigate('/doctor-portal');
         }
       } else {
-        setIsAuthenticated(false);
-        setLoading(false);
+        // Not authenticated - redirect to login
+        navigate('/doctor-portal');
       }
     };
 
@@ -114,16 +113,12 @@ const DoctorDashboard = () => {
           fetchDoctorData();
         }
       } else if (event === 'SIGNED_OUT') {
-        setIsAuthenticated(false);
-        setProfile(null);
-        setDoctorDetails(null);
-        setAppointments([]);
-        setLoading(false);
+        navigate('/doctor-portal');
       }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [navigate]);
 
   const checkDoctorApproval = async (userId: string): Promise<boolean> => {
     try {
@@ -451,146 +446,13 @@ const DoctorDashboard = () => {
   };
 
   // Loading state
-  if (loading) {
+  if (loading || !isAuthenticated) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
           <Heart className="w-12 h-12 text-primary animate-pulse mx-auto" />
           <p className="text-muted-foreground">Loading...</p>
         </div>
-      </div>
-    );
-  }
-
-  // Login Page (not authenticated)
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-blue-100 text-foreground overflow-hidden">
-        {/* Top Header */}
-        <header className="bg-card/80 backdrop-blur-md border-b border-border shadow-sm sticky top-0 z-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center py-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-blue-400 rounded-2xl flex items-center justify-center shadow-card">
-                  <Stethoscope className="w-7 h-7 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold text-foreground">Doctor Portal</h1>
-                  <p className="text-sm text-muted-foreground">
-                    Professional Healthcare Dashboard
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <Button
-                  onClick={() => navigate("/doctor-registration")}
-                  variant="outline"
-                  className="flex items-center gap-2 text-blue-700 hover:bg-blue-50 border-blue-200"
-                >
-                  <Stethoscope className="w-4 h-4" />
-                  Doctor Registration
-                </Button>
-                <Button
-                  onClick={() => navigate("/")}
-                  variant="ghost"
-                  className="flex items-center gap-2 text-blue-600 hover:bg-blue-50"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Back to Home
-                </Button>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        <main className="container mx-auto px-4 py-10 sm:py-16 relative">
-          <AnimatePresence mode="wait">
-            <motion.section
-              key="login"
-              variants={fadeVariants}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              transition={{ duration: 0.5 }}
-              className="flex flex-col-reverse lg:flex-row items-center justify-between gap-10"
-            >
-              {/* Left Branding Panel */}
-              <div className="space-x-0 lg:space-x-10 w-full lg:w-1/2 flex flex-col items-start">
-                <h1 className="text-6xl font-extrabold leading-tight bg-gradient-to-r from-blue-700 via-blue-500 to-blue-400 bg-clip-text text-transparent">
-                  Welcome to Your<br />
-                  <span className="text-blue-600">Professional Space</span>
-                </h1>
-                <p className="mt-6 text-base text-gray-600 max-w-md">
-                  Join thousands of healthcare professionals using MediCare Portal to
-                  manage patients, monitor real-time insights, and elevate care quality
-                  with AI-powered precision.
-                </p>
-
-                <div className="bg-white/70 backdrop-blur-md rounded-2xl shadow-md p-6 border border-blue-100 space-y-4 mt-8">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 rounded-xl bg-blue-100">
-                      <Stethoscope className="w-5 h-5 text-blue-700" />
-                    </div>
-                    <div>
-                      <h3 className="text-base font-semibold text-gray-800">
-                        Smart Patient Tracking
-                      </h3>
-                      <p className="text-sm text-gray-500">
-                        Real-time updates and automated reports.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 rounded-xl bg-blue-100">
-                      <ShieldCheck className="w-5 h-5 text-blue-700" />
-                    </div>
-                    <div>
-                      <h3 className="text-base font-semibold text-gray-800">
-                        Secure & Compliant
-                      </h3>
-                      <p className="text-sm text-gray-500">
-                        HIPAA-grade data encryption and privacy control.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 rounded-xl bg-blue-100">
-                      <Activity className="w-5 h-5 text-blue-700" />
-                    </div>
-                    <div>
-                      <h3 className="text-base font-semibold text-gray-800">
-                        AI-Assisted Analytics
-                      </h3>
-                      <p className="text-sm text-gray-500">
-                        Data-driven insights for better clinical outcomes.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Auth Panel */}
-              <motion.div
-                initial={{ opacity: 0, x: 40 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5 }}
-                className="flex flex-col justify-center items-center w-full lg:w-1/2 px-6 sm:px-10 lg:px-20"
-              >
-                <Card className="w-full max-w-md shadow-xl border border-blue-100/50 bg-white/90 backdrop-blur-sm">
-                  <CardHeader className="text-center space-y-3">
-                    <div className="flex justify-center"></div>
-                  </CardHeader>
-                  <CardContent>
-                    <LoginForm />
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </motion.section>
-          </AnimatePresence>
-        </main>
       </div>
     );
   }
