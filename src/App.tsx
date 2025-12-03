@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 import type { Session, User as SupabaseUser } from '@supabase/supabase-js';
 
 // Lazy load components for better performance
@@ -27,6 +28,8 @@ const Chatbot = lazy(() => import("@/components/Chatbot"));
 const StressManagement = lazy(() => import("@/components/StressManagement"));
 const Support = lazy(() => import("@/components/Support"));
 const HealthAnalytics = lazy(() => import("@/components/HealthAnalytics"));
+const UserProfile = lazy(() => import("./pages/UserProfile"));
+const PatientOnboarding = lazy(() => import("./pages/PatientOnboarding"));
 
 // Optimized query client with better caching and background updates
 const queryClient = new QueryClient({
@@ -54,35 +57,55 @@ const LoadingFallback = () => (
   </div>
 );
 
-// Protected routes that require authentication
-const PROTECTED_ROUTES = [
-  '/doctor-dashboard',
-  '/admin-dashboard',
-  '/doctor-profile',
-  '/user-dashboard',
-  '/doctor-finder',
-  '/my-appointments',
-  '/mood-tracker',
-  '/chatbot',
-  '/stress-management',
-  '/health-analytics',
-  '/appointment-history',
-];
+// Route configuration by role
+const DOCTOR_ROUTES = ['/doctor-dashboard', '/doctor-profile', '/appointment-history'];
+const PATIENT_ROUTES = ['/user-dashboard', '/user-profile', '/doctor-finder', '/my-appointments', '/mood-tracker', '/chatbot', '/stress-management', '/health-analytics', '/patient-onboarding'];
+const ADMIN_ROUTES = ['/admin-dashboard'];
+const ALL_PROTECTED_ROUTES = [...DOCTOR_ROUTES, ...PATIENT_ROUTES, ...ADMIN_ROUTES];
 
-// Auth wrapper component to handle redirects
-const AuthWrapper = ({ children, user, loading }: { children: React.ReactNode; user: SupabaseUser | null; loading: boolean }) => {
+// Auth wrapper component to handle redirects and role-based access
+const AuthWrapper = ({ children, user, userRole, loading }: { children: React.ReactNode; user: SupabaseUser | null; userRole: string | null; loading: boolean }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
     if (loading) return;
 
-    const isProtectedRoute = PROTECTED_ROUTES.some(route => location.pathname.startsWith(route));
+    const isProtectedRoute = ALL_PROTECTED_ROUTES.some(route => location.pathname.startsWith(route));
     
     if (!user && isProtectedRoute) {
       navigate('/', { replace: true });
+      return;
     }
-  }, [user, loading, location.pathname, navigate]);
+
+    // Role-based route protection
+    if (user && userRole) {
+      const isDoctorRoute = DOCTOR_ROUTES.some(route => location.pathname.startsWith(route));
+      const isPatientRoute = PATIENT_ROUTES.some(route => location.pathname.startsWith(route));
+      const isAdminRoute = ADMIN_ROUTES.some(route => location.pathname.startsWith(route));
+
+      if (userRole === 'patient') {
+        if (isDoctorRoute || isAdminRoute) {
+          toast({
+            title: 'Access Denied',
+            description: 'You do not have permission to access this page.',
+            variant: 'destructive'
+          });
+          navigate('/user-dashboard', { replace: true });
+        }
+      } else if (userRole === 'doctor') {
+        if (isPatientRoute || isAdminRoute) {
+          toast({
+            title: 'Access Denied',
+            description: 'You do not have permission to access this page.',
+            variant: 'destructive'
+          });
+          navigate('/doctor-dashboard', { replace: true });
+        }
+      }
+      // Admin can access all routes
+    }
+  }, [user, userRole, loading, location.pathname, navigate]);
 
   return <>{children}</>;
 };
@@ -91,6 +114,7 @@ const AppContent = () => {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [userType, setUserType] = useState<"doctor" | "user" | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   
@@ -107,7 +131,16 @@ const AppContent = () => {
         
         if (event === 'SIGNED_OUT') {
           setUserType(null);
+          setUserRole(null);
           navigate('/', { replace: true });
+        }
+        
+        if (event === 'TOKEN_REFRESHED') {
+          // Session was refreshed successfully
+        }
+        
+        if (event === 'USER_UPDATED') {
+          // User data was updated
         }
         
         if (session?.user) {
@@ -119,7 +152,10 @@ const AppContent = () => {
               .eq('user_id', session.user.id)
               .single();
             
-            if (profile?.role === 'doctor') {
+            const role = profile?.role || 'patient';
+            setUserRole(role);
+            
+            if (role === 'doctor') {
               setUserType('doctor');
             } else {
               setUserType('user');
@@ -127,6 +163,7 @@ const AppContent = () => {
           }, 0);
         } else {
           setUserType(null);
+          setUserRole(null);
         }
         setLoading(false);
       }
@@ -144,7 +181,10 @@ const AppContent = () => {
           .eq('user_id', session.user.id)
           .single()
           .then(({ data: profile }) => {
-            if (profile?.role === 'doctor') {
+            const role = profile?.role || 'patient';
+            setUserRole(role);
+            
+            if (role === 'doctor') {
               setUserType('doctor');
             } else {
               setUserType('user');
@@ -154,11 +194,32 @@ const AppContent = () => {
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+    // Set up session expiry listener
+    const checkSessionExpiry = setInterval(async () => {
+      const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+      
+      if (error || (!currentSession && user)) {
+        toast({
+          title: 'Session Expired',
+          description: 'Your session has expired. Please sign in again.',
+          variant: 'destructive'
+        });
+        setUser(null);
+        setSession(null);
+        setUserType(null);
+        setUserRole(null);
+        navigate('/', { replace: true });
+      }
+    }, 60000); // Check every minute
+
+    return () => {
+      subscription.unsubscribe();
+      clearInterval(checkSessionExpiry);
+    };
+  }, [navigate, user]);
 
   return (
-    <AuthWrapper user={user} loading={loading}>
+    <AuthWrapper user={user} userRole={userRole} loading={loading}>
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
           <Route path="/" element={<LandingPage />} />
@@ -177,6 +238,8 @@ const AppContent = () => {
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/doctor-profile" element={<DoctorProfile />} />
           <Route path="/user-dashboard" element={<UserDashboard user={user} />} />
+          <Route path="/user-profile" element={<UserProfile />} />
+          <Route path="/patient-onboarding" element={<PatientOnboarding />} />
           
           {/* Mental Health Features */}
           <Route path="/doctor-finder" element={<DoctorFinder />} />

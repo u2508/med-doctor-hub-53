@@ -1,9 +1,13 @@
 import React, { memo, useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Heart, UserCheck, MessageCircle, BarChart3, Clock, Loader2, Sparkles, Calendar } from 'lucide-react';
+import { Heart, UserCheck, MessageCircle, BarChart3, Clock, Loader2, Sparkles, Calendar, User, LogOut, ChevronDown } from 'lucide-react';
 import { useUserActivity } from '@/hooks/useUserActivity';
 import { supabase } from '@/integrations/supabase/client';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useToast } from '@/hooks/use-toast';
 
 interface Feature {
   title: string;
@@ -113,24 +117,50 @@ const UserDashboard = memo(({ user }: UserDashboardProps) => {
   const navigate = useNavigate();
   const { activities, loading } = useUserActivity();
   const [userName, setUserName] = useState<string>('User');
+  const [userEmail, setUserEmail] = useState<string>('');
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (user?.id) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('full_name')
+          .select('full_name, email')
           .eq('user_id', user.id)
           .single();
         
         if (profile?.full_name) {
           setUserName(profile.full_name);
         }
+        if (profile?.email) {
+          setUserEmail(profile.email);
+        }
       }
     };
     
     fetchUserProfile();
   }, [user?.id]);
+
+  const handleSignOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast({
+        title: 'Sign Out Failed',
+        description: error.message,
+        variant: 'destructive'
+      });
+    } else {
+      toast({
+        title: 'Signed Out',
+        description: 'You have been signed out successfully.'
+      });
+      navigate('/');
+    }
+  };
+
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
 
   // Memoized features array to prevent re-creation on every render
   const features = useMemo<Feature[]>(() => [
@@ -167,7 +197,6 @@ const UserDashboard = memo(({ user }: UserDashboardProps) => {
   ], []);
 
   // Memoized handlers to prevent re-creation
-  const handleSignOut = useMemo(() => () => navigate('/'), [navigate]);
   const handleFeatureClick = useMemo(() => (path: string) => () => navigate(path), [navigate]);
 
   return (
@@ -184,18 +213,40 @@ const UserDashboard = memo(({ user }: UserDashboardProps) => {
           <motion.div 
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="flex items-center space-x-6"
+            className="flex items-center space-x-4"
           >
-            <div className="text-right">
+            <div className="text-right hidden sm:block">
               <p className="text-sm text-muted-foreground">Welcome back,</p>
               <p className="font-semibold text-foreground">{userName}</p>
             </div>
-            <button
-              onClick={handleSignOut}
-              className="bg-gradient-primary text-primary-foreground px-6 py-3 rounded-xl hover:shadow-glow transition-all duration-300 font-medium"
-            >
-              Sign Out
-            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="flex items-center gap-2 p-2">
+                  <Avatar className="h-10 w-10 border-2 border-primary/20">
+                    <AvatarFallback className="bg-gradient-primary text-primary-foreground font-semibold">
+                      {getInitials(userName)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <div className="px-3 py-2">
+                  <p className="font-medium text-foreground">{userName}</p>
+                  <p className="text-sm text-muted-foreground truncate">{userEmail}</p>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => navigate('/user-profile')} className="cursor-pointer">
+                  <User className="w-4 h-4 mr-2" />
+                  My Profile
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive focus:text-destructive">
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </motion.div>
         </div>
       </header>
