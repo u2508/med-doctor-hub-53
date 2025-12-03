@@ -1,1 +1,10 @@
 project_id = "xmgtgpfsijbteijceneq"
+
+[functions.chatbot]
+verify_jwt = true
+
+[functions.notify-admins-doctor-registration]
+verify_jwt = false
+
+[functions.send-prescription-email]
+verify_jwt = true

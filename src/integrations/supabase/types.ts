@@ -24,6 +24,7 @@ export type Database = {
           notes: string | null
           patient_id: string
           prescription: string | null
+          prescription_file_url: string | null
           status: string
           updated_at: string
         }
@@ -36,6 +37,7 @@ export type Database = {
           notes?: string | null
           patient_id: string
           prescription?: string | null
+          prescription_file_url?: string | null
           status?: string
           updated_at?: string
         }
@@ -48,6 +50,7 @@ export type Database = {
           notes?: string | null
           patient_id?: string
           prescription?: string | null
+          prescription_file_url?: string | null
           status?: string
           updated_at?: string
         }

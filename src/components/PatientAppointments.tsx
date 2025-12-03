@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Clock, User, ArrowLeft, Loader2, XCircle, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Calendar, Clock, User, ArrowLeft, Loader2, XCircle, CheckCircle2, AlertCircle, FileText, Download, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +16,7 @@ interface Appointment {
   doctor_id: string;
   diagnosis?: string;
   prescription?: string;
+  prescription_file_url?: string;
 }
 
 interface DoctorProfile {
@@ -26,6 +27,7 @@ interface DoctorProfile {
 
 interface AppointmentWithDoctor extends Appointment {
   doctor: DoctorProfile;
+  signedPrescriptionUrl?: string;
 }
 
 const PatientAppointments = () => {
@@ -81,10 +83,18 @@ const PatientAppointments = () => {
 
       if (doctorDetailsError) throw doctorDetailsError;
 
-      // Combine data
-      const appointmentsWithDoctors = appointmentsData.map(apt => {
+      // Combine data and generate signed URLs for prescriptions
+      const appointmentsWithDoctors = await Promise.all(appointmentsData.map(async (apt) => {
         const profile = profilesData?.find(p => p.user_id === apt.doctor_id);
         const details = doctorDetailsData?.find(d => d.user_id === apt.doctor_id);
+        
+        let signedPrescriptionUrl: string | undefined;
+        if (apt.prescription_file_url) {
+          const { data: signedData } = await supabase.storage
+            .from('prescriptions')
+            .createSignedUrl(apt.prescription_file_url, 3600); // 1 hour expiry
+          signedPrescriptionUrl = signedData?.signedUrl;
+        }
         
         return {
           ...apt,
@@ -92,9 +102,10 @@ const PatientAppointments = () => {
             full_name: profile?.full_name || 'Unknown Doctor',
             specialty: details?.specialty || 'General Practice',
             hospital_affiliation: details?.hospital_affiliation
-          }
+          },
+          signedPrescriptionUrl
         };
-      });
+      }));
 
       setAppointments(appointmentsWithDoctors);
     } catch (error) {
@@ -284,6 +295,35 @@ const PatientAppointments = () => {
                     <div className="mt-4 p-4 bg-success/5 border border-success/20 rounded-lg">
                       <p className="text-sm font-medium text-success mb-1">Prescription</p>
                       <p className="text-sm">{appointment.prescription}</p>
+                    </div>
+                  )}
+
+                  {appointment.signedPrescriptionUrl && (
+                    <div className="mt-4 p-4 bg-warning/5 border border-warning/20 rounded-lg">
+                      <p className="text-sm font-medium text-warning mb-2 flex items-center gap-2">
+                        <FileText className="w-4 h-4" />
+                        Prescription Document
+                      </p>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => window.open(appointment.signedPrescriptionUrl, '_blank')}
+                        >
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          View
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          asChild
+                        >
+                          <a href={appointment.signedPrescriptionUrl} download>
+                            <Download className="w-4 h-4 mr-2" />
+                            Download
+                          </a>
+                        </Button>
+                      </div>
                     </div>
                   )}
 
