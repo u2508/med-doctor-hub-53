@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, User, Phone, Mail, MapPin, Heart, Calendar, AlertCircle, Pill, FileText, Activity, Plus, Upload } from 'lucide-react';
+import { ArrowLeft, User, Phone, Mail, MapPin, Heart, Calendar, AlertCircle, Pill, FileText, Activity, Plus, Upload, Wind } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import VitalsTrendChart from '@/components/vitals/VitalsTrendChart';
 import DoctorVitalsForm from '@/components/doctor/DoctorVitalsForm';
+import HealthSummaryPDF from '@/components/doctor/HealthSummaryPDF';
 
 interface PatientProfile {
   full_name: string;
@@ -68,6 +69,8 @@ interface Vital {
   temperature: number | null;
   weight: number | null;
   height: number | null;
+  oxygen_saturation?: number | null;
+  respiratory_rate?: number | null;
   notes: string | null;
   recorded_at: string;
 }
@@ -254,11 +257,19 @@ const PatientDetailView = ({ patientId, appointment, onBack }: PatientDetailView
 
   return (
     <div className="space-y-6">
-      {/* Back Button */}
-      <Button variant="ghost" onClick={onBack} className="gap-2 text-primary hover:text-primary/80">
-        <ArrowLeft className="w-4 h-4" />
-        Back to Dashboard
-      </Button>
+      {/* Back Button & Actions */}
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" onClick={onBack} className="gap-2 text-primary hover:text-primary/80">
+          <ArrowLeft className="w-4 h-4" />
+          Back to Dashboard
+        </Button>
+        <HealthSummaryPDF
+          profile={profile}
+          patientData={patientData}
+          vitals={vitals}
+          appointment={appointment}
+        />
+      </div>
 
       {/* Patient Header Card */}
       <Card className="bg-gradient-to-r from-primary/5 to-accent/5 border-border/50">
@@ -573,6 +584,26 @@ const PatientDetailView = ({ patientId, appointment, onBack }: PatientDetailView
                           </p>
                         </CardContent>
                       </Card>
+
+                      <Card className="bg-muted/30 border-border/30">
+                        <CardContent className="p-4 text-center">
+                          <Wind className="w-6 h-6 text-primary mx-auto mb-2" />
+                          <p className="text-sm text-muted-foreground">SpO2</p>
+                          <p className="text-xl font-bold text-foreground">
+                            {vitals[0].oxygen_saturation ? `${vitals[0].oxygen_saturation}%` : '--%'}
+                          </p>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="bg-muted/30 border-border/30">
+                        <CardContent className="p-4 text-center">
+                          <Wind className="w-6 h-6 text-success mx-auto mb-2" />
+                          <p className="text-sm text-muted-foreground">Resp Rate</p>
+                          <p className="text-xl font-bold text-foreground">
+                            {vitals[0].respiratory_rate ? `${vitals[0].respiratory_rate}/min` : '--/min'}
+                          </p>
+                        </CardContent>
+                      </Card>
                     </div>
                   </div>
 
@@ -595,7 +626,7 @@ const PatientDetailView = ({ patientId, appointment, onBack }: PatientDetailView
                                   })}
                                 </span>
                               </div>
-                              <div className="grid grid-cols-5 gap-4 text-sm">
+                              <div className="grid grid-cols-7 gap-4 text-sm">
                                 <div>
                                   <span className="text-muted-foreground">BP:</span>{' '}
                                   <span className="font-medium">
@@ -619,6 +650,14 @@ const PatientDetailView = ({ patientId, appointment, onBack }: PatientDetailView
                                 <div>
                                   <span className="text-muted-foreground">Height:</span>{' '}
                                   <span className="font-medium">{vital.height ? `${vital.height} in` : '--'}</span>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">SpO2:</span>{' '}
+                                  <span className="font-medium">{vital.oxygen_saturation ? `${vital.oxygen_saturation}%` : '--'}</span>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">RR:</span>{' '}
+                                  <span className="font-medium">{vital.respiratory_rate ? `${vital.respiratory_rate}` : '--'}</span>
                                 </div>
                               </div>
                               {vital.notes && (

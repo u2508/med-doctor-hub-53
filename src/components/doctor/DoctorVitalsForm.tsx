@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Activity, Heart, Thermometer, Scale, Ruler, Plus } from 'lucide-react';
+import { Activity, Heart, Thermometer, Scale, Ruler, Plus, Wind } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,13 +25,15 @@ const DoctorVitalsForm = ({ patientId, appointmentId, onVitalAdded }: DoctorVita
     temperature: '',
     weight: '',
     height: '',
+    oxygen_saturation: '',
+    respiratory_rate: '',
     notes: ''
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.blood_pressure_systolic && !formData.heart_rate && !formData.temperature && !formData.weight && !formData.height) {
+    if (!formData.blood_pressure_systolic && !formData.heart_rate && !formData.temperature && !formData.weight && !formData.height && !formData.oxygen_saturation && !formData.respiratory_rate) {
       toast({
         title: 'Error',
         description: 'Please enter at least one vital measurement',
@@ -54,6 +56,8 @@ const DoctorVitalsForm = ({ patientId, appointmentId, onVitalAdded }: DoctorVita
           temperature: formData.temperature ? parseFloat(formData.temperature) : null,
           weight: formData.weight ? parseFloat(formData.weight) : null,
           height: formData.height ? parseFloat(formData.height) : null,
+          oxygen_saturation: formData.oxygen_saturation ? parseInt(formData.oxygen_saturation) : null,
+          respiratory_rate: formData.respiratory_rate ? parseInt(formData.respiratory_rate) : null,
           notes: formData.notes || null
         });
 
@@ -71,6 +75,8 @@ const DoctorVitalsForm = ({ patientId, appointmentId, onVitalAdded }: DoctorVita
         temperature: '',
         weight: '',
         height: '',
+        oxygen_saturation: '',
+        respiratory_rate: '',
         notes: ''
       });
       setIsExpanded(false);
@@ -192,6 +198,38 @@ const DoctorVitalsForm = ({ patientId, appointmentId, onVitalAdded }: DoctorVita
                 placeholder="68"
                 value={formData.height}
                 onChange={(e) => setFormData({ ...formData, height: e.target.value })}
+              />
+            </div>
+
+            {/* Oxygen Saturation */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2 text-sm">
+                <Wind className="w-4 h-4 text-primary" />
+                SpO2 (%)
+              </Label>
+              <Input
+                type="number"
+                placeholder="98"
+                value={formData.oxygen_saturation}
+                onChange={(e) => setFormData({ ...formData, oxygen_saturation: e.target.value })}
+                min="70"
+                max="100"
+              />
+            </div>
+
+            {/* Respiratory Rate */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2 text-sm">
+                <Wind className="w-4 h-4 text-success" />
+                Resp Rate (/min)
+              </Label>
+              <Input
+                type="number"
+                placeholder="16"
+                value={formData.respiratory_rate}
+                onChange={(e) => setFormData({ ...formData, respiratory_rate: e.target.value })}
+                min="5"
+                max="60"
               />
             </div>
           </div>

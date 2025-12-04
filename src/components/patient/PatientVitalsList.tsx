@@ -1,4 +1,4 @@
-import { Activity, Heart, Thermometer, Scale, Ruler, Clock, Trash2 } from 'lucide-react';
+import { Activity, Heart, Thermometer, Scale, Ruler, Clock, Trash2, Wind } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +14,8 @@ interface Vital {
   temperature: number | null;
   weight: number | null;
   height: number | null;
+  oxygen_saturation?: number | null;
+  respiratory_rate?: number | null;
   notes: string | null;
   recorded_at: string;
   appointment_id: string | null;
@@ -173,6 +175,31 @@ const PatientVitalsList = ({ vitals, onVitalDeleted }: PatientVitalsListProps) =
                     <div>
                       <p className="text-xs text-muted-foreground">Height</p>
                       <p className="font-medium">{vital.height} in</p>
+                    </div>
+                  </div>
+                )}
+
+                {vital.oxygen_saturation && (
+                  <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                    <Wind className="w-5 h-5 text-primary" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">SpO2</p>
+                      <p className="font-medium">{vital.oxygen_saturation}%</p>
+                      {vital.oxygen_saturation < 95 && (
+                        <Badge variant={vital.oxygen_saturation < 90 ? "destructive" : "secondary"} className="text-xs mt-1">
+                          {vital.oxygen_saturation < 90 ? 'Critical' : 'Low'}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {vital.respiratory_rate && (
+                  <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                    <Wind className="w-5 h-5 text-success" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Resp Rate</p>
+                      <p className="font-medium">{vital.respiratory_rate}/min</p>
                     </div>
                   </div>
                 )}

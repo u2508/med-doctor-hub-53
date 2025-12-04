@@ -288,8 +288,10 @@ export type Database = {
           height: number | null
           id: string
           notes: string | null
+          oxygen_saturation: number | null
           patient_id: string
           recorded_at: string
+          respiratory_rate: number | null
           temperature: number | null
           weight: number | null
         }
@@ -302,8 +304,10 @@ export type Database = {
           height?: number | null
           id?: string
           notes?: string | null
+          oxygen_saturation?: number | null
           patient_id: string
           recorded_at?: string
+          respiratory_rate?: number | null
           temperature?: number | null
           weight?: number | null
         }
@@ -316,8 +320,10 @@ export type Database = {
           height?: number | null
           id?: string
           notes?: string | null
+          oxygen_saturation?: number | null
           patient_id?: string
           recorded_at?: string
+          respiratory_rate?: number | null
           temperature?: number | null
           weight?: number | null
         }
