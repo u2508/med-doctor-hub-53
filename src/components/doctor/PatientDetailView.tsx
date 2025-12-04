@@ -58,6 +58,18 @@ interface Medication {
   prescribed_date: string;
 }
 
+interface Vital {
+  id: string;
+  blood_pressure_systolic: number | null;
+  blood_pressure_diastolic: number | null;
+  heart_rate: number | null;
+  temperature: number | null;
+  weight: number | null;
+  height: number | null;
+  notes: string | null;
+  recorded_at: string;
+}
+
 const PatientDetailView = ({ patientId, appointment, onBack }: PatientDetailViewProps) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -66,13 +78,15 @@ const PatientDetailView = ({ patientId, appointment, onBack }: PatientDetailView
   const [activeTab, setActiveTab] = useState('overview');
   const [newNote, setNewNote] = useState('');
   const [newMedication, setNewMedication] = useState({ name: '', dosage: '', frequency: '' });
+  const [vitals, setVitals] = useState<Vital[]>([]);
   
-  // Mock data for notes and vitals (would be stored in DB in production)
+  // Mock data for notes (would be stored in DB in production)
   const [notes, setNotes] = useState<MedicalNote[]>([]);
   const [medications, setMedications] = useState<Medication[]>([]);
 
   useEffect(() => {
     fetchPatientDetails();
+    fetchVitals();
   }, [patientId]);
 
   const fetchPatientDetails = async () => {
@@ -146,6 +160,22 @@ const PatientDetailView = ({ patientId, appointment, onBack }: PatientDetailView
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchVitals = async () => {
+    try {
+      const { data: vitalsData, error } = await supabase
+        .from('vitals')
+        .select('*')
+        .eq('patient_id', patientId)
+        .order('recorded_at', { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+      setVitals(vitalsData || []);
+    } catch (error) {
+      console.error('Error fetching vitals:', error);
     }
   };
 
@@ -468,51 +498,126 @@ const PatientDetailView = ({ patientId, appointment, onBack }: PatientDetailView
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <Card className="bg-muted/30 border-border/30">
-                  <CardContent className="p-4 text-center">
-                    <Heart className="w-6 h-6 text-primary mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">Blood Pressure</p>
-                    <p className="text-xl font-bold text-foreground">--/--</p>
-                  </CardContent>
-                </Card>
+              {vitals.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">
+                  No vitals data recorded for this patient
+                </p>
+              ) : (
+                <div className="space-y-6">
+                  {/* Latest Vitals Summary */}
+                  <div>
+                    <h4 className="text-sm font-medium text-muted-foreground mb-3">Latest Reading</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                      <Card className="bg-muted/30 border-border/30">
+                        <CardContent className="p-4 text-center">
+                          <Heart className="w-6 h-6 text-destructive mx-auto mb-2" />
+                          <p className="text-sm text-muted-foreground">Blood Pressure</p>
+                          <p className="text-xl font-bold text-foreground">
+                            {vitals[0].blood_pressure_systolic && vitals[0].blood_pressure_diastolic 
+                              ? `${vitals[0].blood_pressure_systolic}/${vitals[0].blood_pressure_diastolic}` 
+                              : '--/--'}
+                          </p>
+                        </CardContent>
+                      </Card>
 
-                <Card className="bg-muted/30 border-border/30">
-                  <CardContent className="p-4 text-center">
-                    <Activity className="w-6 h-6 text-primary mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">Heart Rate</p>
-                    <p className="text-xl font-bold text-foreground">-- bpm</p>
-                  </CardContent>
-                </Card>
+                      <Card className="bg-muted/30 border-border/30">
+                        <CardContent className="p-4 text-center">
+                          <Activity className="w-6 h-6 text-primary mx-auto mb-2" />
+                          <p className="text-sm text-muted-foreground">Heart Rate</p>
+                          <p className="text-xl font-bold text-foreground">
+                            {vitals[0].heart_rate ? `${vitals[0].heart_rate} bpm` : '-- bpm'}
+                          </p>
+                        </CardContent>
+                      </Card>
 
-                <Card className="bg-muted/30 border-border/30">
-                  <CardContent className="p-4 text-center">
-                    <div className="w-6 h-6 rounded-full bg-primary mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">Temperature</p>
-                    <p className="text-xl font-bold text-foreground">--°F</p>
-                  </CardContent>
-                </Card>
+                      <Card className="bg-muted/30 border-border/30">
+                        <CardContent className="p-4 text-center">
+                          <div className="w-6 h-6 rounded-full bg-warning mx-auto mb-2 flex items-center justify-center text-warning-foreground text-xs font-bold">°</div>
+                          <p className="text-sm text-muted-foreground">Temperature</p>
+                          <p className="text-xl font-bold text-foreground">
+                            {vitals[0].temperature ? `${vitals[0].temperature}°F` : '--°F'}
+                          </p>
+                        </CardContent>
+                      </Card>
 
-                <Card className="bg-muted/30 border-border/30">
-                  <CardContent className="p-4 text-center">
-                    <div className="w-6 h-6 rounded-full bg-primary mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">Weight</p>
-                    <p className="text-xl font-bold text-foreground">-- lbs</p>
-                  </CardContent>
-                </Card>
+                      <Card className="bg-muted/30 border-border/30">
+                        <CardContent className="p-4 text-center">
+                          <div className="w-6 h-6 rounded-full bg-success mx-auto mb-2" />
+                          <p className="text-sm text-muted-foreground">Weight</p>
+                          <p className="text-xl font-bold text-foreground">
+                            {vitals[0].weight ? `${vitals[0].weight} lbs` : '-- lbs'}
+                          </p>
+                        </CardContent>
+                      </Card>
 
-                <Card className="bg-muted/30 border-border/30">
-                  <CardContent className="p-4 text-center">
-                    <div className="w-6 h-6 rounded-full bg-primary mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">Height</p>
-                    <p className="text-xl font-bold text-foreground">--</p>
-                  </CardContent>
-                </Card>
-              </div>
+                      <Card className="bg-muted/30 border-border/30">
+                        <CardContent className="p-4 text-center">
+                          <div className="w-6 h-6 rounded-full bg-muted-foreground mx-auto mb-2" />
+                          <p className="text-sm text-muted-foreground">Height</p>
+                          <p className="text-xl font-bold text-foreground">
+                            {vitals[0].height ? `${vitals[0].height} in` : '-- in'}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </div>
 
-              <p className="text-center text-muted-foreground mt-6 text-sm">
-                Vitals data not yet recorded for this patient
-              </p>
+                  {/* Vitals History */}
+                  {vitals.length > 1 && (
+                    <div>
+                      <h4 className="text-sm font-medium text-muted-foreground mb-3">History</h4>
+                      <div className="space-y-3">
+                        {vitals.slice(1).map((vital) => (
+                          <Card key={vital.id} className="border-border/30">
+                            <CardContent className="p-4">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-sm text-muted-foreground">
+                                  {new Date(vital.recorded_at).toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-5 gap-4 text-sm">
+                                <div>
+                                  <span className="text-muted-foreground">BP:</span>{' '}
+                                  <span className="font-medium">
+                                    {vital.blood_pressure_systolic && vital.blood_pressure_diastolic 
+                                      ? `${vital.blood_pressure_systolic}/${vital.blood_pressure_diastolic}` 
+                                      : '--'}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">HR:</span>{' '}
+                                  <span className="font-medium">{vital.heart_rate || '--'}</span>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">Temp:</span>{' '}
+                                  <span className="font-medium">{vital.temperature ? `${vital.temperature}°F` : '--'}</span>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">Weight:</span>{' '}
+                                  <span className="font-medium">{vital.weight ? `${vital.weight} lbs` : '--'}</span>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">Height:</span>{' '}
+                                  <span className="font-medium">{vital.height ? `${vital.height} in` : '--'}</span>
+                                </div>
+                              </div>
+                              {vital.notes && (
+                                <p className="text-sm text-muted-foreground mt-2 italic">{vital.notes}</p>
+                              )}
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
