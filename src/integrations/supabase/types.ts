@@ -70,6 +70,8 @@ export type Database = {
           patient_id: string
           prescription: string | null
           prescription_file_url: string | null
+          reminder_1h_sent: boolean | null
+          reminder_24h_sent: boolean | null
           status: string
           updated_at: string
         }
@@ -83,6 +85,8 @@ export type Database = {
           patient_id: string
           prescription?: string | null
           prescription_file_url?: string | null
+          reminder_1h_sent?: boolean | null
+          reminder_24h_sent?: boolean | null
           status?: string
           updated_at?: string
         }
@@ -96,6 +100,8 @@ export type Database = {
           patient_id?: string
           prescription?: string | null
           prescription_file_url?: string | null
+          reminder_1h_sent?: boolean | null
+          reminder_24h_sent?: boolean | null
           status?: string
           updated_at?: string
         }
@@ -140,6 +146,66 @@ export type Database = {
           updated_at?: string
           user_id?: string
           years_experience?: number | null
+        }
+        Relationships: []
+      }
+      medications: {
+        Row: {
+          created_at: string
+          dosage: string
+          end_date: string | null
+          frequency: string
+          id: string
+          instructions: string | null
+          is_active: boolean | null
+          name: string
+          patient_id: string
+          pharmacy: string | null
+          prescribing_doctor: string | null
+          quantity: number | null
+          refill_date: string | null
+          refill_reminder_sent: boolean | null
+          remaining_quantity: number | null
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dosage: string
+          end_date?: string | null
+          frequency: string
+          id?: string
+          instructions?: string | null
+          is_active?: boolean | null
+          name: string
+          patient_id: string
+          pharmacy?: string | null
+          prescribing_doctor?: string | null
+          quantity?: number | null
+          refill_date?: string | null
+          refill_reminder_sent?: boolean | null
+          remaining_quantity?: number | null
+          start_date?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dosage?: string
+          end_date?: string | null
+          frequency?: string
+          id?: string
+          instructions?: string | null
+          is_active?: boolean | null
+          name?: string
+          patient_id?: string
+          pharmacy?: string | null
+          prescribing_doctor?: string | null
+          quantity?: number | null
+          refill_date?: string | null
+          refill_reminder_sent?: boolean | null
+          remaining_quantity?: number | null
+          start_date?: string
+          updated_at?: string
         }
         Relationships: []
       }

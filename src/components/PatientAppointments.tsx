@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Clock, User, ArrowLeft, Loader2, XCircle, CheckCircle2, AlertCircle, FileText, Download, ExternalLink, Activity } from 'lucide-react';
+import { Calendar, Clock, User, ArrowLeft, Loader2, XCircle, CheckCircle2, AlertCircle, FileText, Download, ExternalLink, Activity, Pill } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import PatientVitalsForm from '@/components/patient/PatientVitalsForm';
 import PatientVitalsList from '@/components/patient/PatientVitalsList';
+import MedicationTracker from '@/components/patient/MedicationTracker';
 
 interface Appointment {
   id: string;
@@ -320,7 +321,7 @@ const PatientAppointments = () => {
 
       <main className="max-w-7xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsList className="grid w-full max-w-lg grid-cols-3">
             <TabsTrigger value="appointments" className="gap-2">
               <Calendar className="w-4 h-4" />
               Appointments
@@ -328,6 +329,10 @@ const PatientAppointments = () => {
             <TabsTrigger value="vitals" className="gap-2">
               <Activity className="w-4 h-4" />
               Vitals
+            </TabsTrigger>
+            <TabsTrigger value="medications" className="gap-2">
+              <Pill className="w-4 h-4" />
+              Medications
             </TabsTrigger>
           </TabsList>
 
@@ -467,6 +472,10 @@ const PatientAppointments = () => {
               vitals={vitals} 
               onVitalDeleted={fetchVitals} 
             />
+          </TabsContent>
+
+          <TabsContent value="medications">
+            <MedicationTracker />
           </TabsContent>
         </Tabs>
       </main>
