@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_logs: {
+        Row: {
+          action: string
+          admin_email: string
+          admin_full_name: string
+          admin_id: string
+          created_at: string
+          doctor_email: string
+          doctor_full_name: string
+          doctor_id: string
+          id: string
+          license_number: string
+          reason: string | null
+          specialty: string
+        }
+        Insert: {
+          action: string
+          admin_email: string
+          admin_full_name: string
+          admin_id: string
+          created_at?: string
+          doctor_email: string
+          doctor_full_name: string
+          doctor_id: string
+          id?: string
+          license_number: string
+          reason?: string | null
+          specialty: string
+        }
+        Update: {
+          action?: string
+          admin_email?: string
+          admin_full_name?: string
+          admin_id?: string
+          created_at?: string
+          doctor_email?: string
+          doctor_full_name?: string
+          doctor_id?: string
+          id?: string
+          license_number?: string
+          reason?: string | null
+          specialty?: string
+        }
+        Relationships: []
+      }
       appointments: {
         Row: {
           appointment_date: string

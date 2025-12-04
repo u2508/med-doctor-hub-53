@@ -103,6 +103,15 @@ const AdminDashboard: React.FC = () => {
 
       if (approvedError) throw approvedError;
 
+      // Fetch audit logs
+      const { data: auditData, error: auditError } = await supabase
+        .from('admin_audit_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (auditError) console.error('Error fetching audit logs:', auditError);
+
       // Fetch profiles for pending doctors
       const pendingUserIds = pendingData?.map(d => d.user_id) || [];
       const { data: pendingProfiles } = await supabase
@@ -130,6 +139,21 @@ const AdminDashboard: React.FC = () => {
 
       setPendingDoctors(pendingWithProfiles);
       setApprovedDoctors(approvedWithProfiles);
+      
+      // Map audit data to match the interface
+      const mappedAuditLogs: AuditLog[] = (auditData || []).map(log => ({
+        id: log.id,
+        action: log.action as 'approved' | 'rejected',
+        admin_full_name: log.admin_full_name,
+        admin_email: log.admin_email,
+        doctor_full_name: log.doctor_full_name,
+        doctor_email: log.doctor_email,
+        specialty: log.specialty,
+        license_number: log.license_number,
+        reason: log.reason,
+        created_at: log.created_at
+      }));
+      setAuditLogs(mappedAuditLogs);
     } catch (error: any) {
       console.error('Error fetching data:', error);
       toast({
@@ -158,6 +182,13 @@ const AdminDashboard: React.FC = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
+      // Get admin profile for audit log
+      const { data: adminProfile } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('user_id', user.id)
+        .single();
+
       if (action === 'approve') {
         // Update doctor profile
         const { error: updateError } = await supabase
@@ -171,6 +202,20 @@ const AdminDashboard: React.FC = () => {
           .eq('id', doctor.id);
 
         if (updateError) throw updateError;
+
+        // Insert audit log
+        await supabase.from('admin_audit_logs').insert({
+          action: 'approved',
+          admin_id: user.id,
+          admin_full_name: adminProfile?.full_name || 'Unknown',
+          admin_email: adminProfile?.email || user.email || 'Unknown',
+          doctor_id: doctor.user_id,
+          doctor_full_name: doctor.profiles.full_name,
+          doctor_email: doctor.profiles.email,
+          specialty: doctor.specialty,
+          license_number: doctor.license_number,
+          reason: null
+        });
 
         // Notify the doctor
         await supabase.functions.invoke('notify-doctor-approval', {
@@ -186,6 +231,20 @@ const AdminDashboard: React.FC = () => {
           description: `${doctor.profiles.full_name} has been approved and notified`,
         });
       } else {
+        // Insert audit log before deleting
+        await supabase.from('admin_audit_logs').insert({
+          action: 'rejected',
+          admin_id: user.id,
+          admin_full_name: adminProfile?.full_name || 'Unknown',
+          admin_email: adminProfile?.email || user.email || 'Unknown',
+          doctor_id: doctor.user_id,
+          doctor_full_name: doctor.profiles.full_name,
+          doctor_email: doctor.profiles.email,
+          specialty: doctor.specialty,
+          license_number: doctor.license_number,
+          reason: rejectionReason
+        });
+
         // Delete the doctor profile for rejected applications
         const { error: deleteError } = await supabase
           .from('doctor_profiles')
