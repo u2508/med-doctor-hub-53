@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import VitalsTrendChart from '@/components/vitals/VitalsTrendChart';
 
 interface Vital {
   id: string;
@@ -84,7 +85,10 @@ const PatientVitalsList = ({ vitals, onVitalDeleted }: PatientVitalsListProps) =
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Trend Charts */}
+      <VitalsTrendChart vitals={vitals} />
+
       <h3 className="text-lg font-semibold">Your Vital History</h3>
       {vitals.map((vital) => {
         const bpStatus = getBPStatus(vital.blood_pressure_systolic, vital.blood_pressure_diastolic);

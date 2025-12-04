@@ -9,6 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import VitalsTrendChart from '@/components/vitals/VitalsTrendChart';
+import DoctorVitalsForm from '@/components/doctor/DoctorVitalsForm';
 
 interface PatientProfile {
   full_name: string;
@@ -489,7 +491,19 @@ const PatientDetailView = ({ patientId, appointment, onBack }: PatientDetailView
         </TabsContent>
 
         {/* Vitals Tab */}
-        <TabsContent value="vitals" className="mt-6">
+        <TabsContent value="vitals" className="mt-6 space-y-6">
+          {/* Doctor Vitals Form */}
+          {(appointment.status === 'confirmed' || appointment.status === 'completed') && (
+            <DoctorVitalsForm 
+              patientId={patientId} 
+              appointmentId={appointment.id}
+              onVitalAdded={fetchVitals}
+            />
+          )}
+
+          {/* Vitals Trend Charts */}
+          <VitalsTrendChart vitals={vitals} />
+
           <Card className="border-border/50">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
