@@ -31,7 +31,7 @@ const PatientOnboarding = () => {
   });
 
   useEffect(() => {
-    const checkUser = async () => {
+    const fetchUserData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
@@ -41,23 +41,31 @@ const PatientOnboarding = () => {
       
       setUserId(user.id);
       
-      // Check if patient profile already exists
+      // Fetch existing patient data if available
       const { data: patient } = await supabase
         .from('patients')
-        .select('id')
+        .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
       
       if (patient) {
-        // Patient profile already exists, redirect to dashboard
-        navigate('/user-dashboard');
-        return;
+        // Pre-fill form with existing data
+        setFormData({
+          date_of_birth: patient.date_of_birth || '',
+          gender: patient.gender || '',
+          blood_type: patient.blood_type || '',
+          allergies: patient.allergies?.join(', ') || '',
+          current_medications: patient.current_medications?.join(', ') || '',
+          medical_history: patient.medical_history || '',
+          emergency_contact_name: patient.emergency_contact_name || '',
+          emergency_contact_phone: patient.emergency_contact_phone || ''
+        });
       }
       
       setLoading(false);
     };
     
-    checkUser();
+    fetchUserData();
   }, [navigate]);
 
   const handleSubmit = async () => {
@@ -66,19 +74,21 @@ const PatientOnboarding = () => {
     setSaving(true);
     
     try {
+      const patientData = {
+        user_id: userId,
+        date_of_birth: formData.date_of_birth || null,
+        gender: formData.gender || null,
+        blood_type: formData.blood_type || null,
+        allergies: formData.allergies ? formData.allergies.split(',').map(a => a.trim()).filter(Boolean) : null,
+        current_medications: formData.current_medications ? formData.current_medications.split(',').map(m => m.trim()).filter(Boolean) : null,
+        medical_history: formData.medical_history || null,
+        emergency_contact_name: formData.emergency_contact_name || null,
+        emergency_contact_phone: formData.emergency_contact_phone || null
+      };
+
       const { error } = await supabase
         .from('patients')
-        .insert({
-          user_id: userId,
-          date_of_birth: formData.date_of_birth || null,
-          gender: formData.gender || null,
-          blood_type: formData.blood_type || null,
-          allergies: formData.allergies ? formData.allergies.split(',').map(a => a.trim()).filter(Boolean) : null,
-          current_medications: formData.current_medications ? formData.current_medications.split(',').map(m => m.trim()).filter(Boolean) : null,
-          medical_history: formData.medical_history || null,
-          emergency_contact_name: formData.emergency_contact_name || null,
-          emergency_contact_phone: formData.emergency_contact_phone || null
-        });
+        .upsert(patientData, { onConflict: 'user_id' });
       
       if (error) throw error;
       
