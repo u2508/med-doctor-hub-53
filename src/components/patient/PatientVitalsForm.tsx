@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Save, Plus, Activity, Heart, Thermometer, Scale, Ruler } from 'lucide-react';
+import { Save, Plus, Activity, Heart, Thermometer, Scale, Ruler, Wind } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -31,6 +31,8 @@ const PatientVitalsForm = ({ appointments, onVitalAdded }: PatientVitalsFormProp
     temperature: '',
     weight: '',
     height: '',
+    oxygen_saturation: '',
+    respiratory_rate: '',
     notes: ''
   });
 
@@ -59,6 +61,8 @@ const PatientVitalsForm = ({ appointments, onVitalAdded }: PatientVitalsFormProp
         temperature: formData.temperature ? parseFloat(formData.temperature) : null,
         weight: formData.weight ? parseFloat(formData.weight) : null,
         height: formData.height ? parseFloat(formData.height) : null,
+        oxygen_saturation: formData.oxygen_saturation ? parseInt(formData.oxygen_saturation) : null,
+        respiratory_rate: formData.respiratory_rate ? parseInt(formData.respiratory_rate) : null,
         notes: formData.notes || null
       };
 
@@ -81,6 +85,8 @@ const PatientVitalsForm = ({ appointments, onVitalAdded }: PatientVitalsFormProp
         temperature: '',
         weight: '',
         height: '',
+        oxygen_saturation: '',
+        respiratory_rate: '',
         notes: ''
       });
 
@@ -227,6 +233,36 @@ const PatientVitalsForm = ({ appointments, onVitalAdded }: PatientVitalsFormProp
                 onChange={(e) => setFormData({ ...formData, height: e.target.value })}
                 min="20"
                 max="120"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Wind className="w-4 h-4 text-primary" />
+                Oxygen Saturation (%)
+              </Label>
+              <Input
+                type="number"
+                placeholder="e.g., 98"
+                value={formData.oxygen_saturation}
+                onChange={(e) => setFormData({ ...formData, oxygen_saturation: e.target.value })}
+                min="70"
+                max="100"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Wind className="w-4 h-4 text-success" />
+                Respiratory Rate (breaths/min)
+              </Label>
+              <Input
+                type="number"
+                placeholder="e.g., 16"
+                value={formData.respiratory_rate}
+                onChange={(e) => setFormData({ ...formData, respiratory_rate: e.target.value })}
+                min="5"
+                max="60"
               />
             </div>
           </div>
