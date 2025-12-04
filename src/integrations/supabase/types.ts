@@ -278,6 +278,59 @@ export type Database = {
         }
         Relationships: []
       }
+      vitals: {
+        Row: {
+          appointment_id: string | null
+          blood_pressure_diastolic: number | null
+          blood_pressure_systolic: number | null
+          created_at: string
+          heart_rate: number | null
+          height: number | null
+          id: string
+          notes: string | null
+          patient_id: string
+          recorded_at: string
+          temperature: number | null
+          weight: number | null
+        }
+        Insert: {
+          appointment_id?: string | null
+          blood_pressure_diastolic?: number | null
+          blood_pressure_systolic?: number | null
+          created_at?: string
+          heart_rate?: number | null
+          height?: number | null
+          id?: string
+          notes?: string | null
+          patient_id: string
+          recorded_at?: string
+          temperature?: number | null
+          weight?: number | null
+        }
+        Update: {
+          appointment_id?: string | null
+          blood_pressure_diastolic?: number | null
+          blood_pressure_systolic?: number | null
+          created_at?: string
+          heart_rate?: number | null
+          height?: number | null
+          id?: string
+          notes?: string | null
+          patient_id?: string
+          recorded_at?: string
+          temperature?: number | null
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vitals_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

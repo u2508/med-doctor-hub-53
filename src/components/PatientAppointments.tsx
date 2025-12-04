@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Clock, User, ArrowLeft, Loader2, XCircle, CheckCircle2, AlertCircle, FileText, Download, ExternalLink } from 'lucide-react';
+import { Calendar, Clock, User, ArrowLeft, Loader2, XCircle, CheckCircle2, AlertCircle, FileText, Download, ExternalLink, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import PatientVitalsForm from '@/components/patient/PatientVitalsForm';
+import PatientVitalsList from '@/components/patient/PatientVitalsList';
 
 interface Appointment {
   id: string;
@@ -30,17 +33,37 @@ interface AppointmentWithDoctor extends Appointment {
   signedPrescriptionUrl?: string;
 }
 
+interface Vital {
+  id: string;
+  blood_pressure_systolic: number | null;
+  blood_pressure_diastolic: number | null;
+  heart_rate: number | null;
+  temperature: number | null;
+  weight: number | null;
+  height: number | null;
+  notes: string | null;
+  recorded_at: string;
+  appointment_id: string | null;
+  doctor_name?: string;
+}
+
 const PatientAppointments = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [appointments, setAppointments] = useState<AppointmentWithDoctor[]>([]);
+  const [vitals, setVitals] = useState<Vital[]>([]);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<AppointmentWithDoctor | null>(null);
+  const [activeTab, setActiveTab] = useState('appointments');
 
   useEffect(() => {
-    fetchAppointments();
+    fetchData();
   }, []);
+
+  const fetchData = async () => {
+    await Promise.all([fetchAppointments(), fetchVitals()]);
+  };
 
   const fetchAppointments = async () => {
     try {
@@ -52,12 +75,17 @@ const PatientAppointments = () => {
         return;
       }
 
-      // Fetch patient's appointments
+      // Calculate date range: show appointments from 1 week ago to future
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+      // Fetch patient's appointments (include confirmed/completed from past week)
       const { data: appointmentsData, error: appointmentsError } = await supabase
         .from('appointments')
         .select('*')
         .eq('patient_id', user.id)
-        .order('appointment_date', { ascending: true });
+        .or(`appointment_date.gte.${oneWeekAgo.toISOString()},status.in.(scheduled,cancelled)`)
+        .order('appointment_date', { ascending: false });
 
       if (appointmentsError) throw appointmentsError;
 
@@ -67,8 +95,19 @@ const PatientAppointments = () => {
         return;
       }
 
+      // Filter to keep: all future appointments, or past appointments that are confirmed/completed within 1 week
+      const filteredAppointments = appointmentsData.filter(apt => {
+        const aptDate = new Date(apt.appointment_date);
+        const now = new Date();
+        const isInFuture = aptDate >= now;
+        const isWithinPastWeek = aptDate >= oneWeekAgo && aptDate < now;
+        const isConfirmedOrCompleted = apt.status === 'confirmed' || apt.status === 'completed';
+        
+        return isInFuture || (isWithinPastWeek && isConfirmedOrCompleted) || apt.status === 'cancelled';
+      });
+
       // Fetch doctor profiles for each appointment
-      const doctorIds = appointmentsData.map(apt => apt.doctor_id);
+      const doctorIds = filteredAppointments.map(apt => apt.doctor_id);
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('user_id, full_name')
@@ -84,7 +123,7 @@ const PatientAppointments = () => {
       if (doctorDetailsError) throw doctorDetailsError;
 
       // Combine data and generate signed URLs for prescriptions
-      const appointmentsWithDoctors = await Promise.all(appointmentsData.map(async (apt) => {
+      const appointmentsWithDoctors = await Promise.all(filteredAppointments.map(async (apt) => {
         const profile = profilesData?.find(p => p.user_id === apt.doctor_id);
         const details = doctorDetailsData?.find(d => d.user_id === apt.doctor_id);
         
@@ -92,7 +131,7 @@ const PatientAppointments = () => {
         if (apt.prescription_file_url) {
           const { data: signedData } = await supabase.storage
             .from('prescriptions')
-            .createSignedUrl(apt.prescription_file_url, 3600); // 1 hour expiry
+            .createSignedUrl(apt.prescription_file_url, 3600);
           signedPrescriptionUrl = signedData?.signedUrl;
         }
         
@@ -117,6 +156,55 @@ const PatientAppointments = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchVitals = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: vitalsData, error } = await supabase
+        .from('vitals')
+        .select('*')
+        .eq('patient_id', user.id)
+        .order('recorded_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Get doctor names for appointments linked to vitals
+      const appointmentIds = vitalsData?.filter(v => v.appointment_id).map(v => v.appointment_id) || [];
+      
+      if (appointmentIds.length > 0) {
+        const { data: appointmentsData } = await supabase
+          .from('appointments')
+          .select('id, doctor_id')
+          .in('id', appointmentIds);
+
+        if (appointmentsData) {
+          const doctorIds = appointmentsData.map(a => a.doctor_id);
+          const { data: profilesData } = await supabase
+            .from('profiles')
+            .select('user_id, full_name')
+            .in('user_id', doctorIds);
+
+          const vitalsWithDoctors = vitalsData?.map(vital => {
+            const apt = appointmentsData.find(a => a.id === vital.appointment_id);
+            const doctor = profilesData?.find(p => p.user_id === apt?.doctor_id);
+            return {
+              ...vital,
+              doctor_name: doctor?.full_name
+            };
+          });
+
+          setVitals(vitalsWithDoctors || []);
+          return;
+        }
+      }
+
+      setVitals(vitalsData || []);
+    } catch (error) {
+      console.error('Error fetching vitals:', error);
     }
   };
 
@@ -191,12 +279,21 @@ const PatientAppointments = () => {
     return appointment.status !== 'cancelled' && appointment.status !== 'completed';
   };
 
+  // Get active appointments for vitals form (confirmed/scheduled)
+  const activeAppointments = appointments
+    .filter(apt => apt.status === 'confirmed' || apt.status === 'scheduled')
+    .map(apt => ({
+      id: apt.id,
+      appointment_date: apt.appointment_date,
+      doctor_name: apt.doctor.full_name
+    }));
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-subtle flex items-center justify-center">
         <div className="text-center space-y-4">
           <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto" />
-          <p className="text-muted-foreground">Loading appointments...</p>
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
@@ -215,137 +312,163 @@ const PatientAppointments = () => {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
-            <h1 className="text-4xl font-bold text-gradient font-display">My Appointments</h1>
-            <p className="text-muted-foreground mt-2">View and manage your appointments</p>
+            <h1 className="text-4xl font-bold text-gradient font-display">My Health</h1>
+            <p className="text-muted-foreground mt-2">Manage appointments and track your vitals</p>
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
-        {appointments.length === 0 ? (
-          <Card className="border-border/50">
-            <CardContent className="flex flex-col items-center justify-center py-16">
-              <Calendar className="w-16 h-16 text-muted-foreground mb-4" />
-              <h3 className="text-xl font-semibold text-card-foreground mb-2">No Appointments</h3>
-              <p className="text-muted-foreground mb-6">You haven't booked any appointments yet</p>
-              <Button onClick={() => navigate('/doctor-finder')}>
-                Find a Doctor
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-6">
-            {appointments.map((appointment) => (
-              <Card key={appointment.id} className="border-border/50 hover:shadow-elegant transition-all">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-primary flex items-center justify-center">
-                        <User className="w-6 h-6 text-primary-foreground" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-xl">{appointment.doctor.full_name}</CardTitle>
-                        <CardDescription className="text-base mt-1">
-                          {appointment.doctor.specialty}
-                          {appointment.doctor.hospital_affiliation && (
-                            <span> • {appointment.doctor.hospital_affiliation}</span>
-                          )}
-                        </CardDescription>
-                      </div>
-                    </div>
-                    <Badge className={`${getStatusColor(appointment.status)} gap-1`}>
-                      {getStatusIcon(appointment.status)}
-                      {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="flex items-center gap-3">
-                      <Calendar className="w-5 h-5 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm text-muted-foreground">Date</p>
-                        <p className="font-medium">{formatDate(appointment.appointment_date)}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Clock className="w-5 h-5 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm text-muted-foreground">Time</p>
-                        <p className="font-medium">{formatTime(appointment.appointment_date)}</p>
-                      </div>
-                    </div>
-                  </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="appointments" className="gap-2">
+              <Calendar className="w-4 h-4" />
+              Appointments
+            </TabsTrigger>
+            <TabsTrigger value="vitals" className="gap-2">
+              <Activity className="w-4 h-4" />
+              Vitals
+            </TabsTrigger>
+          </TabsList>
 
-                  {appointment.notes && (
-                    <div className="mt-4 p-4 bg-muted/50 rounded-lg">
-                      <p className="text-sm font-medium text-muted-foreground mb-1">Notes</p>
-                      <p className="text-sm">{appointment.notes}</p>
-                    </div>
-                  )}
-
-                  {appointment.diagnosis && (
-                    <div className="mt-4 p-4 bg-primary/5 border border-primary/20 rounded-lg">
-                      <p className="text-sm font-medium text-primary mb-1">Diagnosis</p>
-                      <p className="text-sm">{appointment.diagnosis}</p>
-                    </div>
-                  )}
-
-                  {appointment.prescription && (
-                    <div className="mt-4 p-4 bg-success/5 border border-success/20 rounded-lg">
-                      <p className="text-sm font-medium text-success mb-1">Prescription</p>
-                      <p className="text-sm">{appointment.prescription}</p>
-                    </div>
-                  )}
-
-                  {appointment.signedPrescriptionUrl && (
-                    <div className="mt-4 p-4 bg-warning/5 border border-warning/20 rounded-lg">
-                      <p className="text-sm font-medium text-warning mb-2 flex items-center gap-2">
-                        <FileText className="w-4 h-4" />
-                        Prescription Document
-                      </p>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => window.open(appointment.signedPrescriptionUrl, '_blank')}
-                        >
-                          <ExternalLink className="w-4 h-4 mr-2" />
-                          View
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          asChild
-                        >
-                          <a href={appointment.signedPrescriptionUrl} download>
-                            <Download className="w-4 h-4 mr-2" />
-                            Download
-                          </a>
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
-                  {canCancelAppointment(appointment) && (
-                    <div className="mt-6 flex justify-end">
-                      <Button
-                        variant="destructive"
-                        onClick={() => {
-                          setSelectedAppointment(appointment);
-                          setCancelDialogOpen(true);
-                        }}
-                      >
-                        <XCircle className="w-4 h-4 mr-2" />
-                        Cancel Appointment
-                      </Button>
-                    </div>
-                  )}
+          <TabsContent value="appointments">
+            {appointments.length === 0 ? (
+              <Card className="border-border/50">
+                <CardContent className="flex flex-col items-center justify-center py-16">
+                  <Calendar className="w-16 h-16 text-muted-foreground mb-4" />
+                  <h3 className="text-xl font-semibold text-card-foreground mb-2">No Appointments</h3>
+                  <p className="text-muted-foreground mb-6">You haven't booked any appointments yet</p>
+                  <Button onClick={() => navigate('/doctor-finder')}>
+                    Find a Doctor
+                  </Button>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        )}
+            ) : (
+              <div className="grid gap-6">
+                {appointments.map((appointment) => (
+                  <Card key={appointment.id} className="border-border/50 hover:shadow-elegant transition-all">
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-4">
+                          <div className="w-12 h-12 rounded-xl bg-gradient-primary flex items-center justify-center">
+                            <User className="w-6 h-6 text-primary-foreground" />
+                          </div>
+                          <div>
+                            <CardTitle className="text-xl">{appointment.doctor.full_name}</CardTitle>
+                            <CardDescription className="text-base mt-1">
+                              {appointment.doctor.specialty}
+                              {appointment.doctor.hospital_affiliation && (
+                                <span> • {appointment.doctor.hospital_affiliation}</span>
+                              )}
+                            </CardDescription>
+                          </div>
+                        </div>
+                        <Badge className={`${getStatusColor(appointment.status)} gap-1`}>
+                          {getStatusIcon(appointment.status)}
+                          {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="flex items-center gap-3">
+                          <Calendar className="w-5 h-5 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm text-muted-foreground">Date</p>
+                            <p className="font-medium">{formatDate(appointment.appointment_date)}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Clock className="w-5 h-5 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm text-muted-foreground">Time</p>
+                            <p className="font-medium">{formatTime(appointment.appointment_date)}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {appointment.notes && (
+                        <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+                          <p className="text-sm font-medium text-muted-foreground mb-1">Notes</p>
+                          <p className="text-sm">{appointment.notes}</p>
+                        </div>
+                      )}
+
+                      {appointment.diagnosis && (
+                        <div className="mt-4 p-4 bg-primary/5 border border-primary/20 rounded-lg">
+                          <p className="text-sm font-medium text-primary mb-1">Diagnosis</p>
+                          <p className="text-sm">{appointment.diagnosis}</p>
+                        </div>
+                      )}
+
+                      {appointment.prescription && (
+                        <div className="mt-4 p-4 bg-success/5 border border-success/20 rounded-lg">
+                          <p className="text-sm font-medium text-success mb-1">Prescription</p>
+                          <p className="text-sm">{appointment.prescription}</p>
+                        </div>
+                      )}
+
+                      {appointment.signedPrescriptionUrl && (
+                        <div className="mt-4 p-4 bg-warning/5 border border-warning/20 rounded-lg">
+                          <p className="text-sm font-medium text-warning mb-2 flex items-center gap-2">
+                            <FileText className="w-4 h-4" />
+                            Prescription Document
+                          </p>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => window.open(appointment.signedPrescriptionUrl, '_blank')}
+                            >
+                              <ExternalLink className="w-4 h-4 mr-2" />
+                              View
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              asChild
+                            >
+                              <a href={appointment.signedPrescriptionUrl} download>
+                                <Download className="w-4 h-4 mr-2" />
+                                Download
+                              </a>
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+
+                      {canCancelAppointment(appointment) && (
+                        <div className="mt-6 flex justify-end">
+                          <Button
+                            variant="destructive"
+                            onClick={() => {
+                              setSelectedAppointment(appointment);
+                              setCancelDialogOpen(true);
+                            }}
+                          >
+                            <XCircle className="w-4 h-4 mr-2" />
+                            Cancel Appointment
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="vitals" className="space-y-6">
+            <PatientVitalsForm 
+              appointments={activeAppointments} 
+              onVitalAdded={fetchVitals} 
+            />
+            <PatientVitalsList 
+              vitals={vitals} 
+              onVitalDeleted={fetchVitals} 
+            />
+          </TabsContent>
+        </Tabs>
       </main>
 
       {/* Cancel Confirmation Dialog */}
