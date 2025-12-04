@@ -199,15 +199,6 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
     }
   };
 
-  const handleDemoAccess = () => {
-    setUser({ name: 'Demo User', email: 'demo@example.com' });
-    setUserType('user');
-    toast({
-      title: "Demo Access Granted",
-      description: "Welcome to MentiBot Demo!",
-    });
-    navigate('/user-dashboard');
-  };
 
   const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -356,17 +347,6 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
               ))}
             </div>
 
-            <div className="hidden lg:block">
-              <Button
-                onClick={handleDemoAccess}
-                variant="outline"
-                size="lg"
-                className="w-full sm:w-auto"
-              >
-                <User className="w-4 h-4 mr-2" />
-                Try Demo Access
-              </Button>
-            </div>
           </div>
 
           {/* Right Side - Auth Form */}
@@ -712,27 +692,6 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
                   </TabsContent>
                 </Tabs>
                 
-                <div className="mt-6 lg:hidden">
-                  <div className="relative mb-4">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-border" />
-                    </div>
-                    <div className="relative flex justify-center text-sm">
-                      <span className="px-3 bg-card text-muted-foreground">
-                        Or try demo
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <Button
-                    onClick={handleDemoAccess}
-                    variant="outline"
-                    className="w-full"
-                  >
-                    <User className="w-4 h-4 mr-2" />
-                    Demo Access
-                  </Button>
-                </div>
               </CardContent>
             </Card>
           </div>
