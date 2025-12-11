@@ -30,6 +30,7 @@ const Support = lazy(() => import("@/components/Support"));
 const HealthAnalytics = lazy(() => import("@/components/HealthAnalytics"));
 const UserProfile = lazy(() => import("./pages/UserProfile"));
 const PatientOnboarding = lazy(() => import("./pages/PatientOnboarding"));
+const TestWorkflow = lazy(() => import("./pages/TestWorkflow"));
 
 // Optimized query client with better caching and background updates
 const queryClient = new QueryClient({
@@ -251,6 +252,9 @@ const AppContent = () => {
           
           {/* Support */}
           <Route path="/support" element={<Support />} />
+          
+          {/* Test Workflow */}
+          <Route path="/test-workflow" element={<TestWorkflow />} />
           
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
