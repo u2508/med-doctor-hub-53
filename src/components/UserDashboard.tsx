@@ -137,23 +137,33 @@ const UserDashboard = memo(({ user }: UserDashboardProps) => {
           return;
         }
 
-        // Fetch user profile
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('full_name, email, role')
+        // Fetch user role from user_roles table (authoritative source)
+        const { data: userRoleData } = await supabase
+          .from('user_roles')
+          .select('role')
           .eq('user_id', session.user.id)
           .single();
         
-        // Verify user has patient role
-        if (profile?.role !== 'patient') {
+        const role = userRoleData?.role || 'patient';
+        
+        // Allow admin to access patient dashboard (admin can access all)
+        // Only block doctors from patient dashboard
+        if (role === 'doctor') {
           toast({
             title: 'Access Denied',
             description: 'This dashboard is for patients only.',
             variant: 'destructive'
           });
-          navigate('/', { replace: true });
+          navigate('/doctor-dashboard', { replace: true });
           return;
         }
+
+        // Fetch user profile for display
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name, email')
+          .eq('user_id', session.user.id)
+          .single();
 
         if (profile?.full_name) {
           setUserName(profile.full_name);
