@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, Loader2, Play, RefreshCw } from "lucide-react";
+import { CheckCircle, XCircle, Loader2, Play, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import type { User } from "@supabase/supabase-js";
 
 type TestStatus = "pending" | "running" | "passed" | "failed";
 
@@ -16,6 +17,7 @@ interface TestResult {
 }
 
 const TestWorkflow = () => {
+  const [user, setUser] = useState<User | null>(null);
   const [tests, setTests] = useState<TestResult[]>([
     { name: "Supabase Connection", status: "pending" },
     { name: "Authentication Service", status: "pending" },
@@ -24,9 +26,14 @@ const TestWorkflow = () => {
     { name: "Appointments Table", status: "pending" },
     { name: "Vitals Table", status: "pending" },
     { name: "Medications Table", status: "pending" },
-    { name: "Edge Functions", status: "pending" },
+    { name: "Edge Functions (Public)", status: "pending" },
+    { name: "Chatbot Function (Auth Required)", status: "pending" },
   ]);
   const [isRunning, setIsRunning] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+  }, []);
 
   const updateTest = (name: string, status: TestStatus, message?: string, duration?: number) => {
     setTests(prev => prev.map(t => 
@@ -115,17 +122,34 @@ const TestWorkflow = () => {
       updateTest("Medications Table", "failed", e.message, Date.now() - start7);
     }
 
-    // Test 8: Edge Functions (ping chatbot)
-    updateTest("Edge Functions", "running");
+    // Test 8: Edge Functions (Public - appointment reminders)
+    updateTest("Edge Functions (Public)", "running");
     const start8 = Date.now();
     try {
-      const { error } = await supabase.functions.invoke("chatbot", {
-        body: { message: "ping", userId: "test" }
+      const { error } = await supabase.functions.invoke("appointment-reminders", {
+        body: {}
       });
       if (error) throw error;
-      updateTest("Edge Functions", "passed", "Functions reachable", Date.now() - start8);
+      updateTest("Edge Functions (Public)", "passed", "Public functions reachable", Date.now() - start8);
     } catch (e: any) {
-      updateTest("Edge Functions", "failed", e.message || "Function unreachable", Date.now() - start8);
+      updateTest("Edge Functions (Public)", "failed", e.message || "Function unreachable", Date.now() - start8);
+    }
+
+    // Test 9: Chatbot Function (requires auth)
+    updateTest("Chatbot Function (Auth Required)", "running");
+    const start9 = Date.now();
+    if (!user) {
+      updateTest("Chatbot Function (Auth Required)", "failed", "Skipped - requires login", Date.now() - start9);
+    } else {
+      try {
+        const { error } = await supabase.functions.invoke("chatbot", {
+          body: { message: "ping", history: [] }
+        });
+        if (error) throw error;
+        updateTest("Chatbot Function (Auth Required)", "passed", "Authenticated access works", Date.now() - start9);
+      } catch (e: any) {
+        updateTest("Chatbot Function (Auth Required)", "failed", e.message || "Auth failed", Date.now() - start9);
+      }
     }
 
     setIsRunning(false);
@@ -177,6 +201,14 @@ const TestWorkflow = () => {
                 <CardDescription>
                   Test database connections, authentication, and services
                 </CardDescription>
+                {user ? (
+                  <Badge className="mt-2 bg-green-500">Logged in: {user.email}</Badge>
+                ) : (
+                  <Badge variant="outline" className="mt-2">
+                    <AlertCircle className="h-3 w-3 mr-1" />
+                    Not logged in - some tests will be skipped
+                  </Badge>
+                )}
               </div>
               <Button 
                 onClick={runTests} 
