@@ -27,6 +27,7 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
   const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [magicLinkEmail, setMagicLinkEmail] = useState('');
+  const [isRedirecting, setIsRedirecting] = useState(false);
   
   const [signInData, setSignInData] = useState({
     email: '',
@@ -45,7 +46,14 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
 
   // Set up auth state listener
   useEffect(() => {
+    let redirected = false;
+    
     const handleUserRedirect = async (userId: string, userEmail: string | undefined, userMetadata: any) => {
+      // Prevent multiple redirects
+      if (redirected || isRedirecting) return;
+      redirected = true;
+      setIsRedirecting(true);
+      
       // Get user profile to determine role
       const { data: profile } = await supabase
         .from('profiles')
@@ -58,28 +66,33 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
         email: userEmail 
       });
       
-      // Redirect based on user role
-      if (profile?.role === 'admin') {
-        setUserType('user');
-        navigate('/admin-dashboard');
-      } else if (profile?.role === 'doctor') {
+      // Redirect based on user role - check role first, then handle patient logic
+      const userRole = profile?.role;
+      
+      if (userRole === 'admin') {
+        setUserType('admin');
+        navigate('/admin-dashboard', { replace: true });
+        return;
+      }
+      
+      if (userRole === 'doctor') {
         setUserType('doctor');
-        navigate('/doctor-dashboard');
+        navigate('/doctor-dashboard', { replace: true });
+        return;
+      }
+      
+      // Only for patients - check if onboarding needed
+      setUserType('user');
+      const { data: patient } = await supabase
+        .from('patients')
+        .select('id')
+        .eq('user_id', userId)
+        .single();
+      
+      if (!patient) {
+        navigate('/patient-onboarding', { replace: true });
       } else {
-        // Check if patient profile exists for regular users
-        const { data: patient } = await supabase
-          .from('patients')
-          .select('id')
-          .eq('user_id', userId)
-          .single();
-        
-        setUserType('user');
-        if (!patient) {
-          // First time login, redirect to onboarding
-          navigate('/patient-onboarding');
-        } else {
-          navigate('/user-dashboard');
-        }
+        navigate('/user-dashboard', { replace: true });
       }
     };
 
@@ -88,7 +101,7 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
         setSession(session);
         setUserState(session?.user ?? null);
         
-        if (session?.user) {
+        if (session?.user && !redirected) {
           setTimeout(() => {
             handleUserRedirect(session.user.id, session.user.email, session.user.user_metadata);
           }, 0);
@@ -101,13 +114,13 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
       setSession(session);
       setUserState(session?.user ?? null);
       
-      if (session?.user) {
+      if (session?.user && !redirected) {
         handleUserRedirect(session.user.id, session.user.email, session.user.user_metadata);
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [setUser, setUserType, navigate]);
+  }, [setUser, setUserType, navigate, isRedirecting]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
