@@ -130,6 +130,24 @@ const AppContent = () => {
 
   // Set up auth state listener
   useEffect(() => {
+    const fetchUserRole = async (userId: string) => {
+      const { data: userRoleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .single();
+      
+      const role = userRoleData?.role || 'patient';
+      setUserRole(role);
+      
+      if (role === 'doctor') {
+        setUserType('doctor');
+      } else {
+        setUserType('user');
+      }
+      return role;
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
@@ -138,64 +156,31 @@ const AppContent = () => {
         if (event === 'SIGNED_OUT') {
           setUserType(null);
           setUserRole(null);
+          setLoading(false);
           navigate('/', { replace: true });
-        }
-        
-        if (event === 'TOKEN_REFRESHED') {
-          // Session was refreshed successfully
-        }
-        
-        if (event === 'USER_UPDATED') {
-          // User data was updated
         }
         
         if (session?.user) {
           // Defer role fetch to avoid deadlock - use user_roles table as authoritative source
           setTimeout(async () => {
-            const { data: userRoleData } = await supabase
-              .from('user_roles')
-              .select('role')
-              .eq('user_id', session.user.id)
-              .single();
-            
-            const role = userRoleData?.role || 'patient';
-            setUserRole(role);
-            
-            if (role === 'doctor') {
-              setUserType('doctor');
-            } else {
-              setUserType('user');
-            }
+            await fetchUserRole(session.user.id);
+            setLoading(false);
           }, 0);
         } else {
           setUserType(null);
           setUserRole(null);
+          setLoading(false);
         }
-        setLoading(false);
       }
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', session.user.id)
-          .single()
-          .then(({ data: userRoleData }) => {
-            const role = userRoleData?.role || 'patient';
-            setUserRole(role);
-            
-            if (role === 'doctor') {
-              setUserType('doctor');
-            } else {
-              setUserType('user');
-            }
-          });
+        await fetchUserRole(session.user.id);
       }
       setLoading(false);
     });
