@@ -128,11 +128,6 @@ const UserDashboard = memo(({ user }: UserDashboardProps) => {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError || !session) {
-          toast({
-            title: 'Session Expired',
-            description: 'Please sign in again.',
-            variant: 'destructive'
-          });
           navigate('/', { replace: true });
           return;
         }
@@ -146,11 +141,6 @@ const UserDashboard = memo(({ user }: UserDashboardProps) => {
         
         // Verify user has patient role
         if (profile?.role !== 'patient') {
-          toast({
-            title: 'Access Denied',
-            description: 'This dashboard is for patients only.',
-            variant: 'destructive'
-          });
           navigate('/', { replace: true });
           return;
         }
@@ -170,7 +160,8 @@ const UserDashboard = memo(({ user }: UserDashboardProps) => {
     };
     
     validateSessionAndFetchProfile();
-  }, [navigate, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigate]);
 
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut();
