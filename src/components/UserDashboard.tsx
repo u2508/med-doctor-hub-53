@@ -8,6 +8,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
+import { useSessionExpiry } from '@/hooks/useSessionExpiry';
+import { FeatureCardSkeleton, ActivityItemSkeleton, DashboardHeaderSkeleton } from '@/components/ui/skeleton-card';
 
 interface Feature {
   title: string;
@@ -120,6 +122,7 @@ const UserDashboard = memo(({ user }: UserDashboardProps) => {
   const [userEmail, setUserEmail] = useState<string>('');
   const [sessionLoading, setSessionLoading] = useState(true);
   const { toast } = useToast();
+  useSessionExpiry(); // Monitor session expiry
 
   useEffect(() => {
     const validateSessionAndFetchProfile = async () => {
@@ -223,8 +226,38 @@ const UserDashboard = memo(({ user }: UserDashboardProps) => {
 
   if (sessionLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-gradient-subtle">
+        <header className="glass border-b border-white/10 sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+            <DashboardHeaderSkeleton />
+          </div>
+        </header>
+        <main className="max-w-7xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
+          <div className="card-elevated rounded-2xl overflow-hidden">
+            <div className="px-8 py-12 sm:px-12">
+              <div className="text-center mb-12">
+                <div className="h-8 w-96 mx-auto mb-4 bg-muted animate-pulse rounded" />
+                <div className="h-5 w-64 mx-auto bg-muted animate-pulse rounded" />
+              </div>
+              <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {[...Array(5)].map((_, i) => (
+                  <FeatureCardSkeleton key={i} />
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="mt-12 card-elevated rounded-2xl overflow-hidden">
+            <div className="px-8 py-8 sm:px-12">
+              <div className="h-7 w-48 bg-muted animate-pulse rounded mb-3" />
+              <div className="h-5 w-64 bg-muted animate-pulse rounded mb-8" />
+              <div className="space-y-4">
+                {[...Array(3)].map((_, i) => (
+                  <ActivityItemSkeleton key={i} />
+                ))}
+              </div>
+            </div>
+          </div>
+        </main>
       </div>
     );
   }

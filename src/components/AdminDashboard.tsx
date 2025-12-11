@@ -29,6 +29,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { useSessionExpiry } from "@/hooks/useSessionExpiry";
+import { StatCardSkeleton, TableRowSkeleton } from "@/components/ui/skeleton-card";
 
 interface DoctorProfile {
   id: string;
@@ -75,6 +77,7 @@ const AdminDashboard: React.FC = () => {
 
   const navigate = useNavigate();
   const { toast } = useToast();
+  useSessionExpiry(); // Monitor session expiry
 
   useEffect(() => {
     const validateAdminAndFetchData = async () => {
