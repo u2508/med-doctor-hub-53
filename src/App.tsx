@@ -80,8 +80,13 @@ const AuthWrapper = ({ children, user, userRole, loading }: { children: React.Re
       return;
     }
 
-    // Role-based route protection
+    // Role-based route protection - Admin can access all routes
     if (user && userRole) {
+      // Admin can access everything, no restrictions
+      if (userRole === 'admin') {
+        return;
+      }
+      
       const isDoctorRoute = DOCTOR_ROUTES.some(route => location.pathname.startsWith(route));
       const isPatientRoute = PATIENT_ROUTES.some(route => location.pathname.startsWith(route));
       const isAdminRoute = ADMIN_ROUTES.some(route => location.pathname.startsWith(route));
@@ -105,7 +110,6 @@ const AuthWrapper = ({ children, user, userRole, loading }: { children: React.Re
           navigate('/doctor-dashboard', { replace: true });
         }
       }
-      // Admin can access all routes
     }
   }, [user, userRole, loading, location.pathname, navigate]);
 
@@ -146,15 +150,15 @@ const AppContent = () => {
         }
         
         if (session?.user) {
-          // Defer profile fetch to avoid deadlock
+          // Defer role fetch to avoid deadlock - use user_roles table as authoritative source
           setTimeout(async () => {
-            const { data: profile } = await supabase
-              .from('profiles')
+            const { data: userRoleData } = await supabase
+              .from('user_roles')
               .select('role')
               .eq('user_id', session.user.id)
               .single();
             
-            const role = profile?.role || 'patient';
+            const role = userRoleData?.role || 'patient';
             setUserRole(role);
             
             if (role === 'doctor') {
@@ -178,12 +182,12 @@ const AppContent = () => {
       
       if (session?.user) {
         supabase
-          .from('profiles')
+          .from('user_roles')
           .select('role')
           .eq('user_id', session.user.id)
           .single()
-          .then(({ data: profile }) => {
-            const role = profile?.role || 'patient';
+          .then(({ data: userRoleData }) => {
+            const role = userRoleData?.role || 'patient';
             setUserRole(role);
             
             if (role === 'doctor') {
