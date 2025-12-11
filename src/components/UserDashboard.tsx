@@ -1,4 +1,4 @@
-import React, { memo, useMemo, useState, useEffect } from 'react';
+import React, { memo, useMemo, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Heart, UserCheck, MessageCircle, BarChart3, Clock, Loader2, Sparkles, Calendar, User, LogOut, ChevronDown } from 'lucide-react';
@@ -218,8 +218,8 @@ const UserDashboard = memo(({ user }: UserDashboardProps) => {
     }
   ], []);
 
-  // Memoized handlers to prevent re-creation
-  const handleFeatureClick = useMemo(() => (path: string) => () => navigate(path), [navigate]);
+  // Memoized handler to prevent re-creation
+  const handleFeatureClick = useCallback((path: string) => () => navigate(path), [navigate]);
 
   if (sessionLoading) {
     return (
