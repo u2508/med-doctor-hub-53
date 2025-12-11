@@ -15,8 +15,6 @@ import AppointmentCalendar from '@/components/doctor/AppointmentCalendar';
 import CompleteAppointmentDialog from '@/components/doctor/CompleteAppointmentDialog';
 import PatientManagement from '@/components/doctor/PatientManagement';
 import PatientDetailView from '@/components/doctor/PatientDetailView';
-import { useSessionExpiry } from '@/hooks/useSessionExpiry';
-import { StatCardSkeleton } from '@/components/ui/skeleton-card';
 
 interface DoctorProfile {
   full_name: string;
@@ -50,7 +48,6 @@ interface Appointment {
 const DoctorDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  useSessionExpiry(); // Monitor session expiry
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<DoctorProfile | null>(null);
   const [doctorDetails, setDoctorDetails] = useState<DoctorDetails | null>(null);

@@ -29,8 +29,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
-import { useSessionExpiry } from "@/hooks/useSessionExpiry";
-import { StatCardSkeleton, TableRowSkeleton } from "@/components/ui/skeleton-card";
 
 interface DoctorProfile {
   id: string;
@@ -77,7 +75,6 @@ const AdminDashboard: React.FC = () => {
 
   const navigate = useNavigate();
   const { toast } = useToast();
-  useSessionExpiry(); // Monitor session expiry
 
   useEffect(() => {
     const validateAdminAndFetchData = async () => {
@@ -86,6 +83,11 @@ const AdminDashboard: React.FC = () => {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError || !session) {
+          toast({
+            title: 'Session Expired',
+            description: 'Please sign in again.',
+            variant: 'destructive'
+          });
           navigate('/', { replace: true });
           return;
         }
@@ -98,6 +100,11 @@ const AdminDashboard: React.FC = () => {
           .single();
 
         if (profile?.role !== 'admin') {
+          toast({
+            title: 'Access Denied',
+            description: 'This dashboard is for administrators only.',
+            variant: 'destructive'
+          });
           navigate('/', { replace: true });
           return;
         }
@@ -111,8 +118,7 @@ const AdminDashboard: React.FC = () => {
     };
 
     validateAdminAndFetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigate]);
+  }, [navigate, toast]);
 
   const fetchData = async () => {
     try {
