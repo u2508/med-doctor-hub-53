@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-ro
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import type { Session, User as SupabaseUser } from '@supabase/supabase-js';
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 // Lazy load components for better performance
 const Index = lazy(() => import("./pages/Index"));
@@ -221,45 +222,47 @@ const AppContent = () => {
 
   return (
     <AuthWrapper user={user} userRole={userRole} loading={loading}>
-      <Suspense fallback={<LoadingFallback />}>
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          {/* Medical Dashboard Routes */}
-          <Route path="/doctor-portal" element={<Index />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          
-          {/* Authentication Routes */}
-          <Route path="/user-signin" element={<UserSignIn setUser={setUser} setUserType={handleSetUserType} />} />
-          <Route path="/doctor-registration" element={<DoctorRegistration setUser={setUser} setUserType={handleSetUserType} />} />
-          
-          {/* Dashboard Routes */}
-          <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
-          <Route path="/appointment-history" element={<AppointmentHistory />} />
-          <Route path="/admin-dashboard" element={<AdminDashboard />} />
-          <Route path="/doctor-profile" element={<DoctorProfile />} />
-          <Route path="/user-dashboard" element={<UserDashboard user={user} />} />
-          <Route path="/user-profile" element={<UserProfile />} />
-          <Route path="/patient-onboarding" element={<PatientOnboarding />} />
-          
-          {/* Mental Health Features */}
-          <Route path="/doctor-finder" element={<DoctorFinder />} />
-          <Route path="/my-appointments" element={<PatientAppointments />} />
-          <Route path="/mood-tracker" element={<MoodTracker />} />
-          <Route path="/chatbot" element={<Chatbot />} />
-          <Route path="/stress-management" element={<StressManagement />} />
-          <Route path="/health-analytics" element={<HealthAnalytics />} />
-          
-          {/* Support */}
-          <Route path="/support" element={<Support />} />
-          
-          {/* Test Workflow */}
-          <Route path="/test-workflow" element={<TestWorkflow />} />
-          
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </Suspense>
+      <ErrorBoundary>
+        <Suspense fallback={<LoadingFallback />}>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            {/* Medical Dashboard Routes */}
+            <Route path="/doctor-portal" element={<Index />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            
+            {/* Authentication Routes */}
+            <Route path="/user-signin" element={<UserSignIn setUser={setUser} setUserType={handleSetUserType} />} />
+            <Route path="/doctor-registration" element={<DoctorRegistration setUser={setUser} setUserType={handleSetUserType} />} />
+            
+            {/* Dashboard Routes */}
+            <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
+            <Route path="/appointment-history" element={<AppointmentHistory />} />
+            <Route path="/admin-dashboard" element={<AdminDashboard />} />
+            <Route path="/doctor-profile" element={<DoctorProfile />} />
+            <Route path="/user-dashboard" element={<UserDashboard user={user} />} />
+            <Route path="/user-profile" element={<UserProfile />} />
+            <Route path="/patient-onboarding" element={<PatientOnboarding />} />
+            
+            {/* Mental Health Features */}
+            <Route path="/doctor-finder" element={<DoctorFinder />} />
+            <Route path="/my-appointments" element={<PatientAppointments />} />
+            <Route path="/mood-tracker" element={<MoodTracker />} />
+            <Route path="/chatbot" element={<Chatbot />} />
+            <Route path="/stress-management" element={<StressManagement />} />
+            <Route path="/health-analytics" element={<HealthAnalytics />} />
+            
+            {/* Support */}
+            <Route path="/support" element={<Support />} />
+            
+            {/* Test Workflow */}
+            <Route path="/test-workflow" element={<TestWorkflow />} />
+            
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
+      </ErrorBoundary>
     </AuthWrapper>
   );
 };
