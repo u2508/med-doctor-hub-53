@@ -83,11 +83,6 @@ const AdminDashboard: React.FC = () => {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError || !session) {
-          toast({
-            title: 'Session Expired',
-            description: 'Please sign in again.',
-            variant: 'destructive'
-          });
           navigate('/', { replace: true });
           return;
         }
@@ -100,11 +95,6 @@ const AdminDashboard: React.FC = () => {
           .single();
 
         if (profile?.role !== 'admin') {
-          toast({
-            title: 'Access Denied',
-            description: 'This dashboard is for administrators only.',
-            variant: 'destructive'
-          });
           navigate('/', { replace: true });
           return;
         }
@@ -118,7 +108,8 @@ const AdminDashboard: React.FC = () => {
     };
 
     validateAdminAndFetchData();
-  }, [navigate, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigate]);
 
   const fetchData = async () => {
     try {
