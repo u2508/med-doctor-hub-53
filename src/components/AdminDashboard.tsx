@@ -77,8 +77,48 @@ const AdminDashboard: React.FC = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    const validateAdminAndFetchData = async () => {
+      try {
+        // Validate Supabase session
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError || !session) {
+          toast({
+            title: 'Session Expired',
+            description: 'Please sign in again.',
+            variant: 'destructive'
+          });
+          navigate('/', { replace: true });
+          return;
+        }
+
+        // Verify admin role
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('user_id', session.user.id)
+          .single();
+
+        if (profile?.role !== 'admin') {
+          toast({
+            title: 'Access Denied',
+            description: 'This dashboard is for administrators only.',
+            variant: 'destructive'
+          });
+          navigate('/', { replace: true });
+          return;
+        }
+
+        // Fetch dashboard data
+        await fetchData();
+      } catch (error) {
+        console.error('Admin validation error:', error);
+        navigate('/', { replace: true });
+      }
+    };
+
+    validateAdminAndFetchData();
+  }, [navigate, toast]);
 
   const fetchData = async () => {
     try {
