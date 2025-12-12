@@ -332,7 +332,7 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/user-signin`,
+          redirectTo: `${window.location.origin}`,
         },
       });
       if (error) throw error;
