@@ -74,22 +74,14 @@ const DoctorDashboard = () => {
 
   const fetchDoctorData = async () => {
     try {
-      // Validate session first
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      const { data: { user } } = await supabase.auth.getUser();
       
-      if (sessionError || !session) {
-        toast({
-          title: 'Session Expired',
-          description: 'Please sign in again.',
-          variant: 'destructive'
-        });
+      if (!user) {
         navigate('/doctor-portal');
         return;
       }
 
-      const user = session.user;
-
-      // Fetch profile and verify role
+      // Fetch profile
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -97,18 +89,6 @@ const DoctorDashboard = () => {
         .single();
 
       if (profileError) throw profileError;
-      
-      // Verify doctor role
-      if (profileData.role !== 'doctor') {
-        toast({
-          title: 'Access Denied',
-          description: 'This dashboard is for doctors only.',
-          variant: 'destructive'
-        });
-        navigate('/', { replace: true });
-        return;
-      }
-      
       setProfile(profileData);
 
       // Fetch doctor details

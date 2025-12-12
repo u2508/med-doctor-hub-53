@@ -118,69 +118,28 @@ const UserDashboard = memo(({ user }: UserDashboardProps) => {
   const { activities, loading } = useUserActivity();
   const [userName, setUserName] = useState<string>('User');
   const [userEmail, setUserEmail] = useState<string>('');
-  const [sessionLoading, setSessionLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    const validateSessionAndFetchProfile = async () => {
-      try {
-        // Validate actual Supabase session
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError || !session) {
-          toast({
-            title: 'Session Expired',
-            description: 'Please sign in again.',
-            variant: 'destructive'
-          });
-          navigate('/', { replace: true });
-          return;
-        }
-
-        // Fetch user role from user_roles table (authoritative source)
-        const { data: userRoleData } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', session.user.id)
-          .single();
-        
-        const role = userRoleData?.role || 'patient';
-        
-        // Allow admin to access patient dashboard (admin can access all)
-        // Only block doctors from patient dashboard
-        if (role === 'doctor') {
-          toast({
-            title: 'Access Denied',
-            description: 'This dashboard is for patients only.',
-            variant: 'destructive'
-          });
-          navigate('/doctor-dashboard', { replace: true });
-          return;
-        }
-
-        // Fetch user profile for display
+    const fetchUserProfile = async () => {
+      if (user?.id) {
         const { data: profile } = await supabase
           .from('profiles')
           .select('full_name, email')
-          .eq('user_id', session.user.id)
+          .eq('user_id', user.id)
           .single();
-
+        
         if (profile?.full_name) {
           setUserName(profile.full_name);
         }
         if (profile?.email) {
           setUserEmail(profile.email);
         }
-      } catch (error) {
-        console.error('Session validation error:', error);
-        navigate('/', { replace: true });
-      } finally {
-        setSessionLoading(false);
       }
     };
     
-    validateSessionAndFetchProfile();
-  }, [navigate, toast]);
+    fetchUserProfile();
+  }, [user?.id]);
 
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut();
@@ -239,14 +198,6 @@ const UserDashboard = memo(({ user }: UserDashboardProps) => {
 
   // Memoized handlers to prevent re-creation
   const handleFeatureClick = useMemo(() => (path: string) => () => navigate(path), [navigate]);
-
-  if (sessionLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-subtle">

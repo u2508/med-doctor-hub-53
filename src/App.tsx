@@ -7,7 +7,6 @@ import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-ro
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import type { Session, User as SupabaseUser } from '@supabase/supabase-js';
-import ErrorBoundary from "@/components/ErrorBoundary";
 
 // Lazy load components for better performance
 const Index = lazy(() => import("./pages/Index"));
@@ -31,7 +30,6 @@ const Support = lazy(() => import("@/components/Support"));
 const HealthAnalytics = lazy(() => import("@/components/HealthAnalytics"));
 const UserProfile = lazy(() => import("./pages/UserProfile"));
 const PatientOnboarding = lazy(() => import("./pages/PatientOnboarding"));
-const TestWorkflow = lazy(() => import("./pages/TestWorkflow"));
 
 // Optimized query client with better caching and background updates
 const queryClient = new QueryClient({
@@ -80,13 +78,8 @@ const AuthWrapper = ({ children, user, userRole, loading }: { children: React.Re
       return;
     }
 
-    // Role-based route protection - Admin can access all routes
+    // Role-based route protection
     if (user && userRole) {
-      // Admin can access everything, no restrictions
-      if (userRole === 'admin') {
-        return;
-      }
-      
       const isDoctorRoute = DOCTOR_ROUTES.some(route => location.pathname.startsWith(route));
       const isPatientRoute = PATIENT_ROUTES.some(route => location.pathname.startsWith(route));
       const isAdminRoute = ADMIN_ROUTES.some(route => location.pathname.startsWith(route));
@@ -110,6 +103,7 @@ const AuthWrapper = ({ children, user, userRole, loading }: { children: React.Re
           navigate('/doctor-dashboard', { replace: true });
         }
       }
+      // Admin can access all routes
     }
   }, [user, userRole, loading, location.pathname, navigate]);
 
@@ -130,24 +124,6 @@ const AppContent = () => {
 
   // Set up auth state listener
   useEffect(() => {
-    const fetchUserRole = async (userId: string) => {
-      const { data: userRoleData } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .single();
-      
-      const role = userRoleData?.role || 'patient';
-      setUserRole(role);
-      
-      if (role === 'doctor') {
-        setUserType('doctor');
-      } else {
-        setUserType('user');
-      }
-      return role;
-    };
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
@@ -156,31 +132,64 @@ const AppContent = () => {
         if (event === 'SIGNED_OUT') {
           setUserType(null);
           setUserRole(null);
-          setLoading(false);
           navigate('/', { replace: true });
         }
         
+        if (event === 'TOKEN_REFRESHED') {
+          // Session was refreshed successfully
+        }
+        
+        if (event === 'USER_UPDATED') {
+          // User data was updated
+        }
+        
         if (session?.user) {
-          // Defer role fetch to avoid deadlock - use user_roles table as authoritative source
+          // Defer profile fetch to avoid deadlock
           setTimeout(async () => {
-            await fetchUserRole(session.user.id);
-            setLoading(false);
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('role')
+              .eq('user_id', session.user.id)
+              .single();
+            
+            const role = profile?.role || 'patient';
+            setUserRole(role);
+            
+            if (role === 'doctor') {
+              setUserType('doctor');
+            } else {
+              setUserType('user');
+            }
           }, 0);
         } else {
           setUserType(null);
           setUserRole(null);
-          setLoading(false);
         }
+        setLoading(false);
       }
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        await fetchUserRole(session.user.id);
+        supabase
+          .from('profiles')
+          .select('role')
+          .eq('user_id', session.user.id)
+          .single()
+          .then(({ data: profile }) => {
+            const role = profile?.role || 'patient';
+            setUserRole(role);
+            
+            if (role === 'doctor') {
+              setUserType('doctor');
+            } else {
+              setUserType('user');
+            }
+          });
       }
       setLoading(false);
     });
@@ -211,47 +220,42 @@ const AppContent = () => {
 
   return (
     <AuthWrapper user={user} userRole={userRole} loading={loading}>
-      <ErrorBoundary>
-        <Suspense fallback={<LoadingFallback />}>
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            {/* Medical Dashboard Routes */}
-            <Route path="/doctor-portal" element={<Index />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            
-            {/* Authentication Routes */}
-            <Route path="/user-signin" element={<UserSignIn setUser={setUser} setUserType={handleSetUserType} />} />
-            <Route path="/doctor-registration" element={<DoctorRegistration setUser={setUser} setUserType={handleSetUserType} />} />
-            
-            {/* Dashboard Routes */}
-            <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
-            <Route path="/appointment-history" element={<AppointmentHistory />} />
-            <Route path="/admin-dashboard" element={<AdminDashboard />} />
-            <Route path="/doctor-profile" element={<DoctorProfile />} />
-            <Route path="/user-dashboard" element={<UserDashboard user={user} />} />
-            <Route path="/user-profile" element={<UserProfile />} />
-            <Route path="/patient-onboarding" element={<PatientOnboarding />} />
-            
-            {/* Mental Health Features */}
-            <Route path="/doctor-finder" element={<DoctorFinder />} />
-            <Route path="/my-appointments" element={<PatientAppointments />} />
-            <Route path="/mood-tracker" element={<MoodTracker />} />
-            <Route path="/chatbot" element={<Chatbot />} />
-            <Route path="/stress-management" element={<StressManagement />} />
-            <Route path="/health-analytics" element={<HealthAnalytics />} />
-            
-            {/* Support */}
-            <Route path="/support" element={<Support />} />
-            
-            {/* Test Workflow */}
-            <Route path="/test-workflow" element={<TestWorkflow />} />
-            
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Suspense>
-      </ErrorBoundary>
+      <Suspense fallback={<LoadingFallback />}>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          {/* Medical Dashboard Routes */}
+          <Route path="/doctor-portal" element={<Index />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          
+          {/* Authentication Routes */}
+          <Route path="/user-signin" element={<UserSignIn setUser={setUser} setUserType={handleSetUserType} />} />
+          <Route path="/doctor-registration" element={<DoctorRegistration setUser={setUser} setUserType={handleSetUserType} />} />
+          
+          {/* Dashboard Routes */}
+          <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
+          <Route path="/appointment-history" element={<AppointmentHistory />} />
+          <Route path="/admin-dashboard" element={<AdminDashboard />} />
+          <Route path="/doctor-profile" element={<DoctorProfile />} />
+          <Route path="/user-dashboard" element={<UserDashboard user={user} />} />
+          <Route path="/user-profile" element={<UserProfile />} />
+          <Route path="/patient-onboarding" element={<PatientOnboarding />} />
+          
+          {/* Mental Health Features */}
+          <Route path="/doctor-finder" element={<DoctorFinder />} />
+          <Route path="/my-appointments" element={<PatientAppointments />} />
+          <Route path="/mood-tracker" element={<MoodTracker />} />
+          <Route path="/chatbot" element={<Chatbot />} />
+          <Route path="/stress-management" element={<StressManagement />} />
+          <Route path="/health-analytics" element={<HealthAnalytics />} />
+          
+          {/* Support */}
+          <Route path="/support" element={<Support />} />
+          
+          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
     </AuthWrapper>
   );
 };

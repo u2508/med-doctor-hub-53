@@ -15,11 +15,7 @@ import {
   Filter,
   Eye,
   Check,
-  X,
-  LayoutDashboard,
-  Stethoscope,
-  UserCircle,
-  ChevronDown
+  X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,7 +25,6 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -82,48 +77,8 @@ const AdminDashboard: React.FC = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const validateAdminAndFetchData = async () => {
-      try {
-        // Validate Supabase session
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError || !session) {
-          toast({
-            title: 'Session Expired',
-            description: 'Please sign in again.',
-            variant: 'destructive'
-          });
-          navigate('/', { replace: true });
-          return;
-        }
-
-        // Verify admin role
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('user_id', session.user.id)
-          .single();
-
-        if (profile?.role !== 'admin') {
-          toast({
-            title: 'Access Denied',
-            description: 'This dashboard is for administrators only.',
-            variant: 'destructive'
-          });
-          navigate('/', { replace: true });
-          return;
-        }
-
-        // Fetch dashboard data
-        await fetchData();
-      } catch (error) {
-        console.error('Admin validation error:', error);
-        navigate('/', { replace: true });
-      }
-    };
-
-    validateAdminAndFetchData();
-  }, [navigate, toast]);
+    fetchData();
+  }, []);
 
   const fetchData = async () => {
     try {
@@ -371,49 +326,29 @@ const AdminDashboard: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="flex items-center gap-2">
-                    <LayoutDashboard className="w-4 h-4" />
-                    <span className="hidden sm:inline">Switch Dashboard</span>
-                    <ChevronDown className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>Dashboards</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    onClick={() => navigate('/admin-dashboard')}
-                    className="flex items-center gap-2 bg-primary/10"
-                  >
-                    <UserCircle className="w-4 h-4 text-primary" />
-                    <span className="font-medium">Admin Dashboard</span>
-                    <Check className="w-4 h-4 ml-auto text-primary" />
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => navigate('/user-dashboard')}
-                    className="flex items-center gap-2"
-                  >
-                    <User className="w-4 h-4" />
-                    <span>Patient Dashboard</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => navigate('/doctor-dashboard')}
-                    className="flex items-center gap-2"
-                  >
-                    <Stethoscope className="w-4 h-4" />
-                    <span>Doctor Dashboard</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              
+              <Button
+                onClick={() => navigate('/user-dashboard')}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <User className="w-4 h-4" />
+                <span className="hidden sm:inline">User Dashboard</span>
+              </Button>
+              <Button
+                onClick={() => navigate('/doctor-dashboard')}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <User className="w-4 h-4" />
+                <span className="hidden sm:inline">doctor Dashboard</span>
+              </Button>
               <Button
                 onClick={() => navigate('/')}
                 variant="ghost"
                 className="flex items-center gap-2"
               >
                 <X className="w-4 h-4" />
-                <span className="hidden sm:inline">Home</span>
+                <span className="hidden sm:inline">Back to Home</span>
               </Button>
             </div>
           </div>

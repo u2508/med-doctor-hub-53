@@ -112,8 +112,7 @@ const DoctorRegistration: React.FC<DoctorRegistrationProps> = ({ setUser, setUse
       
       const fileExt = uploadedFile.name.split('.').pop();
       const timestamp = Date.now();
-      // Use user_id as folder name to match storage policy
-      const fileName = `${userId}/license-${timestamp}.${fileExt}`;
+      const fileName = `registrations/${userId}/license-${timestamp}.${fileExt}`;
       
       setUploadProgress(50);
       
