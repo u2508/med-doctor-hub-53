@@ -100,7 +100,7 @@ med-doctor-hub/
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/your-username/med-doctor-hub.git
+git clone https://github.com/u2508/med-doctor-hub-53.git
 cd med-doctor-hub
 ```
 
