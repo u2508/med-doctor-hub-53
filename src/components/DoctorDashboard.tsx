@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Users, Clock, FileText, LogOut, Stethoscope, TrendingUp, CheckCircle2, XCircle, ClockIcon, Heart, Star, History, CalendarDays, UserRound, User } from 'lucide-react';
+import { Calendar, Users, Clock, FileText, LogOut, Stethoscope, TrendingUp, CheckCircle2, XCircle, ClockIcon, Heart, Star, History, CalendarDays, UserRound, User, ChevronDown, LayoutDashboard, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
@@ -379,23 +380,56 @@ const DoctorDashboard = () => {
             </div>
             
             <div className="flex items-center gap-3">
+              <Badge variant="outline" className="hidden sm:flex items-center gap-1.5 px-3 py-1">
+                <Stethoscope className="w-3.5 h-3.5" />
+                Doctor
+              </Badge>
+              
               <Button 
                 onClick={() => navigate('/appointment-history')}
                 variant="outline"
                 className="gap-2"
               >
                 <History className="w-4 h-4" />
-                History
+                <span className="hidden sm:inline">History</span>
               </Button>
               
-              <Button 
-                variant="destructive"
-                onClick={handleSignOut}
-                className="gap-2"
-              >
-                <LogOut className="w-4 h-4" />
-                Sign Out
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <LayoutDashboard className="w-4 h-4" />
+                    <span className="hidden sm:inline">Switch</span>
+                    <ChevronDown className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>Dashboards</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={() => navigate('/doctor-dashboard')}
+                    className="flex items-center gap-2 bg-primary/10"
+                  >
+                    <Stethoscope className="w-4 h-4 text-primary" />
+                    <span className="font-medium">Doctor Dashboard</span>
+                    <CheckCircle2 className="w-4 h-4 ml-auto text-primary" />
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => navigate('/user-dashboard')}
+                    className="flex items-center gap-2"
+                  >
+                    <User className="w-4 h-4" />
+                    <span>Patient Dashboard</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={handleSignOut}
+                    className="flex items-center gap-2 text-destructive focus:text-destructive"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Sign Out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>

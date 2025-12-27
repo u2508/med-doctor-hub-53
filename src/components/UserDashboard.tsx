@@ -1,11 +1,12 @@
 import React, { memo, useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Heart, UserCheck, MessageCircle, BarChart3, Clock, Loader2, Sparkles, Calendar, User, LogOut, ChevronDown } from 'lucide-react';
+import { Heart, UserCheck, MessageCircle, BarChart3, Clock, Loader2, Sparkles, Calendar, User, LogOut, ChevronDown, Shield, Stethoscope, LayoutDashboard } from 'lucide-react';
 import { useUserActivity } from '@/hooks/useUserActivity';
 import { supabase } from '@/integrations/supabase/client';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 
@@ -118,6 +119,7 @@ const UserDashboard = memo(({ user }: UserDashboardProps) => {
   const { activities, loading } = useUserActivity();
   const [userName, setUserName] = useState<string>('User');
   const [userEmail, setUserEmail] = useState<string>('');
+  const [userRole, setUserRole] = useState<string>('patient');
   const [sessionLoading, setSessionLoading] = useState(true);
   const { toast } = useToast();
 
@@ -145,6 +147,7 @@ const UserDashboard = memo(({ user }: UserDashboardProps) => {
           .single();
         
         const role = userRoleData?.role || 'patient';
+        setUserRole(role);
         
         // Allow admin to access patient dashboard (admin can access all)
         // Only block doctors from patient dashboard
@@ -264,6 +267,12 @@ const UserDashboard = memo(({ user }: UserDashboardProps) => {
             animate={{ opacity: 1, x: 0 }}
             className="flex items-center space-x-4"
           >
+            <Badge variant="outline" className="hidden sm:flex items-center gap-1.5 px-3 py-1 capitalize">
+              {userRole === 'admin' && <Shield className="w-3.5 h-3.5" />}
+              {userRole === 'doctor' && <Stethoscope className="w-3.5 h-3.5" />}
+              {userRole === 'patient' && <User className="w-3.5 h-3.5" />}
+              {userRole}
+            </Badge>
             <div className="text-right hidden sm:block">
               <p className="text-sm text-muted-foreground">Welcome back,</p>
               <p className="font-semibold text-foreground">{userName}</p>
@@ -281,10 +290,22 @@ const UserDashboard = memo(({ user }: UserDashboardProps) => {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <div className="px-3 py-2">
-                  <p className="font-medium text-foreground">{userName}</p>
+                  <div className="flex items-center justify-between">
+                    <p className="font-medium text-foreground">{userName}</p>
+                    <Badge variant="secondary" className="text-xs capitalize">{userRole}</Badge>
+                  </div>
                   <p className="text-sm text-muted-foreground truncate">{userEmail}</p>
                 </div>
                 <DropdownMenuSeparator />
+                {userRole === 'admin' && (
+                  <>
+                    <DropdownMenuItem onClick={() => navigate('/admin-dashboard')} className="cursor-pointer">
+                      <LayoutDashboard className="w-4 h-4 mr-2" />
+                      Admin Dashboard
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
                 <DropdownMenuItem onClick={() => navigate('/user-profile')} className="cursor-pointer">
                   <User className="w-4 h-4 mr-2" />
                   My Profile
