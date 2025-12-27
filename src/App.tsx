@@ -128,6 +128,11 @@ const AppContent = () => {
     setUserType(type as "doctor" | "user");
   };
 
+  // Wrapper to accept UserPayload from signin components
+  const handleSetUser = (userPayload: { name: string; email?: string | null }) => {
+    // The actual user will be set by onAuthStateChange, this is just for UI updates
+  };
+
   // Set up auth state listener
   useEffect(() => {
     const fetchUserRole = async (userId: string) => {
@@ -221,8 +226,8 @@ const AppContent = () => {
             <Route path="/reset-password" element={<ResetPassword />} />
             
             {/* Authentication Routes */}
-            <Route path="/user-signin" element={<UserSignIn setUser={setUser} setUserType={handleSetUserType} />} />
-            <Route path="/doctor-registration" element={<DoctorRegistration setUser={setUser} setUserType={handleSetUserType} />} />
+            <Route path="/user-signin" element={<UserSignIn setUser={handleSetUser} setUserType={handleSetUserType} />} />
+            <Route path="/doctor-registration" element={<DoctorRegistration setUser={handleSetUser} setUserType={handleSetUserType} />} />
             
             {/* Dashboard Routes */}
             <Route path="/doctor-dashboard" element={<DoctorDashboard />} />

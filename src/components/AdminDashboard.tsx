@@ -371,6 +371,10 @@ const AdminDashboard: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2">
+              <Badge variant="outline" className="hidden sm:flex items-center gap-1.5 px-3 py-1">
+                <UserCircle className="w-3.5 h-3.5" />
+                Admin
+              </Badge>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="flex items-center gap-2">
@@ -404,17 +408,19 @@ const AdminDashboard: React.FC = () => {
                     <Stethoscope className="w-4 h-4" />
                     <span>Doctor Dashboard</span>
                   </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={async () => {
+                      await supabase.auth.signOut();
+                      navigate('/');
+                    }}
+                    className="flex items-center gap-2 text-destructive focus:text-destructive"
+                  >
+                    <X className="w-4 h-4" />
+                    <span>Sign Out</span>
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              
-              <Button
-                onClick={() => navigate('/')}
-                variant="ghost"
-                className="flex items-center gap-2"
-              >
-                <X className="w-4 h-4" />
-                <span className="hidden sm:inline">Home</span>
-              </Button>
             </div>
           </div>
         </div>
