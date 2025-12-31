@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Eye,
   EyeOff,
@@ -13,17 +14,14 @@ import {
   CheckCircle,
   Wand2,
   KeyRound,
+  Activity,
+  Brain,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -38,8 +36,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { Session, User as SupabaseUser } from "@supabase/supabase-js";
 
-// Role definitions aligned with DB values
-type Role = "admin" | "doctor" | "user" | "patient";
+type UserRole = "admin" | "doctor" | "patient";
 
 interface UserPayload {
   name: string;
@@ -48,11 +45,10 @@ interface UserPayload {
 
 interface UserSignInProps {
   setUser: (user: UserPayload) => void;
-  setUserType: (type: Role | "unknown") => void;
+  setUserType: (type: UserRole | "user" | "unknown") => void;
 }
 
-const PASSWORD_MIN_LENGTH = 8; // single source of truth
-
+const PASSWORD_MIN_LENGTH = 8;
 const AUTH_REDIRECT = `${window.location.origin}`;
 
 const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
@@ -61,17 +57,13 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
   const [showSignUpConfirm, setShowSignUpConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [user, setUserState] = useState<SupabaseUser | null>(null);
+  const [initializing, setInitializing] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
   const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [magicLinkEmail, setMagicLinkEmail] = useState("");
 
-  const [signInData, setSignInData] = useState({
-    email: "",
-    password: "",
-  });
-
+  const [signInData, setSignInData] = useState({ email: "", password: "" });
   const [signUpData, setSignUpData] = useState({
     name: "",
     email: "",
@@ -81,56 +73,44 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
 
   const navigate = useNavigate();
   const { toast } = useToast();
-
-  // redirect lock to avoid double redirects
   const redirectLock = useRef(false);
 
-  // Helper: determine role & redirect safely
-  const handleAuthRedirect = useCallback(
-    async (sessionUser: SupabaseUser | null) => {
-      if (!sessionUser) return;
+  // Role-based redirect logic
+  const performRoleBasedRedirect = useCallback(
+    async (currentUser: SupabaseUser) => {
       if (redirectLock.current) return;
       redirectLock.current = true;
 
       try {
-        const userId = sessionUser.id;
-        const userEmail = sessionUser.email ?? null;
-        const userMetadata = (sessionUser.user_metadata as any) ?? {};
+        const userId = currentUser.id;
+        const userEmail = currentUser.email ?? null;
+        const userMetadata = currentUser.user_metadata ?? {};
 
-        // Fetch profile safely (maybeSingle avoids throw on empty)
-        const { data: profile, error: profileError } = await supabase
+        // Fetch profile
+        const { data: profile } = await supabase
           .from("profiles")
           .select("full_name, role")
           .eq("user_id", userId)
           .maybeSingle();
 
-        if (profileError) {
-          console.warn("Profile fetch error:", profileError);
-        }
-
-        // Set public-facing user payload for parent
         setUser({
           name: profile?.full_name || userMetadata?.full_name || "User",
           email: userEmail,
         });
 
-        // Fetch the user’s role from the user_roles table (authoritative source)
-        const { data: userRoleData, error: userRoleError } = await supabase
+        // Fetch authoritative role from user_roles table
+        const { data: userRoleData } = await supabase
           .from("user_roles")
           .select("role")
           .eq("user_id", userId)
           .maybeSingle();
-        if (userRoleError) console.warn("UserRoles fetch error:", userRoleError);
-        const userRoleFromTable = userRoleData?.role;
-        const resolvedRole = (() => {
-          if (typeof userRoleFromTable === "string") return userRoleFromTable as Role;
-          if (typeof profile?.role === "string") return profile.role as Role;
-          if (typeof userMetadata?.role === "string") return userMetadata.role as Role;
-          return "user";
-        })();
 
-        console.log("Determined user role:", resolvedRole);
-        // Handle role-based redirect
+        const resolvedRole: UserRole = (userRoleData?.role as UserRole) || 
+          (profile?.role as UserRole) || 
+          (userMetadata?.role as UserRole) || 
+          "patient";
+
+        // Navigate based on role
         switch (resolvedRole) {
           case "admin":
             setUserType("admin");
@@ -140,44 +120,27 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
             setUserType("doctor");
             navigate("/doctor-dashboard", { replace: true });
             break;
-          case "user":
           case "patient":
+          default:
             setUserType("user");
+            // Check if patient has completed onboarding
+            const { data: patientData } = await supabase
+              .from("patients")
+              .select("id")
+              .eq("user_id", userId)
+              .maybeSingle();
 
-            // attempt patient lookup; if not present send to onboarding
-            try {
-              const { data: patientData, error: patientError } = await supabase
-                .from("patients")
-                .select("id")
-                .eq("user_id", userId)
-                .maybeSingle();
-
-              if (patientError) {
-                console.warn("Patient lookup error:", patientError);
-              }
-
-              if (!patientData) {
-                navigate("/patient-onboarding", { replace: true });
-              } else {
-                navigate("/user-dashboard", { replace: true });
-              }
-            } catch (e) {
-              console.warn("Patient lookup failed", e);
+            if (!patientData) {
+              navigate("/patient-onboarding", { replace: true });
+            } else {
               navigate("/user-dashboard", { replace: true });
             }
             break;
-          default:
-            // unknown role - fallback
-            console.warn("Unknown user role:", userRole);
-            setUserType("unknown");
-            navigate("/", { replace: true });
-            break;
         }
-      } catch (err) {
-        console.error("Redirect handler failed:", err);
+      } catch (error) {
+        console.error("Redirect error:", error);
         navigate("/", { replace: true });
       } finally {
-        // release lock after a short tick so any immediate duplicate won't re-run
         setTimeout(() => {
           redirectLock.current = false;
         }, 500);
@@ -186,80 +149,64 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
     [navigate, setUser, setUserType]
   );
 
-  // Auth state listener + initial session fetch
+  // Initialize auth state
   useEffect(() => {
     let mounted = true;
 
-    const init = async () => {
+    const initialize = async () => {
       try {
         const { data } = await supabase.auth.getSession();
         if (!mounted) return;
-        const s = data.session ?? null;
-        setSession(s);
-        setUserState(s?.user ?? null);
+        
+        const currentSession = data.session;
+        setSession(currentSession);
 
-        // hydrate state but redirect only if session exists and no lock
-        if (s?.user && !redirectLock.current) {
-          handleAuthRedirect(s.user);
+        if (currentSession?.user) {
+          await performRoleBasedRedirect(currentSession.user);
         }
-      } catch (err) {
-        console.warn("getSession failed:", err);
+      } catch (error) {
+        console.error("Session initialization error:", error);
+      } finally {
+        if (mounted) setInitializing(false);
       }
     };
 
-    init();
+    initialize();
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, s) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
       if (!mounted) return;
-      setSession(s);
-      setUserState(s?.user ?? null);
+      setSession(newSession);
 
-      // Only redirect on explicit auth change (sign in)
-      if (s?.user) {
-        handleAuthRedirect(s.user);
+      if (newSession?.user && event === "SIGNED_IN") {
+        performRoleBasedRedirect(newSession.user);
       }
     });
 
     return () => {
       mounted = false;
-      try {
-        subscription?.unsubscribe?.();
-      } catch (e) {
-        // best-effort unsubscribe
-      }
+      subscription?.unsubscribe();
     };
-  }, [handleAuthRedirect]);
+  }, [performRoleBasedRedirect]);
 
-  // --- Auth operations ---
-
+  // Auth handlers
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email: signInData.email,
         password: signInData.password,
       });
 
       if (error) throw error;
 
-      // keep toasts for explicit user action only
-      toast({
-        title: "Welcome back!",
-        description: "You've successfully signed in.",
-      });
-
-      // clear sensitive fields
+      toast({ title: "Welcome back!", description: "Signing you in..." });
       setSignInData({ email: "", password: "" });
-
-      // redirect will be handled by onAuthStateChange
     } catch (error: any) {
-      const errorMessage = error?.message || "Please check your credentials and try again.";
       toast({
         title: "Sign In Failed",
-        description: errorMessage,
+        description: error?.message || "Please check your credentials.",
         variant: "destructive",
       });
     } finally {
@@ -270,7 +217,6 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // client-side validation
     if (signUpData.password !== signUpData.confirmPassword) {
       toast({
         title: "Password Mismatch",
@@ -284,22 +230,23 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
     if (!passwordRegex.test(signUpData.password)) {
       toast({
         title: "Weak Password",
-        description: `Password must be at least ${PASSWORD_MIN_LENGTH} characters including uppercase, lowercase, number and special character.`,
+        description: `Password must be at least ${PASSWORD_MIN_LENGTH} characters with uppercase, lowercase, number and special character.`,
         variant: "destructive",
       });
       return;
     }
 
     setLoading(true);
+
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email: signUpData.email,
         password: signUpData.password,
         options: {
           emailRedirectTo: AUTH_REDIRECT,
           data: {
             full_name: signUpData.name,
-            role: "user", // keep consistent with Role values
+            role: "patient",
           },
         },
       });
@@ -307,19 +254,17 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
       if (error) throw error;
 
       toast({
-        title: "Account Created",
-        description: "Check your email for verification steps.",
+        title: "Account Created!",
+        description: "Check your email for verification.",
       });
 
-      // UX: prefill sign-in email, switch to sign-in
       setSignInData((prev) => ({ ...prev, email: signUpData.email }));
       setActiveTab("signin");
       setSignUpData({ name: "", email: "", password: "", confirmPassword: "" });
     } catch (error: any) {
-      const errorMessage = error?.message || "Something went wrong. Try again.";
       toast({
         title: "Sign Up Failed",
-        description: errorMessage,
+        description: error?.message || "Something went wrong.",
         variant: "destructive",
       });
     } finally {
@@ -330,25 +275,24 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
   const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
     try {
-      const { data, error } = await supabase.auth.signInWithOtp({
+      const { error } = await supabase.auth.signInWithOtp({
         email: magicLinkEmail,
-        options: {
-          emailRedirectTo: `${window.location.origin}/user-signin`,
-        },
+        options: { emailRedirectTo: `${window.location.origin}/user-signin` },
       });
+
       if (error) throw error;
 
       toast({
-        title: "Magic Link Sent",
-        description: "Check your email to sign in without a password.",
+        title: "Magic Link Sent!",
+        description: "Check your email to sign in.",
       });
       setMagicLinkEmail("");
     } catch (error: any) {
-      const errorMessage = error?.message || "Please try again.";
       toast({
-        title: "Failed to Send Magic Link",
-        description: errorMessage,
+        title: "Failed to Send",
+        description: error?.message || "Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -359,19 +303,38 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: {
-          redirectTo: AUTH_REDIRECT,
-        },
+        options: { redirectTo: AUTH_REDIRECT },
+      });
+      if (error) throw error;
+    } catch (error: any) {
+      toast({
+        title: "Google Sign In Failed",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      });
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
       });
 
       if (error) throw error;
 
-      // OAuth redirect will occur; no immediate toast required
+      toast({ title: "Reset Email Sent", description: "Check your inbox." });
+      setResetPasswordOpen(false);
+      setResetEmail("");
     } catch (error: any) {
       toast({
-        title: "Google Sign In Failed",
+        title: "Failed to Send",
         description: error?.message || "Please try again.",
         variant: "destructive",
       });
@@ -380,451 +343,449 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
     }
   };
 
-  const handleResetPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-      if (error) throw error;
+  // Loading state
+  if (initializing) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-accent/10 flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex flex-col items-center gap-4"
+        >
+          <div className="w-16 h-16 bg-gradient-to-br from-primary to-primary-dark rounded-2xl flex items-center justify-center shadow-lg animate-pulse">
+            <Heart className="w-8 h-8 text-primary-foreground" />
+          </div>
+          <Loader2 className="w-6 h-6 text-primary animate-spin" />
+          <p className="text-muted-foreground">Checking session...</p>
+        </motion.div>
+      </div>
+    );
+  }
 
-      toast({
-        title: "Reset Email Sent",
-        description: "Check your email to reset your password.",
-      });
-      setResetPasswordOpen(false);
-      setResetEmail("");
-    } catch (error: any) {
-      const errorMessage = error?.message || "Please try again.";
-      toast({
-        title: "Failed to Send Reset Email",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const features = useMemo(
-    () => [
-      { icon: Heart, text: "Mental Health Tracking" },
-      { icon: Shield, text: "Secure & Private" },
-      { icon: Sparkles, text: "AI-Powered Insights" },
-    ],
-    []
-  );
+  const features = [
+    { icon: Activity, text: "Track Vitals & Health", color: "text-success" },
+    { icon: Brain, text: "AI-Powered Insights", color: "text-primary" },
+    { icon: Shield, text: "Secure & HIPAA Ready", color: "text-warning" },
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-accent/10 flex flex-col">
-      <header className="bg-card/90 backdrop-blur-lg border-b border-border/50 sticky top-0 z-50">
+      {/* Header */}
+      <header className="bg-card/80 backdrop-blur-xl border-b border-border/50 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <Link to="/" className="flex items-center space-x-3 group">
-              <div className="w-10 h-10 bg-gradient-to-r from-primary to-accent rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-200">
-                <Heart className="w-5 h-5 text-white" />
-              </div>
+              <motion.div
+                whileHover={{ scale: 1.05, rotate: 5 }}
+                className="w-10 h-10 bg-gradient-to-br from-primary to-primary-dark rounded-2xl flex items-center justify-center shadow-lg"
+              >
+                <Heart className="w-5 h-5 text-primary-foreground" />
+              </motion.div>
               <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                  MentiBot
+                <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary-dark bg-clip-text text-transparent">
+                  MediCare
                 </h1>
-                <p className="text-xs text-muted-foreground">Mental Health Companion</p>
+                <p className="text-xs text-muted-foreground">Health Companion</p>
               </div>
             </Link>
 
-            <Button
-              onClick={() => navigate("/")}
-              variant="ghost"
-              className="flex items-center gap-2 hover:bg-primary/10"
-            >
+            <Button onClick={() => navigate("/")} variant="ghost" className="gap-2">
               <ArrowLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">Back to Home</span>
+              <span className="hidden sm:inline">Home</span>
             </Button>
           </div>
         </div>
       </header>
 
+      {/* Main Content */}
       <main className="flex-1 container mx-auto px-4 py-8 flex items-center justify-center">
         <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-12 items-center">
-          <div className="space-y-8 text-center lg:text-left">
+          {/* Left Side - Hero */}
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6 }}
+            className="space-y-8 text-center lg:text-left"
+          >
             <div className="space-y-4">
-              <Badge variant="secondary" className="inline-flex items-center gap-2 px-4 py-2">
+              <Badge className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary border-primary/20">
                 <Sparkles className="w-4 h-4" />
-                Your Mental Health Journey Starts Here
+                Your Health Journey Starts Here
               </Badge>
-              <h1 className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent leading-tight">
-                Welcome to Your Safe Space
+              
+              <h1 className="text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight">
+                <span className="bg-gradient-to-r from-foreground via-primary to-primary-dark bg-clip-text text-transparent">
+                  Welcome to
+                </span>
+                <br />
+                <span className="bg-gradient-to-r from-primary via-primary-dark to-success bg-clip-text text-transparent">
+                  Modern Healthcare
+                </span>
               </h1>
+              
               <p className="text-lg text-muted-foreground max-w-md mx-auto lg:mx-0">
-                Track, understand, and improve your mental health with AI-powered insights.
+                Connect with doctors, track your vitals, and take control of your health with AI-powered insights.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-4">
+            <div className="space-y-3">
               {features.map((feature, index) => (
-                <div
+                <motion.div
                   key={index}
-                  className="flex items-center gap-3 p-4 rounded-xl bg-card/50 backdrop-blur-sm border border-border/50 hover:bg-card/80 transition-colors duration-200"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 + index * 0.1 }}
+                  className="flex items-center gap-4 p-4 rounded-xl bg-card/60 backdrop-blur-sm border border-border/50 hover:border-primary/30 transition-all duration-300"
                 >
-                  <div className="w-10 h-10 bg-gradient-to-r from-primary/20 to-accent/20 rounded-lg flex items-center justify-center">
-                    <feature.icon className="w-5 h-5 text-primary" />
+                  <div className={`w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center ${feature.color}`}>
+                    <feature.icon className="w-5 h-5" />
                   </div>
                   <span className="font-medium text-foreground">{feature.text}</span>
-                </div>
+                </motion.div>
               ))}
             </div>
-          </div>
+          </motion.div>
 
-          <div className="w-full max-w-md mx-auto">
-            <Card className="shadow-xl border-border/50 bg-card/80 backdrop-blur-lg">
-              <CardHeader className="text-center space-y-4 pb-6">
-                <div className="w-16 h-16 bg-gradient-to-r from-primary to-accent rounded-2xl flex items-center justify-center mx-auto shadow-lg">
-                  <Heart className="w-8 h-8 text-white" />
-                </div>
+          {/* Right Side - Auth Card */}
+          <motion.div
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="w-full max-w-md mx-auto"
+          >
+            <Card className="shadow-2xl border-border/50 bg-card/90 backdrop-blur-xl overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none" />
+              
+              <CardHeader className="text-center space-y-4 pb-2 relative">
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  className="w-16 h-16 bg-gradient-to-br from-primary to-primary-dark rounded-2xl flex items-center justify-center mx-auto shadow-lg"
+                >
+                  <Heart className="w-8 h-8 text-primary-foreground" />
+                </motion.div>
               </CardHeader>
 
-              <CardContent className="px-6 pb-6">
-                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "signin" | "signup" | "magiclink")} className="w-full">
-                  <TabsList className="grid w-full grid-cols-3 mb-6">
-                    <TabsTrigger value="signin" className="text-xs sm:text-sm">
+              <CardContent className="px-6 pb-6 relative">
+                <Tabs
+                  value={activeTab}
+                  onValueChange={(v) => setActiveTab(v as typeof activeTab)}
+                  className="w-full"
+                >
+                  <TabsList className="grid w-full grid-cols-3 mb-6 bg-muted/50">
+                    <TabsTrigger value="signin" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                       Sign In
                     </TabsTrigger>
-                    <TabsTrigger value="signup" className="text-xs sm:text-sm">
+                    <TabsTrigger value="signup" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                       Sign Up
                     </TabsTrigger>
-                    <TabsTrigger value="magiclink" className="text-xs sm:text-sm">
-                      Magic Link
+                    <TabsTrigger value="magiclink" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                      Magic
                     </TabsTrigger>
                   </TabsList>
 
-                  <TabsContent value="signin" className="space-y-4">
-                    <div className="text-center mb-6">
-                      <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
-                      <CardDescription className="mt-2">
-                        Sign in to continue your mental health journey
-                      </CardDescription>
-                    </div>
-
-                    <form onSubmit={handleSignIn} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="signin-email" className="flex items-center gap-2 text-sm font-medium">
-                          <Mail className="w-4 h-4" />
-                          Email Address
-                        </Label>
-                        <Input
-                          id="signin-email"
-                          type="email"
-                          placeholder="Enter your email"
-                          value={signInData.email}
-                          onChange={(e) => setSignInData((p) => ({ ...p, email: e.target.value }))}
-                          required
-                          className="h-11"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="signin-password" className="flex items-center gap-2 text-sm font-medium">
-                          <Lock className="w-4 h-4" />
-                          Password
-                        </Label>
-                        <div className="relative">
-                          <Input
-                            id="signin-password"
-                            type={showSignInPassword ? "text" : "password"}
-                            placeholder="Enter your password"
-                            value={signInData.password}
-                            onChange={(e) => setSignInData((p) => ({ ...p, password: e.target.value }))}
-                            required
-                            className="h-11 pr-10"
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                            onClick={() => setShowSignInPassword((s) => !s)}
-                            aria-pressed={showSignInPassword}
-                            aria-label={showSignInPassword ? "Hide password" : "Show password"}
-                          >
-                            {showSignInPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
-                        </div>
-                      </div>
-
-                      <Button type="submit" className="w-full h-11" disabled={loading}>
-                        {loading ? "Signing in..." : "Sign In"}
-                      </Button>
-
-                      <div className="relative my-6">
-                        <div className="absolute inset-0 flex items-center">
-                          <span className="w-full border-t border-border" />
-                        </div>
-                        <div className="relative flex justify-center text-xs uppercase">
-                          <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
-                        </div>
-                      </div>
-
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full h-11"
-                        onClick={handleGoogleSignIn}
-                        disabled={loading}
+                  <AnimatePresence mode="wait">
+                    {/* Sign In Tab */}
+                    <TabsContent value="signin" className="space-y-4">
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
                       >
-                        <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
-                          <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                          <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                          <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                          <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                        </svg>
-                        Sign in with Google
-                      </Button>
-
-                      <div className="text-center mt-4">
-                        <Dialog open={resetPasswordOpen} onOpenChange={setResetPasswordOpen}>
-                          <DialogTrigger asChild>
-                            <Button variant="link" className="text-sm text-primary">
-                              Forgot password?
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Reset Password</DialogTitle>
-                              <DialogDescription>
-                                Enter your email address and we'll send you a link to reset your password.
-                              </DialogDescription>
-                            </DialogHeader>
-                            <form onSubmit={handleResetPassword} className="space-y-4">
-                              <div className="space-y-2">
-                                <Label htmlFor="reset-email">Email Address</Label>
-                                <Input
-                                  id="reset-email"
-                                  type="email"
-                                  placeholder="Enter your email"
-                                  value={resetEmail}
-                                  onChange={(e) => setResetEmail(e.target.value)}
-                                  required
-                                />
-                              </div>
-                              <Button type="submit" className="w-full" disabled={loading}>
-                                {loading ? "Sending..." : "Send Reset Link"}
-                              </Button>
-                            </form>
-                          </DialogContent>
-                        </Dialog>
-                      </div>
-                    </form>
-                  </TabsContent>
-
-                  <TabsContent value="signup" className="space-y-4">
-                    <div className="text-center mb-6">
-                      <CardTitle className="text-2xl font-bold">Create Account</CardTitle>
-                      <CardDescription className="mt-2">
-                        Join MedDoctorHub and start your wellness journey
-                      </CardDescription>
-                    </div>
-
-                    <form onSubmit={handleSignUp} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="signup-name" className="flex items-center gap-2 text-sm font-medium">
-                          <User className="w-4 h-4" />
-                          Full Name
-                        </Label>
-                        <Input
-                          id="signup-name"
-                          type="text"
-                          placeholder="Enter your full name"
-                          value={signUpData.name}
-                          onChange={(e) => setSignUpData((p) => ({ ...p, name: e.target.value }))}
-                          required
-                          className="h-11"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="signup-email" className="flex items-center gap-2 text-sm font-medium">
-                          <Mail className="w-4 h-4" />
-                          Email Address
-                        </Label>
-                        <Input
-                          id="signup-email"
-                          type="email"
-                          placeholder="Enter your email"
-                          value={signUpData.email}
-                          onChange={(e) => setSignUpData((p) => ({ ...p, email: e.target.value }))}
-                          required
-                          className="h-11"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="signup-password" className="flex items-center gap-2 text-sm font-medium">
-                          <Lock className="w-4 h-4" />
-                          Password
-                        </Label>
-                        <div className="relative">
-                          <Input
-                            id="signup-password"
-                            type={showSignUpPassword ? "text" : "password"}
-                            placeholder={`Create a strong password (min. ${PASSWORD_MIN_LENGTH} chars, mixed case, number, symbol)`}
-                            value={signUpData.password}
-                            onChange={(e) => setSignUpData((p) => ({ ...p, password: e.target.value }))}
-                            required
-                            minLength={PASSWORD_MIN_LENGTH}
-                            className="h-11 pr-10"
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                            onClick={() => setShowSignUpPassword((s) => !s)}
-                            aria-pressed={showSignUpPassword}
-                            aria-label={showSignUpPassword ? "Hide password" : "Show password"}
-                          >
-                            {showSignUpPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
+                        <div className="text-center mb-6">
+                          <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
+                          <CardDescription className="mt-1">Sign in to your account</CardDescription>
                         </div>
-                      </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="signup-confirm" className="flex items-center gap-2 text-sm font-medium">
-                          <CheckCircle className="w-4 h-4" />
-                          Confirm Password
-                        </Label>
-                        <div className="relative">
-                          <Input
-                            id="signup-confirm"
-                            type={showSignUpConfirm ? "text" : "password"}
-                            placeholder="Confirm your password"
-                            value={signUpData.confirmPassword}
-                            onChange={(e) => setSignUpData((p) => ({ ...p, confirmPassword: e.target.value }))}
-                            required
-                            className="h-11 pr-10"
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                            onClick={() => setShowSignUpConfirm((s) => !s)}
-                            aria-pressed={showSignUpConfirm}
-                            aria-label={showSignUpConfirm ? "Hide confirm password" : "Show confirm password"}
-                          >
-                            {showSignUpConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
-                        </div>
-                      </div>
-
-                      <Button type="submit" className="w-full h-11" disabled={loading}>
-                        {loading ? "Creating Account..." : "Create Account"}
-                      </Button>
-
-                      <div className="relative my-6">
-                        <div className="absolute inset-0 flex items-center">
-                          <span className="w-full border-t border-border" />
-                        </div>
-                        <div className="relative flex justify-center text-xs uppercase">
-                          <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
-                        </div>
-                      </div>
-
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full h-11"
-                        onClick={handleGoogleSignIn}
-                        disabled={loading}
-                      >
-                        <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
-                          <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                          <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                          <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                          <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                        </svg>
-                        Sign up with Google
-                      </Button>
-                    </form>
-                  </TabsContent>
-
-                  <TabsContent value="magiclink" className="space-y-4">
-                    <div className="text-center mb-6">
-                      <CardTitle className="text-2xl font-bold flex items-center justify-center gap-2">
-                        <Wand2 className="w-6 h-6 text-primary" />
-                        Passwordless Sign In
-                      </CardTitle>
-                      <CardDescription className="mt-2">
-                        We'll send you a magic link to sign in without a password
-                      </CardDescription>
-                    </div>
-
-                    <form onSubmit={handleMagicLink} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="magic-email" className="flex items-center gap-2 text-sm font-medium">
-                          <Mail className="w-4 h-4" />
-                          Email Address
-                        </Label>
-                        <Input
-                          id="magic-email"
-                          type="email"
-                          placeholder="Enter your email"
-                          value={magicLinkEmail}
-                          onChange={(e) => setMagicLinkEmail(e.target.value)}
-                          required
-                          className="h-11"
-                        />
-                      </div>
-
-                      <Button type="submit" className="w-full h-11" disabled={loading}>
-                        <Wand2 className="w-4 h-4 mr-2" />
-                        {loading ? "Sending magic link..." : "Send Magic Link"}
-                      </Button>
-
-                      <div className="relative my-6">
-                        <div className="absolute inset-0 flex items-center">
-                          <span className="w-full border-t border-border" />
-                        </div>
-                        <div className="relative flex justify-center text-xs uppercase">
-                          <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
-                        </div>
-                      </div>
-
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full h-11"
-                        onClick={handleGoogleSignIn}
-                        disabled={loading}
-                      >
-                        <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
-                          <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                          <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                          <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                          <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                        </svg>
-                        Sign in with Google
-                      </Button>
-
-                      <div className="mt-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
-                        <div className="flex gap-3">
-                          <KeyRound className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                          <div className="space-y-1">
-                            <p className="text-sm font-medium text-foreground">How Magic Links Work</p>
-                            <p className="text-xs text-muted-foreground">
-                              Enter your email and we'll send you a secure link. Click it to instantly sign in—no password needed!
-                            </p>
+                        <form onSubmit={handleSignIn} className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="signin-email" className="flex items-center gap-2">
+                              <Mail className="w-4 h-4 text-muted-foreground" />
+                              Email
+                            </Label>
+                            <Input
+                              id="signin-email"
+                              type="email"
+                              placeholder="you@example.com"
+                              value={signInData.email}
+                              onChange={(e) => setSignInData((p) => ({ ...p, email: e.target.value }))}
+                              required
+                              className="h-11 bg-background/50"
+                            />
                           </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="signin-password" className="flex items-center gap-2">
+                              <Lock className="w-4 h-4 text-muted-foreground" />
+                              Password
+                            </Label>
+                            <div className="relative">
+                              <Input
+                                id="signin-password"
+                                type={showSignInPassword ? "text" : "password"}
+                                placeholder="••••••••"
+                                value={signInData.password}
+                                onChange={(e) => setSignInData((p) => ({ ...p, password: e.target.value }))}
+                                required
+                                className="h-11 pr-10 bg-background/50"
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                                onClick={() => setShowSignInPassword(!showSignInPassword)}
+                              >
+                                {showSignInPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              </Button>
+                            </div>
+                          </div>
+
+                          <Button type="submit" className="w-full h-11 bg-gradient-to-r from-primary to-primary-dark hover:opacity-90" disabled={loading}>
+                            {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                            {loading ? "Signing in..." : "Sign In"}
+                          </Button>
+
+                          <div className="relative my-4">
+                            <div className="absolute inset-0 flex items-center">
+                              <span className="w-full border-t border-border" />
+                            </div>
+                            <div className="relative flex justify-center text-xs">
+                              <span className="bg-card px-2 text-muted-foreground">or</span>
+                            </div>
+                          </div>
+
+                          <Button type="button" variant="outline" className="w-full h-11" onClick={handleGoogleSignIn} disabled={loading}>
+                            <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+                              <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                              <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                              <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                              <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                            </svg>
+                            Continue with Google
+                          </Button>
+
+                          <div className="text-center">
+                            <Dialog open={resetPasswordOpen} onOpenChange={setResetPasswordOpen}>
+                              <DialogTrigger asChild>
+                                <Button variant="link" className="text-sm text-primary p-0 h-auto">
+                                  Forgot password?
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="bg-card">
+                                <DialogHeader>
+                                  <DialogTitle>Reset Password</DialogTitle>
+                                  <DialogDescription>
+                                    Enter your email and we'll send you a reset link.
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <form onSubmit={handleResetPassword} className="space-y-4">
+                                  <Input
+                                    type="email"
+                                    placeholder="Enter your email"
+                                    value={resetEmail}
+                                    onChange={(e) => setResetEmail(e.target.value)}
+                                    required
+                                  />
+                                  <Button type="submit" className="w-full" disabled={loading}>
+                                    {loading ? "Sending..." : "Send Reset Link"}
+                                  </Button>
+                                </form>
+                              </DialogContent>
+                            </Dialog>
+                          </div>
+                        </form>
+                      </motion.div>
+                    </TabsContent>
+
+                    {/* Sign Up Tab */}
+                    <TabsContent value="signup" className="space-y-4">
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                      >
+                        <div className="text-center mb-6">
+                          <CardTitle className="text-2xl font-bold">Create Account</CardTitle>
+                          <CardDescription className="mt-1">Join our healthcare community</CardDescription>
                         </div>
-                      </div>
-                    </form>
-                  </TabsContent>
+
+                        <form onSubmit={handleSignUp} className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="signup-name" className="flex items-center gap-2">
+                              <User className="w-4 h-4 text-muted-foreground" />
+                              Full Name
+                            </Label>
+                            <Input
+                              id="signup-name"
+                              type="text"
+                              placeholder="John Doe"
+                              value={signUpData.name}
+                              onChange={(e) => setSignUpData((p) => ({ ...p, name: e.target.value }))}
+                              required
+                              className="h-11 bg-background/50"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="signup-email" className="flex items-center gap-2">
+                              <Mail className="w-4 h-4 text-muted-foreground" />
+                              Email
+                            </Label>
+                            <Input
+                              id="signup-email"
+                              type="email"
+                              placeholder="you@example.com"
+                              value={signUpData.email}
+                              onChange={(e) => setSignUpData((p) => ({ ...p, email: e.target.value }))}
+                              required
+                              className="h-11 bg-background/50"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="signup-password" className="flex items-center gap-2">
+                              <Lock className="w-4 h-4 text-muted-foreground" />
+                              Password
+                            </Label>
+                            <div className="relative">
+                              <Input
+                                id="signup-password"
+                                type={showSignUpPassword ? "text" : "password"}
+                                placeholder="Min 8 chars, mixed case, number, symbol"
+                                value={signUpData.password}
+                                onChange={(e) => setSignUpData((p) => ({ ...p, password: e.target.value }))}
+                                required
+                                className="h-11 pr-10 bg-background/50"
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                                onClick={() => setShowSignUpPassword(!showSignUpPassword)}
+                              >
+                                {showSignUpPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              </Button>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="signup-confirm" className="flex items-center gap-2">
+                              <CheckCircle className="w-4 h-4 text-muted-foreground" />
+                              Confirm Password
+                            </Label>
+                            <div className="relative">
+                              <Input
+                                id="signup-confirm"
+                                type={showSignUpConfirm ? "text" : "password"}
+                                placeholder="Confirm password"
+                                value={signUpData.confirmPassword}
+                                onChange={(e) => setSignUpData((p) => ({ ...p, confirmPassword: e.target.value }))}
+                                required
+                                className="h-11 pr-10 bg-background/50"
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                                onClick={() => setShowSignUpConfirm(!showSignUpConfirm)}
+                              >
+                                {showSignUpConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              </Button>
+                            </div>
+                          </div>
+
+                          <Button type="submit" className="w-full h-11 bg-gradient-to-r from-primary to-primary-dark hover:opacity-90" disabled={loading}>
+                            {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                            {loading ? "Creating..." : "Create Account"}
+                          </Button>
+
+                          <div className="relative my-4">
+                            <div className="absolute inset-0 flex items-center">
+                              <span className="w-full border-t border-border" />
+                            </div>
+                            <div className="relative flex justify-center text-xs">
+                              <span className="bg-card px-2 text-muted-foreground">or</span>
+                            </div>
+                          </div>
+
+                          <Button type="button" variant="outline" className="w-full h-11" onClick={handleGoogleSignIn} disabled={loading}>
+                            <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+                              <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                              <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                              <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                              <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                            </svg>
+                            Continue with Google
+                          </Button>
+                        </form>
+                      </motion.div>
+                    </TabsContent>
+
+                    {/* Magic Link Tab */}
+                    <TabsContent value="magiclink" className="space-y-4">
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                      >
+                        <div className="text-center mb-6">
+                          <CardTitle className="text-2xl font-bold flex items-center justify-center gap-2">
+                            <Wand2 className="w-6 h-6 text-primary" />
+                            Passwordless
+                          </CardTitle>
+                          <CardDescription className="mt-1">Sign in with a magic link</CardDescription>
+                        </div>
+
+                        <form onSubmit={handleMagicLink} className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="magic-email" className="flex items-center gap-2">
+                              <Mail className="w-4 h-4 text-muted-foreground" />
+                              Email
+                            </Label>
+                            <Input
+                              id="magic-email"
+                              type="email"
+                              placeholder="you@example.com"
+                              value={magicLinkEmail}
+                              onChange={(e) => setMagicLinkEmail(e.target.value)}
+                              required
+                              className="h-11 bg-background/50"
+                            />
+                          </div>
+
+                          <Button type="submit" className="w-full h-11 bg-gradient-to-r from-primary to-primary-dark hover:opacity-90" disabled={loading}>
+                            <Wand2 className="w-4 h-4 mr-2" />
+                            {loading ? "Sending..." : "Send Magic Link"}
+                          </Button>
+
+                          <div className="p-4 bg-primary/5 rounded-xl border border-primary/20 mt-4">
+                            <div className="flex gap-3">
+                              <KeyRound className="w-5 h-5 text-primary flex-shrink-0" />
+                              <div>
+                                <p className="text-sm font-medium">How it works</p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  We'll email you a secure link. Click it to sign in instantly—no password needed!
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </form>
+                      </motion.div>
+                    </TabsContent>
+                  </AnimatePresence>
                 </Tabs>
               </CardContent>
             </Card>
-          </div>
+          </motion.div>
         </div>
       </main>
+
+      {/* Footer */}
+      <footer className="py-4 text-center text-sm text-muted-foreground border-t border-border/50">
+        <p>© 2024 MediCare. Your health, our priority.</p>
+      </footer>
     </div>
   );
 };

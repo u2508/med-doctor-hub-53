@@ -151,6 +151,14 @@ const AppContent = () => {
     // The actual user will be set by onAuthStateChange, this is just for UI updates
   };
 
+  const handleSetUserType = (type: Role | "user" | "unknown") => {
+    if (type === "user") {
+      setRole("patient");
+    } else if (type !== "unknown") {
+      setRole(type as Role);
+    }
+  };
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -188,10 +196,6 @@ const AppContent = () => {
             {/* Authentication Routes */}
             <Route path="/user-signin" element={<UserSignIn setUser={handleSetUser} setUserType={handleSetUserType} />} />
             <Route path="/doctor-registration" element={<DoctorRegistration setUser={handleSetUser} setUserType={handleSetUserType} />} />
-            
-            {/* Dashboard Routes */}
-            <Route path="/user-signin" element={<UserSignIn />} />
-            <Route path="/doctor-registration" element={<DoctorRegistration />} />
 
             <Route path="/admin-dashboard" element={<AdminDashboard />} />
             <Route path="/doctor-dashboard" element={<DoctorDashboard />} />

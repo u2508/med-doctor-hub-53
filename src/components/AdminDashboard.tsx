@@ -16,10 +16,8 @@ import {
   Eye,
   Check,
   X,
-  LayoutDashboard,
-  Stethoscope,
   UserCircle,
-  ChevronDown
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,11 +27,11 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import AdminRoleSwitcher from "@/components/admin/AdminRoleSwitcher";
 
 interface DoctorProfile {
   id: string;
@@ -376,57 +374,23 @@ const AdminDashboard: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <Badge variant="outline" className="hidden sm:flex items-center gap-1.5 px-3 py-1">
                 <UserCircle className="w-3.5 h-3.5" />
                 Admin
               </Badge>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="flex items-center gap-2">
-                    <LayoutDashboard className="w-4 h-4" />
-                    <span className="hidden sm:inline">Switch Dashboard</span>
-                    <ChevronDown className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>Dashboards</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    onClick={() => navigate('/admin-dashboard')}
-                    className="flex items-center gap-2 bg-primary/10"
-                  >
-                    <UserCircle className="w-4 h-4 text-primary" />
-                    <span className="font-medium">Admin Dashboard</span>
-                    <Check className="w-4 h-4 ml-auto text-primary" />
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => navigate('/user-dashboard')}
-                    className="flex items-center gap-2"
-                  >
-                    <User className="w-4 h-4" />
-                    <span>Patient Dashboard</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => navigate('/doctor-dashboard')}
-                    className="flex items-center gap-2"
-                  >
-                    <Stethoscope className="w-4 h-4" />
-                    <span>Doctor Dashboard</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    onClick={async () => {
-                      await supabase.auth.signOut();
-                      navigate('/');
-                    }}
-                    className="flex items-center gap-2 text-destructive focus:text-destructive"
-                  >
-                    <X className="w-4 h-4" />
-                    <span>Sign Out</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <AdminRoleSwitcher />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={async () => {
+                  await supabase.auth.signOut();
+                  navigate('/');
+                }}
+                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              >
+                <LogOut className="w-4 h-4" />
+              </Button>
             </div>
           </div>
         </div>
