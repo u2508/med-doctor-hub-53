@@ -100,7 +100,7 @@ const DoctorDashboard = () => {
       if (profileError) throw profileError;
       
       // Verify doctor role
-      if (profileData.role !== 'doctor') {
+      if (profileData.role == 'patient') {
         toast({
           title: 'Access Denied',
           description: 'This dashboard is for doctors only.',
