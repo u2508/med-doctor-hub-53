@@ -146,6 +146,11 @@ const AppContent = () => {
     setRole(resolvedRole);
   };
 
+  // Wrapper to accept UserPayload from signin components
+  const handleSetUser = (userPayload: { name: string; email?: string | null }) => {
+    // The actual user will be set by onAuthStateChange, this is just for UI updates
+  };
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -179,6 +184,12 @@ const AppContent = () => {
             <Route path="/doctor-portal" element={<Index />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            
+            {/* Authentication Routes */}
+            <Route path="/user-signin" element={<UserSignIn setUser={handleSetUser} setUserType={handleSetUserType} />} />
+            <Route path="/doctor-registration" element={<DoctorRegistration setUser={handleSetUser} setUserType={handleSetUserType} />} />
+            
+            {/* Dashboard Routes */}
             <Route path="/user-signin" element={<UserSignIn />} />
             <Route path="/doctor-registration" element={<DoctorRegistration />} />
 

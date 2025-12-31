@@ -485,7 +485,7 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
               </CardHeader>
 
               <CardContent className="px-6 pb-6">
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "signin" | "signup" | "magiclink")} className="w-full">
                   <TabsList className="grid w-full grid-cols-3 mb-6">
                     <TabsTrigger value="signin" className="text-xs sm:text-sm">
                       Sign In
