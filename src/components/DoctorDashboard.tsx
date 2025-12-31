@@ -393,43 +393,68 @@ const DoctorDashboard = () => {
                 <History className="w-4 h-4" />
                 <span className="hidden sm:inline">History</span>
               </Button>
-              
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="gap-2">
-                    <LayoutDashboard className="w-4 h-4" />
-                    <span className="hidden sm:inline">Switch</span>
-                    <ChevronDown className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>Dashboards</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    onClick={() => navigate('/doctor-dashboard')}
-                    className="flex items-center gap-2 bg-primary/10"
-                  >
-                    <Stethoscope className="w-4 h-4 text-primary" />
-                    <span className="font-medium">Doctor Dashboard</span>
-                    <CheckCircle2 className="w-4 h-4 ml-auto text-primary" />
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => navigate('/user-dashboard')}
-                    className="flex items-center gap-2"
-                  >
-                    <User className="w-4 h-4" />
-                    <span>Patient Dashboard</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    onClick={handleSignOut}
-                    className="flex items-center gap-2 text-destructive focus:text-destructive"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    <span>Sign Out</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="flex items-center gap-2 p-2">
+                  <Avatar className="h-10 w-10 border-2 border-primary/20">
+                    <AvatarFallback className="bg-gradient-primary text-primary-foreground font-semibold">
+                      {profile?.full_name
+                        ? profile.full_name.split(" ").map(n => n[0]).join("")
+                        : "D"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                </Button>
+              </DropdownMenuTrigger>
+
+              <DropdownMenuContent align="end" className="w-56">
+                <div className="px-3 py-2">
+                  <div className="flex items-center justify-between">
+                    <p className="font-medium text-foreground">{profile?.full_name}</p>
+                    <Badge variant="secondary" className="text-xs">
+                      Doctor
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground truncate">
+                    {profile?.email}
+                  </p>
+                </div>
+
+                <DropdownMenuSeparator />
+
+                {/* ADMIN ONLY OPTION – the money maker */}
+                {profile?.role === "admin" && (
+                  <>
+                    <DropdownMenuItem
+                      onClick={() => navigate("/admin-dashboard")}
+                      className="cursor-pointer"
+                    >
+                      <LayoutDashboard className="w-4 h-4 mr-2" />
+                      Admin Dashboard
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
+
+                <DropdownMenuItem
+                  onClick={() => navigate("/doctor-profile")}
+                  className="cursor-pointer"
+                >
+                  <User className="w-4 h-4 mr-2" />
+                  My Profile
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+
+                <DropdownMenuItem
+                  onClick={handleSignOut}
+                  className="cursor-pointer text-destructive focus:text-destructive"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             </div>
           </div>
         </div>
