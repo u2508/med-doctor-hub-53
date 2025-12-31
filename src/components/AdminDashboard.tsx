@@ -103,8 +103,14 @@ const AdminDashboard: React.FC = () => {
           .select('role')
           .eq('user_id', session.user.id)
           .single();
-
-        if (profile?.role !== 'admin') {
+        const { data: userRoleData, error: userRoleError } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', session.user.id)
+          .maybeSingle();
+        if (userRoleError) console.warn("UserRoles fetch error:", userRoleError);
+        const isAdmin = (profile?.role === 'admin') || (userRoleData?.role === 'admin');
+        if (!isAdmin) {
           toast({
             title: 'Access Denied',
             description: 'This dashboard is for administrators only.',

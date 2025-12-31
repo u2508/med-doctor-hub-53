@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   Eye,
@@ -38,7 +38,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { Session, User as SupabaseUser } from "@supabase/supabase-js";
 
-type Role = "admin" | "doctor" | "user";
+// Role definitions aligned with DB values
+type Role = "admin" | "doctor" | "user" | "patient";
 
 interface UserPayload {
   name: string;
@@ -47,24 +48,24 @@ interface UserPayload {
 
 interface UserSignInProps {
   setUser: (user: UserPayload) => void;
-  setUserType: (type: Role) => void;
+  setUserType: (type: Role | "unknown") => void;
 }
 
 const PASSWORD_MIN_LENGTH = 8; // single source of truth
 
+const AUTH_REDIRECT = `${window.location.origin}`;
+
 const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
-  const [activeTab, setActiveTab] = useState<"signin" | "signup" | "magiclink">(
-    "signin"
-  );
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [activeTab, setActiveTab] = useState<"signin" | "signup" | "magiclink">("signin");
+  const [showSignInPassword, setShowSignInPassword] = useState(false);
+  const [showSignUpPassword, setShowSignUpPassword] = useState(false);
+  const [showSignUpConfirm, setShowSignUpConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [user, setUserState] = useState<SupabaseUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [magicLinkEmail, setMagicLinkEmail] = useState("");
-  const [isRedirecting, setIsRedirecting] = useState(false);
 
   const [signInData, setSignInData] = useState({
     email: "",
@@ -81,25 +82,25 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // redirect lock to avoid double redirects
+  const redirectLock = useRef(false);
+
   // Helper: determine role & redirect safely
   const handleAuthRedirect = useCallback(
     async (sessionUser: SupabaseUser | null) => {
       if (!sessionUser) return;
-      if (isRedirecting) return;
-      setIsRedirecting(true);
+      if (redirectLock.current) return;
+      redirectLock.current = true;
 
       try {
         const userId = sessionUser.id;
         const userEmail = sessionUser.email ?? null;
-        const userMetadata = sessionUser.user_metadata ?? {};
+        const userMetadata = (sessionUser.user_metadata as any) ?? {};
 
         // Fetch profile safely (maybeSingle avoids throw on empty)
-        const {
-          data: profile,
-          error: profileError,
-        } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from("profiles")
-          .select("role, full_name")
+          .select("full_name, role")
           .eq("user_id", userId)
           .maybeSingle();
 
@@ -113,57 +114,82 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
           email: userEmail,
         });
 
-        const userRole: Role | undefined = profile?.role as Role | undefined;
-
-        // Handle role-based redirect
-        if (userRole === "admin") {
-          setUserType("admin");
-          navigate("/admin-dashboard", { replace: true });
-          return;
-        }
-
-        if (userRole === "doctor") {
-          setUserType("doctor");
-          navigate("/doctor-dashboard", { replace: true });
-          return;
-        }
-
-        // default => patient/user flow
-        setUserType("user");
-
-        const {
-          data: patientData,
-          error: patientError,
-        } = await supabase
-          .from("patients")
-          .select("id")
+        // Fetch the user’s role from the user_roles table (authoritative source)
+        const { data: userRoleData, error: userRoleError } = await supabase
+          .from("user_roles")
+          .select("role")
           .eq("user_id", userId)
           .maybeSingle();
+        if (userRoleError) console.warn("UserRoles fetch error:", userRoleError);
+        const userRoleFromTable = userRoleData?.role;
+        const resolvedRole = (() => {
+          if (typeof userRoleFromTable === "string") return userRoleFromTable as Role;
+          if (typeof profile?.role === "string") return profile.role as Role;
+          if (typeof userMetadata?.role === "string") return userMetadata.role as Role;
+          return "user";
+        })();
 
-        if (patientError) {
-          console.warn("Patient lookup error:", patientError);
-        }
+        console.log("Determined user role:", resolvedRole);
+        // Handle role-based redirect
+        switch (resolvedRole) {
+          case "admin":
+            setUserType("admin");
+            navigate("/admin-dashboard", { replace: true });
+            break;
+          case "doctor":
+            setUserType("doctor");
+            navigate("/doctor-dashboard", { replace: true });
+            break;
+          case "user":
+          case "patient":
+            setUserType("user");
 
-        if (!patientData) {
-          navigate("/patient-onboarding", { replace: true });
-        } else {
-          navigate("/user-dashboard", { replace: true });
+            // attempt patient lookup; if not present send to onboarding
+            try {
+              const { data: patientData, error: patientError } = await supabase
+                .from("patients")
+                .select("id")
+                .eq("user_id", userId)
+                .maybeSingle();
+
+              if (patientError) {
+                console.warn("Patient lookup error:", patientError);
+              }
+
+              if (!patientData) {
+                navigate("/patient-onboarding", { replace: true });
+              } else {
+                navigate("/user-dashboard", { replace: true });
+              }
+            } catch (e) {
+              console.warn("Patient lookup failed", e);
+              navigate("/user-dashboard", { replace: true });
+            }
+            break;
+          default:
+            // unknown role - fallback
+            console.warn("Unknown user role:", userRole);
+            setUserType("unknown");
+            navigate("/", { replace: true });
+            break;
         }
       } catch (err) {
         console.error("Redirect handler failed:", err);
-        // fallback: send to root
         navigate("/", { replace: true });
       } finally {
-        // allow future redirects only when new session arrives
-        setIsRedirecting(false);
+        // release lock after a short tick so any immediate duplicate won't re-run
+        setTimeout(() => {
+          redirectLock.current = false;
+        }, 500);
       }
     },
-    [isRedirecting, navigate, setUser, setUserType]
+    [navigate, setUser, setUserType]
   );
 
   // Auth state listener + initial session fetch
   useEffect(() => {
     let mounted = true;
+
     const init = async () => {
       try {
         const { data } = await supabase.auth.getSession();
@@ -171,8 +197,9 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
         const s = data.session ?? null;
         setSession(s);
         setUserState(s?.user ?? null);
-        if (s?.user) {
-          // no setTimeout dance — do direct redirect
+
+        // hydrate state but redirect only if session exists and no lock
+        if (s?.user && !redirectLock.current) {
           handleAuthRedirect(s.user);
         }
       } catch (err) {
@@ -188,6 +215,8 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
       if (!mounted) return;
       setSession(s);
       setUserState(s?.user ?? null);
+
+      // Only redirect on explicit auth change (sign in)
       if (s?.user) {
         handleAuthRedirect(s.user);
       }
@@ -201,9 +230,7 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
         // best-effort unsubscribe
       }
     };
-    // intentionally not including handleAuthRedirect in deps to keep stable (it uses isRedirecting)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigate, setUser, setUserType]);
+  }, [handleAuthRedirect]);
 
   // --- Auth operations ---
 
@@ -215,19 +242,24 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
         email: signInData.email,
         password: signInData.password,
       });
+
       if (error) throw error;
 
+      // keep toasts for explicit user action only
       toast({
         title: "Welcome back!",
         description: "You've successfully signed in.",
       });
 
-      // session listener will redirect
+      // clear sensitive fields
       setSignInData({ email: "", password: "" });
+
+      // redirect will be handled by onAuthStateChange
     } catch (error: any) {
+      const errorMessage = error?.message || "Please check your credentials and try again.";
       toast({
         title: "Sign In Failed",
-        description: error?.message || "Please check your credentials and try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -248,13 +280,11 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
       return;
     }
 
-    const passwordRegex =
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     if (!passwordRegex.test(signUpData.password)) {
       toast({
         title: "Weak Password",
-        description:
-          `Password must be at least ${PASSWORD_MIN_LENGTH} characters including uppercase, lowercase, number and special character.`,
+        description: `Password must be at least ${PASSWORD_MIN_LENGTH} characters including uppercase, lowercase, number and special character.`,
         variant: "destructive",
       });
       return;
@@ -262,22 +292,20 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
 
     setLoading(true);
     try {
-      const redirectUrl = `${window.location.origin}/`;
       const { data, error } = await supabase.auth.signUp({
         email: signUpData.email,
         password: signUpData.password,
         options: {
-          emailRedirectTo: redirectUrl,
+          emailRedirectTo: AUTH_REDIRECT,
           data: {
             full_name: signUpData.name,
-            role: "patient",
+            role: "user", // keep consistent with Role values
           },
         },
       });
 
       if (error) throw error;
 
-      // polite success toast
       toast({
         title: "Account Created",
         description: "Check your email for verification steps.",
@@ -288,9 +316,10 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
       setActiveTab("signin");
       setSignUpData({ name: "", email: "", password: "", confirmPassword: "" });
     } catch (error: any) {
+      const errorMessage = error?.message || "Something went wrong. Try again.";
       toast({
         title: "Sign Up Failed",
-        description: error?.message || "Something went wrong. Try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -316,9 +345,10 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
       });
       setMagicLinkEmail("");
     } catch (error: any) {
+      const errorMessage = error?.message || "Please try again.";
       toast({
         title: "Failed to Send Magic Link",
-        description: error?.message || "Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -332,10 +362,12 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}`,
+          redirectTo: AUTH_REDIRECT,
         },
       });
+
       if (error) throw error;
+
       // OAuth redirect will occur; no immediate toast required
     } catch (error: any) {
       toast({
@@ -364,9 +396,10 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
       setResetPasswordOpen(false);
       setResetEmail("");
     } catch (error: any) {
+      const errorMessage = error?.message || "Please try again.";
       toast({
         title: "Failed to Send Reset Email",
-        description: error?.message || "Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -374,11 +407,14 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
     }
   };
 
-  const features = [
-    { icon: Heart, text: "Mental Health Tracking" },
-    { icon: Shield, text: "Secure & Private" },
-    { icon: Sparkles, text: "AI-Powered Insights" },
-  ];
+  const features = useMemo(
+    () => [
+      { icon: Heart, text: "Mental Health Tracking" },
+      { icon: Shield, text: "Secure & Private" },
+      { icon: Sparkles, text: "AI-Powered Insights" },
+    ],
+    []
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-accent/10 flex flex-col">
@@ -495,7 +531,7 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
                         <div className="relative">
                           <Input
                             id="signin-password"
-                            type={showPassword ? "text" : "password"}
+                            type={showSignInPassword ? "text" : "password"}
                             placeholder="Enter your password"
                             value={signInData.password}
                             onChange={(e) => setSignInData((p) => ({ ...p, password: e.target.value }))}
@@ -507,11 +543,11 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
                             variant="ghost"
                             size="sm"
                             className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                            onClick={() => setShowPassword((s) => !s)}
-                            aria-pressed={showPassword}
-                            aria-label={showPassword ? "Hide password" : "Show password"}
+                            onClick={() => setShowSignInPassword((s) => !s)}
+                            aria-pressed={showSignInPassword}
+                            aria-label={showSignInPassword ? "Hide password" : "Show password"}
                           >
-                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            {showSignInPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                           </Button>
                         </div>
                       </div>
@@ -585,7 +621,7 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
                     <div className="text-center mb-6">
                       <CardTitle className="text-2xl font-bold">Create Account</CardTitle>
                       <CardDescription className="mt-2">
-                        Join MentiBot and start your wellness journey
+                        Join MedDoctorHub and start your wellness journey
                       </CardDescription>
                     </div>
 
@@ -630,7 +666,7 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
                         <div className="relative">
                           <Input
                             id="signup-password"
-                            type={showPassword ? "text" : "password"}
+                            type={showSignUpPassword ? "text" : "password"}
                             placeholder={`Create a strong password (min. ${PASSWORD_MIN_LENGTH} chars, mixed case, number, symbol)`}
                             value={signUpData.password}
                             onChange={(e) => setSignUpData((p) => ({ ...p, password: e.target.value }))}
@@ -643,11 +679,11 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
                             variant="ghost"
                             size="sm"
                             className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                            onClick={() => setShowPassword((s) => !s)}
-                            aria-pressed={showPassword}
-                            aria-label={showPassword ? "Hide password" : "Show password"}
+                            onClick={() => setShowSignUpPassword((s) => !s)}
+                            aria-pressed={showSignUpPassword}
+                            aria-label={showSignUpPassword ? "Hide password" : "Show password"}
                           >
-                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            {showSignUpPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                           </Button>
                         </div>
                       </div>
@@ -660,7 +696,7 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
                         <div className="relative">
                           <Input
                             id="signup-confirm"
-                            type={showConfirmPassword ? "text" : "password"}
+                            type={showSignUpConfirm ? "text" : "password"}
                             placeholder="Confirm your password"
                             value={signUpData.confirmPassword}
                             onChange={(e) => setSignUpData((p) => ({ ...p, confirmPassword: e.target.value }))}
@@ -672,11 +708,11 @@ const UserSignIn: React.FC<UserSignInProps> = ({ setUser, setUserType }) => {
                             variant="ghost"
                             size="sm"
                             className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                            onClick={() => setShowConfirmPassword((s) => !s)}
-                            aria-pressed={showConfirmPassword}
-                            aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                            onClick={() => setShowSignUpConfirm((s) => !s)}
+                            aria-pressed={showSignUpConfirm}
+                            aria-label={showSignUpConfirm ? "Hide confirm password" : "Show confirm password"}
                           >
-                            {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            {showSignUpConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                           </Button>
                         </div>
                       </div>
