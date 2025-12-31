@@ -136,14 +136,21 @@ const AppContent = () => {
   const navigate = useNavigate();
 
   const fetchUserRole = async (userId: string) => {
-    const { data } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .single();
+    try {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .maybeSingle();
 
-    const resolvedRole = (data?.role as Role) || "patient";
-    setRole(resolvedRole);
+      const resolvedRole = (data?.role as Role) || "patient";
+      setRole(resolvedRole);
+    } catch (error) {
+      console.error("Error fetching user role:", error);
+      setRole("patient");
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Wrapper to accept UserPayload from signin components
@@ -160,8 +167,21 @@ const AppContent = () => {
   };
 
   useEffect(() => {
+    // First check existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        fetchUserRole(session.user.id);
+      } else {
+        setLoading(false);
+      }
+    });
+
+    // Then set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
 
@@ -173,10 +193,13 @@ const AppContent = () => {
         }
 
         if (session?.user) {
-          await fetchUserRole(session.user.id);
+          // Defer Supabase calls to avoid deadlock
+          setTimeout(() => {
+            fetchUserRole(session.user.id);
+          }, 0);
+        } else {
+          setLoading(false);
         }
-
-        setLoading(false);
       }
     );
 
