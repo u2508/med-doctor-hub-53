@@ -51,6 +51,7 @@ const DoctorDashboard = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<DoctorProfile | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [doctorDetails, setDoctorDetails] = useState<DoctorDetails | null>(null);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [stats, setStats] = useState({
@@ -90,17 +91,26 @@ const DoctorDashboard = () => {
 
       const user = session.user;
 
-      // Fetch profile and verify role
+      // Fetch profile
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('*')
+        .select('full_name, email, phone')
         .eq('user_id', user.id)
         .single();
 
       if (profileError) throw profileError;
 
-      // Verify doctor role
-      if (profileData.role == 'patient') {
+      // Fetch user role from user_roles table
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      setUserRole(roleData?.role || 'doctor');
+
+      // Verify doctor role using the fetched role from user_roles
+      if (roleData?.role === 'patient') {
         toast({
           title: 'Access Denied',
           description: 'This dashboard is for doctors only.',
@@ -382,7 +392,7 @@ const DoctorDashboard = () => {
             <div className="flex items-center gap-3">
               <Badge variant="outline" className="hidden sm:flex items-center gap-1.5 px-3 py-1">
                 <Stethoscope className="w-3.5 h-3.5" />
-                {profile?.role}
+                {userRole}
               </Badge>
 
               <Button
@@ -412,7 +422,7 @@ const DoctorDashboard = () => {
                     <div className="flex items-center justify-between">
                       <p className="font-medium text-foreground">{profile?.full_name}</p>
                       <Badge variant="secondary" className="text-xs">
-                        {profile?.role}
+                        {userRole}
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground truncate">
@@ -423,7 +433,7 @@ const DoctorDashboard = () => {
                   <DropdownMenuSeparator />
 
                   {/* ADMIN ONLY OPTION – the money maker */}
-                  {profile?.role === "admin" && (
+                  {userRole === "admin" && (
                     <>
                       <DropdownMenuItem
                         onClick={() => navigate("/admin-dashboard")}
