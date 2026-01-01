@@ -62,12 +62,12 @@ const DoctorDashboard = () => {
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [selectedAppointmentStatus, setSelectedAppointmentStatus] = useState<string>('');
   const [editingAppointmentId, setEditingAppointmentId] = useState<string | null>(null);
-  const [appointmentUpdates, setAppointmentUpdates] = useState<{[key: string]: {diagnosis: string, prescription: string}}>({});
+  const [appointmentUpdates, setAppointmentUpdates] = useState<{ [key: string]: { diagnosis: string, prescription: string } }>({});
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
   const [selectedAppointmentForComplete, setSelectedAppointmentForComplete] = useState<Appointment | null>(null);
   const [activeTab, setActiveTab] = useState('appointments');
   const [appointmentView, setAppointmentView] = useState('list');
-  const [selectedPatientForDetail, setSelectedPatientForDetail] = useState<{patientId: string, appointment: Appointment} | null>(null);
+  const [selectedPatientForDetail, setSelectedPatientForDetail] = useState<{ patientId: string, appointment: Appointment } | null>(null);
 
   useEffect(() => {
     fetchDoctorData();
@@ -77,7 +77,7 @@ const DoctorDashboard = () => {
     try {
       // Validate session first
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
+
       if (sessionError || !session) {
         toast({
           title: 'Session Expired',
@@ -98,7 +98,7 @@ const DoctorDashboard = () => {
         .single();
 
       if (profileError) throw profileError;
-      
+
       // Verify doctor role
       if (profileData.role == 'patient') {
         toast({
@@ -109,7 +109,7 @@ const DoctorDashboard = () => {
         navigate('/', { replace: true });
         return;
       }
-      
+
       setProfile(profileData);
 
       // Fetch doctor details
@@ -149,15 +149,15 @@ const DoctorDashboard = () => {
         }));
 
         setAppointments(appointmentsWithProfiles);
-        
+
         // Calculate stats
         const now = new Date();
         const completed = appointmentsData.filter(apt => apt.status === 'completed').length;
-        const upcoming = appointmentsData.filter(apt => 
+        const upcoming = appointmentsData.filter(apt =>
           apt.status === 'scheduled' && new Date(apt.appointment_date) > now
         ).length;
         const cancelled = appointmentsData.filter(apt => apt.status === 'cancelled').length;
-        
+
         setStats({
           total: appointmentsData.length,
           completed,
@@ -204,8 +204,8 @@ const DoctorDashboard = () => {
   }).length;
 
   const pendingAppointments = appointments.filter(apt => apt.status === 'scheduled');
-  
-  const upcomingAppointments = appointments.filter(apt => 
+
+  const upcomingAppointments = appointments.filter(apt =>
     (apt.status === 'confirmed' || apt.status === 'scheduled') && new Date(apt.appointment_date) > new Date()
   );
 
@@ -279,10 +279,10 @@ const DoctorDashboard = () => {
         try {
           const { data: { session } } = await supabase.auth.getSession();
           if (session) {
-            const emailType = updates.diagnosis && updates.prescription 
-              ? 'diagnosis_update' 
+            const emailType = updates.diagnosis && updates.prescription
+              ? 'diagnosis_update'
               : updates.prescription ? 'prescription_update' : 'diagnosis_update';
-            
+
             await supabase.functions.invoke('send-prescription-email', {
               body: {
                 type: emailType,
@@ -378,14 +378,14 @@ const DoctorDashboard = () => {
                 <p className="text-sm text-muted-foreground">Welcome back, Dr. {profile?.full_name}</p>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-3">
               <Badge variant="outline" className="hidden sm:flex items-center gap-1.5 px-3 py-1">
                 <Stethoscope className="w-3.5 h-3.5" />
-                Doctor
+                {profile?.role}
               </Badge>
-              
-              <Button 
+
+              <Button
                 onClick={() => navigate('/appointment-history')}
                 variant="outline"
                 className="gap-2"
@@ -394,67 +394,76 @@ const DoctorDashboard = () => {
                 <span className="hidden sm:inline">History</span>
               </Button>
               <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center gap-2 p-2">
-                  <Avatar className="h-10 w-10 border-2 border-primary/20">
-                    <AvatarFallback className="bg-gradient-primary text-primary-foreground font-semibold">
-                      {profile?.full_name
-                        ? profile.full_name.split(" ").map(n => n[0]).join("")
-                        : "D"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                </Button>
-              </DropdownMenuTrigger>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="flex items-center gap-2 p-2">
+                    <Avatar className="h-10 w-10 border-2 border-primary/20">
+                      <AvatarFallback className="bg-gradient-primary text-primary-foreground font-semibold">
+                        {profile?.full_name
+                          ? profile.full_name.split(" ").map(n => n[0]).join("")
+                          : "D"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                  </Button>
+                </DropdownMenuTrigger>
 
-              <DropdownMenuContent align="end" className="w-56">
-                <div className="px-3 py-2">
-                  <div className="flex items-center justify-between">
-                    <p className="font-medium text-foreground">{profile?.full_name}</p>
-                    <Badge variant="secondary" className="text-xs">
-                      Doctor
-                    </Badge>
+                <DropdownMenuContent align="end" className="w-56">
+                  <div className="px-3 py-2">
+                    <div className="flex items-center justify-between">
+                      <p className="font-medium text-foreground">{profile?.full_name}</p>
+                      <Badge variant="secondary" className="text-xs">
+                        {profile?.role}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground truncate">
+                      {profile?.email}
+                    </p>
                   </div>
-                  <p className="text-sm text-muted-foreground truncate">
-                    {profile?.email}
-                  </p>
-                </div>
 
-                <DropdownMenuSeparator />
+                  <DropdownMenuSeparator />
 
-                {/* ADMIN ONLY OPTION – the money maker */}
-                {profile?.role === "admin" && (
-                  <>
-                    <DropdownMenuItem
-                      onClick={() => navigate("/admin-dashboard")}
-                      className="cursor-pointer"
-                    >
-                      <LayoutDashboard className="w-4 h-4 mr-2" />
-                      Admin Dashboard
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                  </>
-                )}
+                  {/* ADMIN ONLY OPTION – the money maker */}
+                  {profile?.role === "admin" && (
+                    <>
+                      <DropdownMenuItem
+                        onClick={() => navigate("/admin-dashboard")}
+                        className="flex items-center gap-2"
+                      >
+                        <LayoutDashboard className="w-4 h-4 mr-2" />
+                        Admin Dashboard
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => navigate('/user-dashboard')}
+                        className="flex items-center gap-2"
+                      >
+                        <User className="w-4 h-4" />
+                        <span>Patient Dashboard</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
 
-                <DropdownMenuItem
-                  onClick={() => navigate("/doctor-profile")}
-                  className="cursor-pointer"
-                >
-                  <User className="w-4 h-4 mr-2" />
-                  My Profile
-                </DropdownMenuItem>
+                    </>
+                  )}
 
-                <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => navigate("/doctor-profile")}
+                    className="cursor-pointer"
+                  >
+                    <User className="w-4 h-4 mr-2" />
+                    My Profile
+                  </DropdownMenuItem>
 
-                <DropdownMenuItem
-                  onClick={handleSignOut}
-                  className="cursor-pointer text-destructive focus:text-destructive"
-                >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Sign Out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  <DropdownMenuSeparator />
+
+                  <DropdownMenuItem
+                    onClick={handleSignOut}
+                    className="cursor-pointer text-destructive focus:text-destructive"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
@@ -554,16 +563,16 @@ const DoctorDashboard = () => {
                           </span>
                         </div>
                         <div className="flex gap-2">
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             onClick={() => handleApproveAppointment(appointment.id)}
                             className="flex-1 gap-1"
                           >
                             <CheckCircle2 className="w-4 h-4" />
                             Confirm
                           </Button>
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             variant="destructive"
                             onClick={() => handleDenyAppointment(appointment.id)}
                             className="flex-1 gap-1"
@@ -609,7 +618,7 @@ const DoctorDashboard = () => {
               </TabsList>
 
               <TabsContent value="calendar">
-                <AppointmentCalendar 
+                <AppointmentCalendar
                   appointments={appointments}
                   onSelectAppointment={(apt) => handleViewPatientDetails(apt.patient_id, apt.status)}
                 />
@@ -736,7 +745,7 @@ const DoctorDashboard = () => {
                                     )}
                                   </>
                                 )}
-                                
+
                                 <div className="flex flex-wrap items-center gap-2">
                                   {editingAppointmentId !== appointment.id && (
                                     <Button
@@ -748,7 +757,7 @@ const DoctorDashboard = () => {
                                       Add Details
                                     </Button>
                                   )}
-                                  
+
                                   <Button
                                     size="sm"
                                     variant={appointment.status === 'confirmed' ? 'default' : 'outline'}
@@ -756,7 +765,7 @@ const DoctorDashboard = () => {
                                   >
                                     View Patient
                                   </Button>
-                                  
+
                                   {appointment.status === 'confirmed' && (
                                     <Button
                                       size="sm"
@@ -767,7 +776,7 @@ const DoctorDashboard = () => {
                                       Complete
                                     </Button>
                                   )}
-                                  
+
                                   {appointment.status !== 'cancelled' && appointment.status !== 'completed' && (
                                     <Button
                                       size="sm"
@@ -804,7 +813,7 @@ const DoctorDashboard = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <PatientManagement 
+                <PatientManagement
                   appointments={appointments}
                   onViewPatient={handleViewPatientDetail}
                 />

@@ -1,7 +1,7 @@
 import React, { memo, useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Heart, UserCheck, MessageCircle, BarChart3, Clock, Loader2, Sparkles, Calendar, User, LogOut, ChevronDown, Shield, Stethoscope, LayoutDashboard } from 'lucide-react';
+import { Heart, UserCheck, MessageCircle, BarChart3, Clock, Loader2, Sparkles, Calendar, User, LogOut, ChevronDown, Shield, Stethoscope, LayoutDashboard, CheckCircle2 } from 'lucide-react';
 import { useUserActivity } from '@/hooks/useUserActivity';
 import { supabase } from '@/integrations/supabase/client';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -23,7 +23,7 @@ interface UserDashboardProps {
 
 // Memoized feature card component for better performance
 const FeatureCard = memo(({ feature, onClick }: { feature: Feature; onClick: () => void }) => (
-  <motion.div 
+  <motion.div
     whileHover={{ scale: 1.02, y: -4 }}
     whileTap={{ scale: 0.98 }}
     className="group cursor-pointer h-full"
@@ -73,26 +73,25 @@ const ActivityItem = memo(({ activity }: { activity: any }) => {
     const diff = now.getTime() - activity.timestamp.getTime();
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const days = Math.floor(hours / 24);
-    
+
     if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
     if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
     return 'Just now';
   }, [activity.timestamp]);
 
   return (
-    <motion.div 
+    <motion.div
       whileHover={{ scale: 1.01, x: 4 }}
       className="flex items-center p-6 card-elevated rounded-xl hover:border-primary/20 transition-all duration-300"
     >
       <div className="flex-shrink-0">
-        <motion.div 
+        <motion.div
           whileHover={{ rotate: 5 }}
-          className={`rounded-full p-4 ${
-            activity.type === 'mood' ? 'bg-success/10 border border-success/20' :
-            activity.type === 'appointment' ? 'bg-primary/10 border border-primary/20' :
-            activity.type === 'chat' ? 'bg-secondary/10 border border-secondary/20' :
-            'bg-accent-foreground/10 border border-accent/20'
-          }`}
+          className={`rounded-full p-4 ${activity.type === 'mood' ? 'bg-success/10 border border-success/20' :
+              activity.type === 'appointment' ? 'bg-primary/10 border border-primary/20' :
+                activity.type === 'chat' ? 'bg-secondary/10 border border-secondary/20' :
+                  'bg-accent-foreground/10 border border-accent/20'
+            }`}
         >
           <span className="text-xl">{getActivityIcon}</span>
         </motion.div>
@@ -128,7 +127,7 @@ const UserDashboard = memo(({ user }: UserDashboardProps) => {
       try {
         // Validate actual Supabase session
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
+
         if (sessionError || !session) {
           toast({
             title: 'Session Expired',
@@ -145,10 +144,10 @@ const UserDashboard = memo(({ user }: UserDashboardProps) => {
           .select('role')
           .eq('user_id', session.user.id)
           .single();
-        
+
         const role = userRoleData?.role || 'patient';
         setUserRole(role);
-        
+
         // Allow admin to access patient dashboard (admin can access all)
         // Only block doctors from patient dashboard
         if (role === 'doctor') {
@@ -181,7 +180,7 @@ const UserDashboard = memo(({ user }: UserDashboardProps) => {
         setSessionLoading(false);
       }
     };
-    
+
     validateSessionAndFetchProfile();
   }, [navigate, toast]);
 
@@ -262,7 +261,7 @@ const UserDashboard = memo(({ user }: UserDashboardProps) => {
             <h1 className="text-4xl font-bold text-gradient font-display">User Dashboard</h1>
             <p className="text-muted-foreground mt-2 font-medium">Your mental health & medical care platform</p>
           </motion.div>
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             className="flex items-center space-x-4"
@@ -288,7 +287,7 @@ const UserDashboard = memo(({ user }: UserDashboardProps) => {
                   <ChevronDown className="w-4 h-4 text-muted-foreground" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuContent onClick={() => navigate('/user-profile')} align="end" className="w-56">
                 <div className="px-3 py-2">
                   <div className="flex items-center justify-between">
                     <p className="font-medium text-foreground">{userName}</p>
@@ -299,9 +298,21 @@ const UserDashboard = memo(({ user }: UserDashboardProps) => {
                 <DropdownMenuSeparator />
                 {userRole === 'admin' && (
                   <>
-                    <DropdownMenuItem onClick={() => navigate('/admin-dashboard')} className="cursor-pointer">
-                      <LayoutDashboard className="w-4 h-4 mr-2" />
-                      Admin Dashboard
+                    <DropdownMenuItem onClick={() => navigate('/admin-dashboard')} 
+                      className="flex items-center gap-2 bg-primary/10"
+                      >
+                      <LayoutDashboard className="w-4 h-4 text-primary" />
+                      <span className="font-medium">Admin Dashboard</span>
+                      <CheckCircle2 className="w-4 h-4 ml-auto text-primary" />
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => navigate('/doctor-dashboard')}
+                      className="flex items-center gap-2 bg-primary/10"
+                    >
+                      <Stethoscope className="w-4 h-4 text-primary" />
+                      <span className="font-medium">Doctor Dashboard</span>
+                      <CheckCircle2 className="w-4 h-4 ml-auto text-primary" />
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                   </>
@@ -322,7 +333,7 @@ const UserDashboard = memo(({ user }: UserDashboardProps) => {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="card-elevated rounded-2xl overflow-hidden"
@@ -340,8 +351,8 @@ const UserDashboard = memo(({ user }: UserDashboardProps) => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1, duration: 0.6 }}
                 >
-                  <FeatureCard 
-                    feature={feature} 
+                  <FeatureCard
+                    feature={feature}
                     onClick={handleFeatureClick(feature.path)}
                   />
                 </motion.div>
@@ -350,7 +361,7 @@ const UserDashboard = memo(({ user }: UserDashboardProps) => {
           </div>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
@@ -359,7 +370,7 @@ const UserDashboard = memo(({ user }: UserDashboardProps) => {
           <div className="px-8 py-8 sm:px-12">
             <h3 className="text-2xl font-semibold text-card-foreground mb-3 font-display">Recent Activity</h3>
             <p className="text-muted-foreground mb-8 text-lg">Your latest interactions with the platform</p>
-            
+
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <motion.div
@@ -371,7 +382,7 @@ const UserDashboard = memo(({ user }: UserDashboardProps) => {
                 <span className="ml-3 text-muted-foreground font-medium">Loading activities...</span>
               </div>
             ) : activities.length === 0 ? (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 className="text-center py-16"
