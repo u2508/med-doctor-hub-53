@@ -29,6 +29,7 @@ const DoctorFinder = () => {
   const [bookingTime, setBookingTime] = useState('');
   const [bookingNotes, setBookingNotes] = useState('');
   const [currentUser, setCurrentUser] = useState(null);
+  const [isBooking, setIsBooking] = useState(false);
 
   // Check authentication
   useEffect(() => {
@@ -185,6 +186,7 @@ const DoctorFinder = () => {
       return;
     }
 
+    setIsBooking(true);
     try {
       const appointmentDateTime = new Date(`${bookingDate}T${bookingTime}`);
       
@@ -217,6 +219,8 @@ const DoctorFinder = () => {
         description: 'Failed to book appointment. Please try again.',
         variant: 'destructive'
       });
+    } finally {
+      setIsBooking(false);
     }
   };
 
@@ -507,14 +511,16 @@ const DoctorFinder = () => {
               variant="outline" 
               onClick={() => setShowBookingDialog(false)}
               className="flex-1"
+              disabled={isBooking}
             >
               Cancel
             </Button>
             <Button 
               onClick={handleConfirmBooking}
               className="flex-1"
+              disabled={isBooking}
             >
-              Confirm Booking
+              {isBooking ? 'Booking...' : 'Confirm Booking'}
             </Button>
           </div>
         </DialogContent>
