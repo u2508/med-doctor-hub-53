@@ -1,10 +1,12 @@
 import { useState, useMemo } from 'react';
-import { Search, Filter, User, Calendar, Clock, Info } from 'lucide-react';
+import { Search, Filter, User, Calendar, Clock, Info, CheckCircle, XCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface PatientProfile {
   full_name: string;
@@ -37,6 +39,7 @@ interface Appointment {
 interface PatientManagementProps {
   appointments: Appointment[];
   onViewPatient: (patientId: string, appointmentStatus: string, appointment: Appointment) => void;
+  onRefresh?: () => void;
 }
 
 interface PatientSummary {
@@ -50,15 +53,22 @@ interface PatientSummary {
   diagnosis?: string;
 }
 
-const PatientManagement = ({ appointments, onViewPatient }: PatientManagementProps) => {
+const PatientManagement = ({ appointments, onViewPatient, onRefresh }: PatientManagementProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [updatingAppointment, setUpdatingAppointment] = useState<string | null>(null);
+  const { toast } = useToast();
 
-  // Aggregate patients from appointments
+  // Filter out cancelled and completed appointments, then aggregate patients
   const patients = useMemo(() => {
     const patientMap = new Map<string, PatientSummary>();
 
-    appointments.forEach((apt) => {
+    // Only include active appointments (not cancelled or completed)
+    const activeAppointments = appointments.filter(
+      apt => apt.status !== 'cancelled' && apt.status !== 'completed'
+    );
+
+    activeAppointments.forEach((apt) => {
       const existing = patientMap.get(apt.patient_id);
       const aptDate = new Date(apt.appointment_date);
       
@@ -68,12 +78,8 @@ const PatientManagement = ({ appointments, onViewPatient }: PatientManagementPro
       if (!existing || new Date(existing.latestAppointment.appointment_date) < aptDate) {
         // Determine patient status based on latest appointment
         let status = 'scheduled';
-        if (apt.status === 'completed') {
-          status = apt.diagnosis?.toLowerCase().includes('recovered') ? 'recovered' : 'ongoing';
-        } else if (apt.status === 'confirmed') {
+        if (apt.status === 'confirmed') {
           status = 'ongoing';
-        } else if (apt.status === 'cancelled') {
-          status = existing?.status || 'scheduled';
         } else {
           status = 'scheduled';
         }
@@ -91,18 +97,10 @@ const PatientManagement = ({ appointments, onViewPatient }: PatientManagementPro
           gender: undefined,
           age: age,
           latestAppointment: apt,
-          lastVisit: existing?.lastVisit || (apt.status === 'completed' ? apt.appointment_date : undefined),
+          lastVisit: existing?.lastVisit,
           status: status,
           diagnosis: apt.diagnosis
         });
-      }
-
-      // Track last completed visit
-      if (apt.status === 'completed') {
-        const patient = patientMap.get(apt.patient_id);
-        if (patient && (!patient.lastVisit || new Date(patient.lastVisit) < aptDate)) {
-          patient.lastVisit = apt.appointment_date;
-        }
       }
     });
 
@@ -117,6 +115,34 @@ const PatientManagement = ({ appointments, onViewPatient }: PatientManagementPro
       return matchesSearch && matchesStatus;
     });
   }, [patients, searchTerm, statusFilter]);
+
+  const handleUpdateStatus = async (appointmentId: string, newStatus: 'completed' | 'cancelled') => {
+    setUpdatingAppointment(appointmentId);
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .update({ status: newStatus })
+        .eq('id', appointmentId);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Status Updated',
+        description: `Appointment marked as ${newStatus}`,
+      });
+
+      onRefresh?.();
+    } catch (error) {
+      console.error('Error updating appointment:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update appointment status',
+        variant: 'destructive',
+      });
+    } finally {
+      setUpdatingAppointment(null);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -163,7 +189,6 @@ const PatientManagement = ({ appointments, onViewPatient }: PatientManagementPro
             <SelectContent className="bg-card border-border z-50">
               <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="ongoing">Ongoing</SelectItem>
-              <SelectItem value="recovered">Recovered</SelectItem>
               <SelectItem value="critical">Critical</SelectItem>
               <SelectItem value="scheduled">Scheduled</SelectItem>
             </SelectContent>
@@ -175,7 +200,7 @@ const PatientManagement = ({ appointments, onViewPatient }: PatientManagementPro
       {filteredPatients.length === 0 ? (
         <div className="text-center py-12">
           <User className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
-          <p className="text-muted-foreground">No patients found</p>
+          <p className="text-muted-foreground">No active patients found</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -232,18 +257,42 @@ const PatientManagement = ({ appointments, onViewPatient }: PatientManagementPro
                     )}
                   </div>
 
-                  {/* View Details Button */}
-                  <Button 
-                    variant="outline" 
-                    className="w-full"
-                    onClick={() => onViewPatient(
-                      patient.patientId, 
-                      patient.latestAppointment.status,
-                      patient.latestAppointment
-                    )}
-                  >
-                    View Details
-                  </Button>
+                  {/* Action Buttons */}
+                  <div className="flex flex-col gap-2">
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={() => onViewPatient(
+                        patient.patientId, 
+                        patient.latestAppointment.status,
+                        patient.latestAppointment
+                      )}
+                    >
+                      View Details
+                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="flex-1"
+                        disabled={updatingAppointment === patient.latestAppointment.id}
+                        onClick={() => handleUpdateStatus(patient.latestAppointment.id, 'completed')}
+                      >
+                        <CheckCircle className="w-4 h-4 mr-1" />
+                        Complete
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="flex-1"
+                        disabled={updatingAppointment === patient.latestAppointment.id}
+                        onClick={() => handleUpdateStatus(patient.latestAppointment.id, 'cancelled')}
+                      >
+                        <XCircle className="w-4 h-4 mr-1" />
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>

@@ -187,6 +187,55 @@ const DoctorDashboard = () => {
     }
   };
 
+  const refreshAppointments = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const { data: appointmentsData, error: appointmentsError } = await supabase
+        .from('appointments')
+        .select('*')
+        .eq('doctor_id', session.user.id)
+        .order('appointment_date', { ascending: true });
+
+      if (appointmentsError) {
+        console.error('Error refreshing appointments:', appointmentsError);
+        return;
+      }
+
+      if (appointmentsData) {
+        const patientIds = appointmentsData.map(apt => apt.patient_id);
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('user_id, full_name, email')
+          .in('user_id', patientIds);
+
+        const appointmentsWithProfiles = appointmentsData.map(apt => ({
+          ...apt,
+          patient_profile: profilesData?.find(p => p.user_id === apt.patient_id)
+        }));
+
+        setAppointments(appointmentsWithProfiles);
+
+        const now = new Date();
+        const completed = appointmentsData.filter(apt => apt.status === 'completed').length;
+        const upcoming = appointmentsData.filter(apt =>
+          apt.status === 'scheduled' && new Date(apt.appointment_date) > now
+        ).length;
+        const cancelled = appointmentsData.filter(apt => apt.status === 'cancelled').length;
+
+        setStats({
+          total: appointmentsData.length,
+          completed,
+          upcoming,
+          cancelled
+        });
+      }
+    } catch (error) {
+      console.error('Error refreshing appointments:', error);
+    }
+  };
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate('/doctor-portal');
@@ -826,6 +875,7 @@ const DoctorDashboard = () => {
                 <PatientManagement
                   appointments={appointments}
                   onViewPatient={handleViewPatientDetail}
+                  onRefresh={refreshAppointments}
                 />
               </CardContent>
             </Card>
