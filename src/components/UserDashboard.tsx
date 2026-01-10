@@ -287,7 +287,7 @@ const UserDashboard = memo(({ user }: UserDashboardProps) => {
                   <ChevronDown className="w-4 h-4 text-muted-foreground" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent onClick={() => navigate('/user-profile')} align="end" className="w-56">
+              <DropdownMenuContent align="end" className="w-56">
                 <div className="px-3 py-2">
                   <div className="flex items-center justify-between">
                     <p className="font-medium text-foreground">{userName}</p>

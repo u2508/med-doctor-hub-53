@@ -484,22 +484,23 @@ const DoctorDashboard = () => {
                   {/* ADMIN ONLY OPTION – the money maker */}
                   {userRole === "admin" && (
                     <>
-                      <DropdownMenuItem
-                        onClick={() => navigate("/admin-dashboard")}
-                        className="flex items-center gap-2"
+                    <DropdownMenuItem onClick={() => navigate('/admin-dashboard')} 
+                      className="flex items-center gap-2 bg-primary/10"
                       >
-                        <LayoutDashboard className="w-4 h-4 mr-2" />
-                        Admin Dashboard
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={() => navigate('/user-dashboard')}
-                        className="flex items-center gap-2"
-                      >
-                        <User className="w-4 h-4" />
-                        <span>Patient Dashboard</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
+                      <LayoutDashboard className="w-4 h-4 text-primary" />
+                      <span className="font-medium">Admin Dashboard</span>
+                      <CheckCircle2 className="w-4 h-4 ml-auto text-primary" />
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => navigate('/user-dashboard')}
+                      className="flex items-center gap-2 bg-primary/10"
+                    >
+                      <Stethoscope className="w-4 h-4 text-primary" />
+                      <span className="font-medium">Patient Dashboard</span>
+                      <CheckCircle2 className="w-4 h-4 ml-auto text-primary" />
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
 
                     </>
                   )}
