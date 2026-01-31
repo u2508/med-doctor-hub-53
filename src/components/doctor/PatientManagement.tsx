@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { Search, Filter, User, Calendar, Clock, Info, CheckCircle, XCircle, History } from 'lucide-react';
+import { Search, Filter, User, Calendar, Clock, Info, CheckCircle, XCircle, History, RotateCcw } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -72,9 +73,11 @@ const PatientManagement = ({ appointments, onViewPatient, onRefresh }: PatientMa
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
     appointmentId: string;
-    action: 'completed' | 'cancelled';
+    action: 'completed' | 'cancelled' | 'restored';
     patientName: string;
   } | null>(null);
+  const [cancellationReason, setCancellationReason] = useState('');
+  const [restoringAppointment, setRestoringAppointment] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Filter out cancelled and completed appointments, then aggregate patients
@@ -142,7 +145,8 @@ const PatientManagement = ({ appointments, onViewPatient, onRefresh }: PatientMa
     });
   }, [patients, searchTerm, statusFilter]);
 
-  const openConfirmDialog = (appointmentId: string, action: 'completed' | 'cancelled', patientName: string) => {
+  const openConfirmDialog = (appointmentId: string, action: 'completed' | 'cancelled' | 'restored', patientName: string) => {
+    setCancellationReason('');
     setConfirmDialog({ open: true, appointmentId, action, patientName });
   };
 
@@ -150,17 +154,31 @@ const PatientManagement = ({ appointments, onViewPatient, onRefresh }: PatientMa
     if (!confirmDialog) return;
     
     setUpdatingAppointment(confirmDialog.appointmentId);
+    if (confirmDialog.action === 'restored') {
+      setRestoringAppointment(confirmDialog.appointmentId);
+    }
+    
     try {
+      const updateData: { status: string; notes?: string } = { 
+        status: confirmDialog.action === 'restored' ? 'scheduled' : confirmDialog.action 
+      };
+      
+      // Add cancellation reason to notes if cancelling
+      if (confirmDialog.action === 'cancelled' && cancellationReason.trim()) {
+        updateData.notes = `Cancellation reason: ${cancellationReason.trim()}`;
+      }
+
       const { error } = await supabase
         .from('appointments')
-        .update({ status: confirmDialog.action })
+        .update(updateData)
         .eq('id', confirmDialog.appointmentId);
 
       if (error) throw error;
 
+      const actionText = confirmDialog.action === 'restored' ? 'restored to scheduled' : confirmDialog.action;
       toast({
         title: 'Status Updated',
-        description: `Appointment marked as ${confirmDialog.action}`,
+        description: `Appointment ${actionText}`,
       });
 
       onRefresh?.();
@@ -173,7 +191,9 @@ const PatientManagement = ({ appointments, onViewPatient, onRefresh }: PatientMa
       });
     } finally {
       setUpdatingAppointment(null);
+      setRestoringAppointment(null);
       setConfirmDialog(null);
+      setCancellationReason('');
     }
   };
 
@@ -338,16 +358,35 @@ const PatientManagement = ({ appointments, onViewPatient, onRefresh }: PatientMa
                 <span className="text-muted-foreground truncate">{apt.diagnosis}</span>
               </div>
             )}
+            {apt.notes && apt.notes.startsWith('Cancellation reason:') && (
+              <div className="text-sm text-muted-foreground bg-muted/50 p-2 rounded">
+                <span className="font-medium">Reason:</span> {apt.notes.replace('Cancellation reason: ', '')}
+              </div>
+            )}
           </div>
 
-          {/* View Details Button */}
-          <Button 
-            variant="outline" 
-            className="w-full"
-            onClick={() => onViewPatient(apt.patient_id, apt.status, apt)}
-          >
-            View Details
-          </Button>
+          {/* Action Buttons */}
+          <div className="flex flex-col gap-2">
+            <Button 
+              variant="outline" 
+              className="w-full"
+              onClick={() => onViewPatient(apt.patient_id, apt.status, apt)}
+            >
+              View Details
+            </Button>
+            {apt.status === 'cancelled' && (
+              <Button
+                variant="secondary"
+                size="sm"
+                className="w-full"
+                disabled={restoringAppointment === apt.id}
+                onClick={() => openConfirmDialog(apt.id, 'restored', apt.patient_profile?.full_name || 'Unknown Patient')}
+              >
+                <RotateCcw className="w-4 h-4 mr-1" />
+                Restore Appointment
+              </Button>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -436,26 +475,58 @@ const PatientManagement = ({ appointments, onViewPatient, onRefresh }: PatientMa
       </Tabs>
 
       {/* Confirmation Dialog */}
-      <AlertDialog open={confirmDialog?.open} onOpenChange={(open) => !open && setConfirmDialog(null)}>
+      <AlertDialog open={confirmDialog?.open} onOpenChange={(open) => {
+        if (!open) {
+          setConfirmDialog(null);
+          setCancellationReason('');
+        }
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {confirmDialog?.action === 'completed' ? 'Complete Appointment' : 'Cancel Appointment'}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
               {confirmDialog?.action === 'completed' 
-                ? `Are you sure you want to mark the appointment with ${confirmDialog?.patientName} as completed?`
-                : `Are you sure you want to cancel the appointment with ${confirmDialog?.patientName}? This action cannot be undone.`
-              }
+                ? 'Complete Appointment' 
+                : confirmDialog?.action === 'restored'
+                ? 'Restore Appointment'
+                : 'Cancel Appointment'}
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-4">
+                <p>
+                  {confirmDialog?.action === 'completed' 
+                    ? `Are you sure you want to mark the appointment with ${confirmDialog?.patientName} as completed?`
+                    : confirmDialog?.action === 'restored'
+                    ? `Are you sure you want to restore the cancelled appointment with ${confirmDialog?.patientName} back to scheduled status?`
+                    : `Are you sure you want to cancel the appointment with ${confirmDialog?.patientName}?`
+                  }
+                </p>
+                {confirmDialog?.action === 'cancelled' && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">
+                      Cancellation Reason (optional)
+                    </label>
+                    <Textarea
+                      placeholder="Enter the reason for cancellation..."
+                      value={cancellationReason}
+                      onChange={(e) => setCancellationReason(e.target.value)}
+                      className="min-h-[80px]"
+                    />
+                  </div>
+                )}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Go Back</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmAction}
               className={confirmDialog?.action === 'cancelled' ? 'bg-destructive hover:bg-destructive/90' : ''}
             >
-              {confirmDialog?.action === 'completed' ? 'Complete' : 'Cancel Appointment'}
+              {confirmDialog?.action === 'completed' 
+                ? 'Complete' 
+                : confirmDialog?.action === 'restored'
+                ? 'Restore'
+                : 'Cancel Appointment'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
