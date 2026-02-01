@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
+import MoodTrackerSummary from "./MoodTrackerSummary";
 
 interface ChatSummary {
   id: string;
@@ -102,6 +103,9 @@ const PatientNotesTab: React.FC = () => {
 
   return (
     <div className="space-y-8">
+      {/* Mood Tracker Summary - Shareable with Doctor */}
+      <MoodTrackerSummary />
+
       {/* AI Chat Summaries */}
       <section>
         <div className="flex items-center gap-2 mb-4">
