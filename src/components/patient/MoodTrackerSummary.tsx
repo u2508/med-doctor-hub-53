@@ -1,11 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { Brain, TrendingUp, Activity, Calendar, Share2, Loader2, Check } from "lucide-react";
+import { Brain, TrendingUp, Activity, Calendar, Loader2, Info } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 
 interface MoodEntry {
   id: string;
@@ -31,12 +29,9 @@ const MoodTrackerSummary: React.FC = () => {
   const [entries, setEntries] = useState<MoodEntry[]>([]);
   const [stats, setStats] = useState<MoodSummaryStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [sharing, setSharing] = useState(false);
-  const [hasShared, setHasShared] = useState(false);
 
   useEffect(() => {
     fetchMoodData();
-    checkIfShared();
   }, []);
 
   const fetchMoodData = async () => {
@@ -67,26 +62,6 @@ const MoodTrackerSummary: React.FC = () => {
     }
   };
 
-  const checkIfShared = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const today = new Date().toISOString().split("T")[0];
-      const { data } = await supabase
-        .from("patient_notes")
-        .select("id")
-        .eq("patient_id", user.id)
-        .eq("note_type", "mood_summary")
-        .gte("created_at", today)
-        .limit(1);
-
-      setHasShared(data && data.length > 0);
-    } catch (error) {
-      console.error("Error checking shared status:", error);
-    }
-  };
-
   const calculateStats = (data: MoodEntry[]) => {
     const totalEntries = data.length;
     
@@ -94,7 +69,6 @@ const MoodTrackerSummary: React.FC = () => {
     const avgStress = data.reduce((sum, e) => sum + (e.stress_level || 5), 0) / totalEntries;
     const avgSleep = data.reduce((sum, e) => sum + (e.sleep_hours || 7), 0) / totalEntries;
 
-    // Calculate mood trend (compare first half vs second half)
     const halfIndex = Math.floor(totalEntries / 2);
     const recentHalf = data.slice(0, halfIndex);
     const olderHalf = data.slice(halfIndex);
@@ -110,7 +84,6 @@ const MoodTrackerSummary: React.FC = () => {
     if (recentAvg - olderAvg > 0.5) moodTrend = "improving";
     else if (olderAvg - recentAvg > 0.5) moodTrend = "declining";
 
-    // Get most common activities
     const activityCounts: Record<string, number> = {};
     data.forEach(entry => {
       entry.activities?.forEach(activity => {
@@ -122,7 +95,6 @@ const MoodTrackerSummary: React.FC = () => {
       .slice(0, 5)
       .map(([activity]) => activity);
 
-    // Recent moods for mini chart
     const recentMoods = data.slice(0, 7).map(e => ({
       date: new Date(e.created_at).toLocaleDateString("en-US", { weekday: "short" }),
       level: e.mood_level
@@ -139,57 +111,6 @@ const MoodTrackerSummary: React.FC = () => {
     });
   };
 
-  const generateSummaryText = () => {
-    if (!stats) return "";
-
-    const moodDescription = stats.avgMood >= 7 ? "positive" : stats.avgMood >= 5 ? "moderate" : "low";
-    const stressDescription = stats.avgStress >= 7 ? "high" : stats.avgStress >= 4 ? "moderate" : "low";
-    const sleepDescription = stats.avgSleep >= 7 ? "adequate" : stats.avgSleep >= 5 ? "insufficient" : "poor";
-
-    return `**30-Day Mood Summary**
-
-📊 **Overview:**
-- Average Mood: ${stats.avgMood}/10 (${moodDescription})
-- Average Stress: ${stats.avgStress}/10 (${stressDescription})
-- Average Sleep: ${stats.avgSleep} hours (${sleepDescription})
-- Total Entries: ${stats.totalEntries}
-
-📈 **Trend:** Mood is ${stats.moodTrend} over the past 30 days.
-
-🎯 **Common Activities:** ${stats.mostCommonActivities.length > 0 ? stats.mostCommonActivities.join(", ") : "None recorded"}
-
-📅 **Recent 7-Day Moods:** ${stats.recentMoods.map(m => `${m.date}: ${m.level}/10`).join(" | ")}`;
-  };
-
-  const shareWithDoctor = async () => {
-    if (!stats) return;
-
-    setSharing(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
-
-      const summaryText = generateSummaryText();
-
-      const { error } = await supabase.from("patient_notes").insert({
-        patient_id: user.id,
-        note_type: "mood_summary",
-        title: `Mood Tracker Summary - ${new Date().toLocaleDateString()}`,
-        content: summaryText,
-      });
-
-      if (error) throw error;
-
-      setHasShared(true);
-      toast.success("Mood summary shared with your doctor!");
-    } catch (error) {
-      console.error("Error sharing summary:", error);
-      toast.error("Failed to share mood summary");
-    } finally {
-      setSharing(false);
-    }
-  };
-
   const getMoodEmoji = (level: number) => {
     if (level >= 8) return "😄";
     if (level >= 6) return "🙂";
@@ -199,9 +120,9 @@ const MoodTrackerSummary: React.FC = () => {
   };
 
   const getTrendColor = (trend: string) => {
-    if (trend === "improving") return "text-green-600";
-    if (trend === "declining") return "text-red-600";
-    return "text-yellow-600";
+    if (trend === "improving") return "text-primary";
+    if (trend === "declining") return "text-destructive";
+    return "text-muted-foreground";
   };
 
   const getTrendIcon = (trend: string) => {
@@ -239,35 +160,14 @@ const MoodTrackerSummary: React.FC = () => {
           <Brain className="w-5 h-5 text-primary" />
           <h2 className="text-lg font-semibold">Mood Tracker Summary</h2>
         </div>
-        <Button
-          onClick={shareWithDoctor}
-          disabled={sharing || hasShared}
-          size="sm"
-          variant={hasShared ? "secondary" : "default"}
-          className="gap-2"
-        >
-          {hasShared ? (
-            <>
-              <Check className="w-4 h-4" />
-              Shared Today
-            </>
-          ) : sharing ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Sharing...
-            </>
-          ) : (
-            <>
-              <Share2 className="w-4 h-4" />
-              Share with Doctor
-            </>
-          )}
-        </Button>
+        <Badge variant="secondary" className="gap-1">
+          <Info className="w-3 h-3" />
+          Shared with your doctor
+        </Badge>
       </div>
 
       {stats && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {/* Average Mood */}
           <Card>
             <CardHeader className="pb-2">
               <CardDescription className="flex items-center gap-1">
@@ -284,7 +184,6 @@ const MoodTrackerSummary: React.FC = () => {
             </CardContent>
           </Card>
 
-          {/* Stress Level */}
           <Card>
             <CardHeader className="pb-2">
               <CardDescription className="flex items-center gap-1">
@@ -294,14 +193,10 @@ const MoodTrackerSummary: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.avgStress}/10</div>
-              <Progress 
-                value={stats.avgStress * 10} 
-                className="mt-2 h-2"
-              />
+              <Progress value={stats.avgStress * 10} className="mt-2 h-2" />
             </CardContent>
           </Card>
 
-          {/* Sleep */}
           <Card>
             <CardHeader className="pb-2">
               <CardDescription className="flex items-center gap-1">
@@ -317,7 +212,6 @@ const MoodTrackerSummary: React.FC = () => {
             </CardContent>
           </Card>
 
-          {/* Trend */}
           <Card>
             <CardHeader className="pb-2">
               <CardDescription className="flex items-center gap-1">
@@ -337,7 +231,6 @@ const MoodTrackerSummary: React.FC = () => {
         </div>
       )}
 
-      {/* Recent Moods Mini Chart */}
       {stats && stats.recentMoods.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
@@ -364,7 +257,6 @@ const MoodTrackerSummary: React.FC = () => {
         </Card>
       )}
 
-      {/* Common Activities */}
       {stats && stats.mostCommonActivities.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
