@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -17,11 +18,23 @@ interface ChatSummary {
   created_at: string;
 }
 
-interface MoodSummaryNote {
+interface MoodEntry {
   id: string;
-  title: string;
-  content: string;
+  mood_level: number;
+  stress_level: number | null;
+  sleep_hours: number | null;
+  activities: string[] | null;
+  notes: string | null;
   created_at: string;
+}
+
+interface MoodStats {
+  avgMood: number;
+  avgStress: number;
+  avgSleep: number;
+  totalEntries: number;
+  moodTrend: "improving" | "stable" | "declining";
+  recentMoods: { date: string; level: number }[];
 }
 
 interface DoctorPatientNotesProps {
@@ -34,7 +47,8 @@ const DoctorPatientNotes: React.FC<DoctorPatientNotesProps> = ({
   appointmentId,
 }) => {
   const [summaries, setSummaries] = useState<ChatSummary[]>([]);
-  const [moodSummaries, setMoodSummaries] = useState<MoodSummaryNote[]>([]);
+  const [moodEntries, setMoodEntries] = useState<MoodEntry[]>([]);
+  const [moodStats, setMoodStats] = useState<MoodStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [newNoteTitle, setNewNoteTitle] = useState("");
   const [newNoteContent, setNewNoteContent] = useState("");
@@ -56,21 +70,79 @@ const DoctorPatientNotes: React.FC<DoctorPatientNotesProps> = ({
       if (chatError) throw chatError;
       setSummaries(chatData || []);
 
-      // Fetch mood tracker summaries shared by patient
-      const { data: moodData, error: moodError } = await supabase
-        .from("patient_notes")
-        .select("id, title, content, created_at")
-        .eq("patient_id", patientId)
-        .eq("note_type", "mood_summary")
-        .order("created_at", { ascending: false }) as { data: MoodSummaryNote[] | null; error: any };
+      // Fetch mood entries directly (like chat summaries)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      if (moodError) throw moodError;
-      setMoodSummaries(moodData || []);
+      const { data: moodData, error: moodError } = await supabase
+        .from("mood_entries")
+        .select("*")
+        .eq("user_id", patientId)
+        .gte("created_at", thirtyDaysAgo.toISOString())
+        .order("created_at", { ascending: false }) as { data: MoodEntry[] | null; error: any };
+
+      if (moodError) {
+        console.error("Error fetching mood entries:", moodError);
+      } else if (moodData && moodData.length > 0) {
+        setMoodEntries(moodData);
+        calculateMoodStats(moodData);
+      }
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const calculateMoodStats = (data: MoodEntry[]) => {
+    const totalEntries = data.length;
+    const avgMood = data.reduce((sum, e) => sum + e.mood_level, 0) / totalEntries;
+    const avgStress = data.reduce((sum, e) => sum + (e.stress_level || 5), 0) / totalEntries;
+    const avgSleep = data.reduce((sum, e) => sum + (e.sleep_hours || 7), 0) / totalEntries;
+
+    // Calculate trend
+    const halfIndex = Math.floor(totalEntries / 2);
+    const recentHalf = data.slice(0, halfIndex);
+    const olderHalf = data.slice(halfIndex);
+    
+    const recentAvg = recentHalf.length > 0 
+      ? recentHalf.reduce((sum, e) => sum + e.mood_level, 0) / recentHalf.length 
+      : avgMood;
+    const olderAvg = olderHalf.length > 0 
+      ? olderHalf.reduce((sum, e) => sum + e.mood_level, 0) / olderHalf.length 
+      : avgMood;
+
+    let moodTrend: "improving" | "stable" | "declining" = "stable";
+    if (recentAvg - olderAvg > 0.5) moodTrend = "improving";
+    else if (olderAvg - recentAvg > 0.5) moodTrend = "declining";
+
+    const recentMoods = data.slice(0, 7).map(e => ({
+      date: new Date(e.created_at).toLocaleDateString("en-US", { weekday: "short" }),
+      level: e.mood_level
+    })).reverse();
+
+    setMoodStats({
+      avgMood: Math.round(avgMood * 10) / 10,
+      avgStress: Math.round(avgStress * 10) / 10,
+      avgSleep: Math.round(avgSleep * 10) / 10,
+      totalEntries,
+      moodTrend,
+      recentMoods
+    });
+  };
+
+  const getMoodEmoji = (level: number) => {
+    if (level >= 8) return "😄";
+    if (level >= 6) return "🙂";
+    if (level >= 4) return "😐";
+    if (level >= 2) return "😔";
+    return "😢";
+  };
+
+  const getTrendInfo = (trend: string) => {
+    if (trend === "improving") return { icon: "↑", color: "text-primary" };
+    if (trend === "declining") return { icon: "↓", color: "text-destructive" };
+    return { icon: "→", color: "text-muted-foreground" };
   };
 
   const handleAddNote = async () => {
@@ -152,40 +224,91 @@ const DoctorPatientNotes: React.FC<DoctorPatientNotesProps> = ({
         </CardContent>
       </Card>
 
-      {/* Patient Mood Tracker Summaries */}
-      {moodSummaries.length > 0 && (
+      {/* Patient Mood Tracker Data */}
+      {moodStats && (
         <div>
           <div className="flex items-center gap-2 mb-4">
             <Activity className="w-5 h-5 text-primary" />
             <h3 className="font-semibold">Patient's Mood Tracker Data</h3>
-            <Badge variant="secondary" className="text-xs">Shared by patient</Badge>
+            <Badge variant="secondary" className="text-xs">Last 30 days</Badge>
           </div>
 
-          <div className="space-y-4">
-            {moodSummaries.map((summary) => (
-              <Card key={summary.id} className="border-primary/20 bg-accent/50">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4 text-primary" />
-                      <CardTitle className="text-sm font-medium">
-                        {summary.title}
-                      </CardTitle>
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {formatDate(summary.created_at)}
-                    </span>
+          <div className="grid gap-3 md:grid-cols-4 mb-4">
+            <Card className="border-primary/20">
+              <CardContent className="pt-4 pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">{getMoodEmoji(moodStats.avgMood)}</span>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Avg Mood</p>
+                    <p className="text-lg font-bold">{moodStats.avgMood}/10</p>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <pre className="text-sm text-muted-foreground whitespace-pre-wrap font-sans">
-                    {summary.content}
-                  </pre>
-                </CardContent>
-              </Card>
-            ))}
+                </div>
+                <Progress value={moodStats.avgMood * 10} className="mt-2 h-1.5" />
+              </CardContent>
+            </Card>
+
+            <Card className="border-primary/20">
+              <CardContent className="pt-4 pb-3">
+                <p className="text-xs text-muted-foreground">Avg Stress</p>
+                <p className="text-lg font-bold">{moodStats.avgStress}/10</p>
+                <Progress value={moodStats.avgStress * 10} className="mt-2 h-1.5" />
+              </CardContent>
+            </Card>
+
+            <Card className="border-primary/20">
+              <CardContent className="pt-4 pb-3">
+                <p className="text-xs text-muted-foreground">Avg Sleep</p>
+                <p className="text-lg font-bold">{moodStats.avgSleep}h</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {moodStats.avgSleep >= 7 ? "Healthy" : "Below recommended"}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-primary/20">
+              <CardContent className="pt-4 pb-3">
+                <p className="text-xs text-muted-foreground">Trend</p>
+                <p className={`text-lg font-bold capitalize ${getTrendInfo(moodStats.moodTrend).color}`}>
+                  {getTrendInfo(moodStats.moodTrend).icon} {moodStats.moodTrend}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {moodStats.totalEntries} entries
+                </p>
+              </CardContent>
+            </Card>
           </div>
+
+          {/* Mini mood chart */}
+          {moodStats.recentMoods.length > 0 && (
+            <Card className="border-primary/20">
+              <CardHeader className="pb-2 pt-3">
+                <CardTitle className="text-xs text-muted-foreground">Last 7 Days</CardTitle>
+              </CardHeader>
+              <CardContent className="pb-3">
+                <div className="flex justify-between items-end h-16 gap-1">
+                  {moodStats.recentMoods.map((mood, i) => (
+                    <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                      <div 
+                        className="w-full bg-primary rounded-t transition-all"
+                        style={{ height: `${mood.level * 10}%` }}
+                      />
+                      <span className="text-[9px] text-muted-foreground">{mood.date}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
+      )}
+
+      {moodEntries.length === 0 && (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-6 text-center">
+            <Activity className="w-8 h-8 text-muted-foreground mb-2" />
+            <p className="text-muted-foreground text-sm">No mood data available</p>
+          </CardContent>
+        </Card>
       )}
 
       {/* AI Chat Summaries */}
