@@ -1,8 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Heart, ArrowLeft, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import ChatMessage from "@/components/chatbot/ChatMessage";
@@ -10,21 +7,12 @@ import ChatInput from "@/components/chatbot/ChatInput";
 import QuickResponses from "@/components/chatbot/QuickResponses";
 import TypingIndicator from "@/components/chatbot/TypingIndicator";
 import CrisisSupport from "@/components/chatbot/CrisisSupport";
+import ChatSidebar from "@/components/chatbot/ChatSidebar";
+import ChatHeader from "@/components/chatbot/ChatHeader";
+import { useChatConversations, type ChatMessage as ChatMessageType } from "@/hooks/useChatConversations";
 import { toast } from "sonner";
 
-interface Message {
-  id: number;
-  text: string;
-  sender: "user" | "bot";
-  timestamp: Date;
-}
-
-const INITIAL_MESSAGE: Message = {
-  id: 1,
-  text: "Hello! I'm MentiBot, your mental health assistant. How are you feeling today?",
-  sender: "bot",
-  timestamp: new Date(),
-};
+const INITIAL_BOT_MESSAGE = "Hello! I'm MentiBot, your mental health assistant. How are you feeling today?";
 
 const QUICK_RESPONSES = [
   "I'm feeling anxious",
@@ -35,25 +23,28 @@ const QUICK_RESPONSES = [
 ];
 
 const Chatbot: React.FC = () => {
-  const navigate = useNavigate();
   const scrollRef = useRef<HTMLDivElement>(null);
-
-  const [messages, setMessages] = useState<Message[]>(() => {
-    try {
-      const stored = sessionStorage.getItem("secure_chat_messages");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        return parsed.map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) }));
-      }
-    } catch {
-      console.warn("Failed to load chat session");
-    }
-    return [INITIAL_MESSAGE];
-  });
-
   const [inputText, setInputText] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [lastMessageTime, setLastMessageTime] = useState(0);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
+
+  const {
+    groupedConversations,
+    activeConversation,
+    messages,
+    isLoading,
+    createConversation,
+    selectConversation,
+    addMessage,
+    deleteConversation,
+  } = useChatConversations();
+
+  // Display messages with initial bot message if conversation is empty
+  const displayMessages = messages.length === 0
+    ? [{ id: "initial", content: INITIAL_BOT_MESSAGE, sender: "bot" as const, created_at: new Date().toISOString(), conversation_id: "" }]
+    : messages;
 
   const scrollToBottom = () => {
     if (scrollRef.current) {
@@ -63,12 +54,7 @@ const Chatbot: React.FC = () => {
 
   useEffect(() => {
     scrollToBottom();
-    try {
-      sessionStorage.setItem("secure_chat_messages", JSON.stringify(messages));
-    } catch {
-      console.warn("Failed to save chat session");
-    }
-  }, [messages]);
+  }, [messages, isTyping]);
 
   const sanitizeInput = (text: string): string => {
     return text.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "").trim();
@@ -76,7 +62,7 @@ const Chatbot: React.FC = () => {
 
   const sendMessage = async (text: string) => {
     const sanitizedText = sanitizeInput(text);
-    if (!sanitizedText) return;
+    if (!sanitizedText || !activeConversation) return;
 
     const now = Date.now();
     if (now - lastMessageTime < 2000) {
@@ -84,17 +70,11 @@ const Chatbot: React.FC = () => {
       return;
     }
     setLastMessageTime(now);
-
-    const userMessage: Message = {
-      id: Date.now(),
-      text: sanitizedText,
-      sender: "user",
-      timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
     setInputText("");
     setIsTyping(true);
+
+    // Add user message to DB
+    await addMessage(sanitizedText, "user");
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -103,18 +83,17 @@ const Chatbot: React.FC = () => {
       }
 
       const { data, error } = await supabase.functions.invoke("chatbot", {
-        body: { message: sanitizedText, history: messages.slice(-10) },
+        body: { 
+          message: sanitizedText, 
+          history: messages.slice(-10).map(m => ({ text: m.content, sender: m.sender }))
+        },
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
 
       if (error) throw error;
 
       const botText = data.response || "Sorry, I couldn't process your request right now.";
-
-      setMessages((prev) => [
-        ...prev,
-        { id: Date.now() + 1, text: botText, sender: "bot", timestamp: new Date() },
-      ]);
+      await addMessage(botText, "bot");
     } catch (err: any) {
       console.warn("Chat error:", err);
       let errorMessage = "Sorry, something went wrong. Please try again later.";
@@ -126,10 +105,7 @@ const Chatbot: React.FC = () => {
         errorMessage = "Please wait a moment before sending another message.";
       }
 
-      setMessages((prev) => [
-        ...prev,
-        { id: Date.now() + 1, text: errorMessage, sender: "bot", timestamp: new Date() },
-      ]);
+      await addMessage(errorMessage, "bot");
     } finally {
       setIsTyping(false);
     }
@@ -139,79 +115,130 @@ const Chatbot: React.FC = () => {
     sendMessage(inputText);
   };
 
-  const clearChat = () => {
-    setMessages([INITIAL_MESSAGE]);
-    sessionStorage.removeItem("secure_chat_messages");
-    toast.success("Chat cleared");
+  const handleNewChat = async () => {
+    await createConversation();
+    setSidebarOpen(false);
   };
 
+  const handleGenerateSummary = async () => {
+    setIsGeneratingSummary(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error("Please sign in to generate summaries");
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke("generate-chat-summary", {
+        body: { date: new Date().toISOString().split("T")[0] },
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+
+      if (error) throw error;
+
+      if (data.summary) {
+        toast.success("Summary generated! View it in My Health > Notes");
+      } else {
+        toast.info(data.message || "Summary generated");
+      }
+    } catch (err: any) {
+      console.error("Summary error:", err);
+      if (err.message?.includes("No messages")) {
+        toast.info("No messages to summarize for today");
+      } else {
+        toast.error("Failed to generate summary");
+      }
+    } finally {
+      setIsGeneratingSummary(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-pulse text-muted-foreground">Loading chats...</div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <header className="border-b bg-card sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate("/user-dashboard")}
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div className="flex items-center gap-2">
-              <Heart className="h-6 w-6 text-primary" />
-              <h1 className="text-xl font-semibold">MentiBot</h1>
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
+      <ChatHeader
+        onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+        onGenerateSummary={handleGenerateSummary}
+        isGeneratingSummary={isGeneratingSummary}
+      />
+
+      <div className="flex-1 flex overflow-hidden">
+        <ChatSidebar
+          groupedConversations={groupedConversations}
+          activeConversation={activeConversation}
+          onSelectConversation={(conv) => {
+            selectConversation(conv);
+            setSidebarOpen(false);
+          }}
+          onNewChat={handleNewChat}
+          onDeleteConversation={deleteConversation}
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+        />
+
+        {/* Main Chat Area */}
+        <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full p-4 overflow-hidden">
+            <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
+              <CardHeader className="pb-2 border-b shrink-0">
+                <p className="text-sm text-muted-foreground">
+                  I'm here to support your mental wellness. How can I help you today?
+                </p>
+              </CardHeader>
+              <CardContent className="flex-1 flex flex-col p-0 min-h-0 overflow-hidden">
+                {/* Messages */}
+                <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+                  <div className="space-y-4">
+                    {displayMessages.map((message) => (
+                      <ChatMessage
+                        key={message.id}
+                        message={{
+                          id: typeof message.id === "string" ? Date.now() : Number(message.id),
+                          text: message.content,
+                          sender: message.sender,
+                          timestamp: new Date(message.created_at),
+                        }}
+                      />
+                    ))}
+                    {isTyping && <TypingIndicator />}
+                  </div>
+                </ScrollArea>
+
+                {/* Quick Responses */}
+                <div className="border-t p-4 shrink-0">
+                  <QuickResponses
+                    responses={QUICK_RESPONSES}
+                    onSelect={sendMessage}
+                    disabled={isTyping}
+                  />
+                </div>
+
+                {/* Input */}
+                <div className="border-t p-4 shrink-0">
+                  <ChatInput
+                    value={inputText}
+                    onChange={setInputText}
+                    onSubmit={handleSubmit}
+                    isLoading={isTyping}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Crisis Support */}
+            <div className="mt-4 shrink-0">
+              <CrisisSupport />
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={clearChat}>
-            <Trash2 className="h-5 w-5" />
-          </Button>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="flex-1 max-w-4xl mx-auto w-full p-4 flex flex-col gap-4">
-        <Card className="flex-1 flex flex-col min-h-0">
-          <CardHeader className="pb-2 border-b">
-            <p className="text-sm text-muted-foreground">
-              I'm here to support your mental wellness. How can I help you today?
-            </p>
-          </CardHeader>
-          <CardContent className="flex-1 flex flex-col p-0 min-h-0">
-            {/* Messages */}
-            <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-              <div className="space-y-4">
-                {messages.map((message) => (
-                  <ChatMessage key={message.id} message={message} />
-                ))}
-                {isTyping && <TypingIndicator />}
-              </div>
-            </ScrollArea>
-
-            {/* Quick Responses */}
-            <div className="border-t p-4">
-              <QuickResponses
-                responses={QUICK_RESPONSES}
-                onSelect={sendMessage}
-                disabled={isTyping}
-              />
-            </div>
-
-            {/* Input */}
-            <div className="border-t p-4">
-              <ChatInput
-                value={inputText}
-                onChange={setInputText}
-                onSubmit={handleSubmit}
-                isLoading={isTyping}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Crisis Support */}
-        <CrisisSupport />
-      </main>
+        </main>
+      </div>
     </div>
   );
 };

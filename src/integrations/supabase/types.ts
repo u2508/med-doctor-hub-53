@@ -107,6 +107,98 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_conversations: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      chat_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          sender: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          sender: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          sender?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "chat_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_summaries: {
+        Row: {
+          created_at: string
+          id: string
+          key_concerns: string[] | null
+          mood_indicators: string[] | null
+          patient_id: string
+          summary_date: string
+          summary_text: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key_concerns?: string[] | null
+          mood_indicators?: string[] | null
+          patient_id: string
+          summary_date: string
+          summary_text: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key_concerns?: string[] | null
+          mood_indicators?: string[] | null
+          patient_id?: string
+          summary_date?: string
+          summary_text?: string
+        }
+        Relationships: []
+      }
       doctor_profiles: {
         Row: {
           approved_at: string | null
@@ -241,6 +333,60 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      patient_notes: {
+        Row: {
+          appointment_id: string | null
+          content: string
+          created_at: string
+          doctor_id: string | null
+          id: string
+          note_type: string
+          patient_id: string
+          summary_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          content: string
+          created_at?: string
+          doctor_id?: string | null
+          id?: string
+          note_type: string
+          patient_id: string
+          summary_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          appointment_id?: string | null
+          content?: string
+          created_at?: string
+          doctor_id?: string | null
+          id?: string
+          note_type?: string
+          patient_id?: string
+          summary_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_notes_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_notes_summary_id_fkey"
+            columns: ["summary_id"]
+            isOneToOne: false
+            referencedRelation: "chat_summaries"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       patients: {
         Row: {
