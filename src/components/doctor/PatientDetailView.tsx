@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, User, Phone, Mail, MapPin, Heart, Calendar, AlertCircle, Pill, FileText, Activity, Plus, Upload, Wind } from 'lucide-react';
+import { ArrowLeft, User, Phone, Mail, MapPin, Heart, Calendar, AlertCircle, Pill, FileText, Activity, Plus, Upload, Wind, Brain } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import VitalsTrendChart from '@/components/vitals/VitalsTrendChart';
 import DoctorVitalsForm from '@/components/doctor/DoctorVitalsForm';
 import HealthSummaryPDF from '@/components/doctor/HealthSummaryPDF';
+import DoctorPatientNotes from '@/components/doctor/DoctorPatientNotes';
 
 interface PatientProfile {
   full_name: string;
@@ -300,11 +301,15 @@ const PatientDetailView = ({ patientId, appointment, onBack }: PatientDetailView
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4 bg-muted/50">
+        <TabsList className="grid w-full grid-cols-5 bg-muted/50">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="medications">Medications</TabsTrigger>
-          <TabsTrigger value="notes">Notes & History</TabsTrigger>
+          <TabsTrigger value="notes">Notes</TabsTrigger>
           <TabsTrigger value="vitals">Vitals</TabsTrigger>
+          <TabsTrigger value="ai-insights" className="gap-1">
+            <Brain className="w-3 h-3" />
+            AI Insights
+          </TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -673,6 +678,14 @@ const PatientDetailView = ({ patientId, appointment, onBack }: PatientDetailView
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* AI Insights Tab */}
+        <TabsContent value="ai-insights" className="mt-6">
+          <DoctorPatientNotes 
+            patientId={patientId} 
+            appointmentId={appointment.id}
+          />
         </TabsContent>
       </Tabs>
     </div>

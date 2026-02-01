@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Clock, User, ArrowLeft, Loader2, XCircle, CheckCircle2, AlertCircle, FileText, Download, ExternalLink, Activity, Pill } from 'lucide-react';
+import { Calendar, Clock, User, ArrowLeft, Loader2, XCircle, CheckCircle2, AlertCircle, FileText, Download, ExternalLink, Activity, Pill, ClipboardList } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import PatientVitalsForm from '@/components/patient/PatientVitalsForm';
 import PatientVitalsList from '@/components/patient/PatientVitalsList';
 import MedicationTracker from '@/components/patient/MedicationTracker';
-
+import PatientNotesTab from '@/components/patient/PatientNotesTab';
 interface Appointment {
   id: string;
   appointment_date: string;
@@ -321,18 +321,22 @@ const PatientAppointments = () => {
 
       <main className="max-w-7xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-lg grid-cols-3">
+          <TabsList className="grid w-full max-w-2xl grid-cols-4">
             <TabsTrigger value="appointments" className="gap-2">
               <Calendar className="w-4 h-4" />
-              Appointments
+              <span className="hidden sm:inline">Appointments</span>
             </TabsTrigger>
             <TabsTrigger value="vitals" className="gap-2">
               <Activity className="w-4 h-4" />
-              Vitals
+              <span className="hidden sm:inline">Vitals</span>
             </TabsTrigger>
             <TabsTrigger value="medications" className="gap-2">
               <Pill className="w-4 h-4" />
-              Medications
+              <span className="hidden sm:inline">Medications</span>
+            </TabsTrigger>
+            <TabsTrigger value="notes" className="gap-2">
+              <ClipboardList className="w-4 h-4" />
+              <span className="hidden sm:inline">Notes</span>
             </TabsTrigger>
           </TabsList>
 
@@ -476,6 +480,10 @@ const PatientAppointments = () => {
 
           <TabsContent value="medications">
             <MedicationTracker />
+          </TabsContent>
+
+          <TabsContent value="notes">
+            <PatientNotesTab />
           </TabsContent>
         </Tabs>
       </main>
