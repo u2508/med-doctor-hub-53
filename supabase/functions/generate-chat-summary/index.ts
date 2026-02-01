@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 serve(async (req) => {
@@ -14,7 +14,7 @@ serve(async (req) => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  const geminiApiKey = Deno.env.get("VITE_GEMINI_API_KEY");
+  const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
 
   if (!supabaseUrl || !supabaseServiceKey) {
     return new Response(JSON.stringify({ error: "Server configuration error" }), {
@@ -23,7 +23,7 @@ serve(async (req) => {
     });
   }
 
-  if (!geminiApiKey) {
+  if (!lovableApiKey) {
     return new Response(JSON.stringify({ error: "AI service not configured" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -108,13 +108,10 @@ serve(async (req) => {
       .map(m => `${m.sender === 'user' ? 'Patient' : 'MentiBot'}: ${m.content}`)
       .join('\n');
 
-    // Generate summary using Gemini
-    const payload = {
-      contents: [
-        {
-          role: "user",
-          parts: [{
-            text: `Analyze this mental health conversation between a patient and MentiBot. Create a clinical summary for healthcare providers.
+    // Generate summary using Lovable AI Gateway
+    const systemPrompt = `You are a clinical mental health analyst. Analyze conversations and provide structured clinical summaries for healthcare providers. Always respond with valid JSON only, no markdown formatting.`;
+    
+    const userPrompt = `Analyze this mental health conversation between a patient and MentiBot. Create a clinical summary for healthcare providers.
 
 CONVERSATION:
 ${conversationText}
@@ -124,32 +121,48 @@ Provide a JSON response with:
 2. "mood_indicators": An array of mood descriptors observed (e.g., ["anxious", "hopeful", "stressed"])
 3. "key_concerns": An array of main issues or topics the patient discussed
 
-Response must be valid JSON only, no markdown.`
-          }]
-        }
-      ],
-      generationConfig: {
-        temperature: 0.3,
-        maxOutputTokens: 1024,
-      },
-    };
+Response must be valid JSON only, no markdown.`;
 
     const aiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`,
+      "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${lovableApiKey}`,
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
+          ],
+          temperature: 0.3,
+          max_tokens: 1024,
+        }),
       }
     );
 
     if (!aiResponse.ok) {
-      console.error("Gemini API error:", aiResponse.status);
+      const errorStatus = aiResponse.status;
+      console.error("Lovable AI error:", errorStatus);
+      if (errorStatus === 429) {
+        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (errorStatus === 402) {
+        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits." }), {
+          status: 402,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       throw new Error("AI service error");
     }
 
     const aiResult = await aiResponse.json();
-    const responseText = aiResult?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const responseText = aiResult?.choices?.[0]?.message?.content || "";
     
     // Parse AI response
     let summaryData;
