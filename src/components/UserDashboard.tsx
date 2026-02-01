@@ -1,7 +1,7 @@
 import React, { memo, useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Heart, UserCheck, MessageCircle, BarChart3, Clock, Loader2, Sparkles, Calendar, User, LogOut, ChevronDown, Shield, Stethoscope, LayoutDashboard, CheckCircle2 } from 'lucide-react';
+import { Heart,HeartPulse, UserCheck, MessageCircle, BarChart3, Clock, Loader2, Sparkles, Calendar, User, LogOut, ChevronDown, Shield, Stethoscope, LayoutDashboard, CheckCircle2 } from 'lucide-react';
 import { useUserActivity } from '@/hooks/useUserActivity';
 import { supabase } from '@/integrations/supabase/client';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -236,6 +236,12 @@ const UserDashboard = memo(({ user }: UserDashboardProps) => {
       description: 'Access meditation audio and breathing exercises for stress relief.',
       icon: <Heart className="w-8 h-8" />,
       path: '/stress-management'
+    },
+    {
+      title: 'Health Analytics',
+      description: 'View your health data and analytics over time.',
+      icon: <HeartPulse className="w-8 h-8" />,
+      path: '/health-analytics'
     }
   ], []);
 
