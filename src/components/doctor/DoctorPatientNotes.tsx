@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Brain, MessageSquare, Calendar, Loader2, Plus } from "lucide-react";
+import { Brain, MessageSquare, Calendar, Loader2, Plus, Activity, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,13 @@ interface ChatSummary {
   created_at: string;
 }
 
+interface MoodSummaryNote {
+  id: string;
+  title: string;
+  content: string;
+  created_at: string;
+}
+
 interface DoctorPatientNotesProps {
   patientId: string;
   appointmentId?: string;
@@ -27,27 +34,40 @@ const DoctorPatientNotes: React.FC<DoctorPatientNotesProps> = ({
   appointmentId,
 }) => {
   const [summaries, setSummaries] = useState<ChatSummary[]>([]);
+  const [moodSummaries, setMoodSummaries] = useState<MoodSummaryNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [newNoteTitle, setNewNoteTitle] = useState("");
   const [newNoteContent, setNewNoteContent] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    fetchSummaries();
+    fetchData();
   }, [patientId]);
 
-  const fetchSummaries = async () => {
+  const fetchData = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch chat summaries
+      const { data: chatData, error: chatError } = await supabase
         .from("chat_summaries")
         .select("*")
         .eq("patient_id", patientId)
         .order("summary_date", { ascending: false }) as { data: ChatSummary[] | null; error: any };
 
-      if (error) throw error;
-      setSummaries(data || []);
+      if (chatError) throw chatError;
+      setSummaries(chatData || []);
+
+      // Fetch mood tracker summaries shared by patient
+      const { data: moodData, error: moodError } = await supabase
+        .from("patient_notes")
+        .select("id, title, content, created_at")
+        .eq("patient_id", patientId)
+        .eq("note_type", "mood_summary")
+        .order("created_at", { ascending: false }) as { data: MoodSummaryNote[] | null; error: any };
+
+      if (moodError) throw moodError;
+      setMoodSummaries(moodData || []);
     } catch (error) {
-      console.error("Error fetching summaries:", error);
+      console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
     }
@@ -131,6 +151,42 @@ const DoctorPatientNotes: React.FC<DoctorPatientNotesProps> = ({
           </Button>
         </CardContent>
       </Card>
+
+      {/* Patient Mood Tracker Summaries */}
+      {moodSummaries.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <Activity className="w-5 h-5 text-primary" />
+            <h3 className="font-semibold">Patient's Mood Tracker Data</h3>
+            <Badge variant="secondary" className="text-xs">Shared by patient</Badge>
+          </div>
+
+          <div className="space-y-4">
+            {moodSummaries.map((summary) => (
+              <Card key={summary.id} className="border-primary/20 bg-accent/50">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-primary" />
+                      <CardTitle className="text-sm font-medium">
+                        {summary.title}
+                      </CardTitle>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {formatDate(summary.created_at)}
+                    </span>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <pre className="text-sm text-muted-foreground whitespace-pre-wrap font-sans">
+                    {summary.content}
+                  </pre>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* AI Chat Summaries */}
       <div>
