@@ -551,7 +551,18 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_doctor_profiles: {
+        Row: {
+          full_name: string | null
+          hospital_affiliation: string | null
+          id: string | null
+          is_approved: boolean | null
+          specialty: string | null
+          user_id: string | null
+          years_experience: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_user_role: {
