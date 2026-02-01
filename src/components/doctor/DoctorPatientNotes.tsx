@@ -1,13 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { Brain, MessageSquare, Calendar, Loader2, Plus, Activity, TrendingUp } from "lucide-react";
+import { Brain, MessageSquare, Calendar, Loader2, Activity, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 
 interface ChatSummary {
   id: string;
@@ -44,15 +40,11 @@ interface DoctorPatientNotesProps {
 
 const DoctorPatientNotes: React.FC<DoctorPatientNotesProps> = ({
   patientId,
-  appointmentId,
 }) => {
   const [summaries, setSummaries] = useState<ChatSummary[]>([]);
   const [moodEntries, setMoodEntries] = useState<MoodEntry[]>([]);
   const [moodStats, setMoodStats] = useState<MoodStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [newNoteTitle, setNewNoteTitle] = useState("");
-  const [newNoteContent, setNewNoteContent] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -70,7 +62,7 @@ const DoctorPatientNotes: React.FC<DoctorPatientNotesProps> = ({
       if (chatError) throw chatError;
       setSummaries(chatData || []);
 
-      // Fetch mood entries directly (like chat summaries)
+      // Fetch mood entries directly
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -145,39 +137,6 @@ const DoctorPatientNotes: React.FC<DoctorPatientNotesProps> = ({
     return { icon: "→", color: "text-muted-foreground" };
   };
 
-  const handleAddNote = async () => {
-    if (!newNoteTitle.trim() || !newNoteContent.trim()) {
-      toast.error("Please provide both title and content");
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { error } = await supabase.from("patient_notes").insert({
-        patient_id: patientId,
-        doctor_id: user.id,
-        appointment_id: appointmentId,
-        note_type: "doctor_note",
-        title: newNoteTitle,
-        content: newNoteContent,
-      });
-
-      if (error) throw error;
-
-      toast.success("Note added successfully");
-      setNewNoteTitle("");
-      setNewNoteContent("");
-    } catch (error) {
-      console.error("Error adding note:", error);
-      toast.error("Failed to add note");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       weekday: "short",
@@ -197,33 +156,6 @@ const DoctorPatientNotes: React.FC<DoctorPatientNotesProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Add Doctor Note */}
-      <Card className="border-primary/20">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            Add Clinical Note
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Input
-            placeholder="Note title (e.g., Session Summary, Treatment Plan)"
-            value={newNoteTitle}
-            onChange={(e) => setNewNoteTitle(e.target.value)}
-          />
-          <Textarea
-            placeholder="Enter your clinical observations, treatment notes, or recommendations..."
-            value={newNoteContent}
-            onChange={(e) => setNewNoteContent(e.target.value)}
-            rows={4}
-          />
-          <Button onClick={handleAddNote} disabled={isSaving} className="gap-2">
-            <Plus className="w-4 h-4" />
-            {isSaving ? "Saving..." : "Add Note"}
-          </Button>
-        </CardContent>
-      </Card>
-
       {/* Patient Mood Tracker Data */}
       {moodStats && (
         <div>

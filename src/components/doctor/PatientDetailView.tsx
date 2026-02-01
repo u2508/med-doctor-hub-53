@@ -13,6 +13,7 @@ import VitalsTrendChart from '@/components/vitals/VitalsTrendChart';
 import DoctorVitalsForm from '@/components/doctor/DoctorVitalsForm';
 import HealthSummaryPDF from '@/components/doctor/HealthSummaryPDF';
 import DoctorPatientNotes from '@/components/doctor/DoctorPatientNotes';
+import DoctorNotesTab from '@/components/doctor/DoctorNotesTab';
 
 interface PatientProfile {
   full_name: string;
@@ -455,55 +456,11 @@ const PatientDetailView = ({ patientId, appointment, onBack }: PatientDetailView
 
         {/* Notes & History Tab */}
         <TabsContent value="notes" className="mt-6">
-          <Card className="border-border/50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <FileText className="w-5 h-5 text-primary" />
-                Medical Notes & History
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Notes Timeline */}
-              {notes.length === 0 ? (
-                <p className="text-muted-foreground text-center py-4">No notes recorded</p>
-              ) : (
-                <div className="space-y-3">
-                  {notes.map((note) => (
-                    <div key={note.id} className="border-l-4 border-primary pl-4 py-2">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                        <Calendar className="w-4 h-4" />
-                        {formatDate(note.date)}
-                      </div>
-                      <p className="text-foreground">{note.content}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <Separator />
-
-              {/* Add Note Form */}
-              <div>
-                <h4 className="font-semibold text-foreground mb-3">Add New Note</h4>
-                <Textarea
-                  placeholder="Enter medical notes, observations, or treatment updates..."
-                  value={newNote}
-                  onChange={(e) => setNewNote(e.target.value)}
-                  rows={4}
-                />
-                <div className="flex gap-2 mt-3">
-                  <Button onClick={handleAddNote} className="gap-2">
-                    <Plus className="w-4 h-4" />
-                    Add Note
-                  </Button>
-                  <Button variant="outline" className="gap-2">
-                    <Upload className="w-4 h-4" />
-                    Upload Report
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <DoctorNotesTab 
+            patientId={patientId} 
+            appointmentId={appointment.id}
+            patientName={profile?.full_name || appointment.patient_profile?.full_name}
+          />
         </TabsContent>
 
         {/* Vitals Tab */}
