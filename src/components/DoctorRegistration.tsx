@@ -112,8 +112,9 @@ const DoctorRegistration: React.FC<DoctorRegistrationProps> = ({ setUser, setUse
       
       const fileExt = uploadedFile.name.split('.').pop();
       const timestamp = Date.now();
-      // Use user_id as folder name to match storage policy
-      const fileName = `${userId}/license-${timestamp}.${fileExt}`;
+      // Path format: registrations/{userId}/license-{timestamp}.{ext}
+      // Must match the storage policy which requires authenticated user
+      const fileName = `registrations/${userId}/license-${timestamp}.${fileExt}`;
       
       setUploadProgress(50);
       
@@ -129,7 +130,7 @@ const DoctorRegistration: React.FC<DoctorRegistrationProps> = ({ setUser, setUse
       setUploadProgress(100);
       return fileName;
     } catch (error) {
-      console.warn('Upload failed');
+      console.warn('Upload failed - will retry after email verification');
       throw error;
     }
   };

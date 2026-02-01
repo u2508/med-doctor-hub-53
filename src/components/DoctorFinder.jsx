@@ -40,17 +40,17 @@ const DoctorFinder = () => {
     checkAuth();
   }, []);
 
-  // Fetch doctors from Supabase
+  // Fetch doctors from Supabase using secure public view
   useEffect(() => {
     const fetchDoctors = async () => {
       try {
         setLoading(true);
         
-        // Fetch approved doctors
+        // Use the public_doctor_profiles view which only exposes safe fields
+        // (excludes license_number and sensitive contact info)
         const { data: doctorProfiles, error } = await supabase
-          .from('doctor_profiles')
-          .select('*')
-          .eq('is_approved', true);
+          .from('public_doctor_profiles')
+          .select('*');
 
         if (error) throw error;
 
@@ -61,33 +61,19 @@ const DoctorFinder = () => {
           return;
         }
 
-        // Fetch corresponding profiles for doctor names and contact
-        const userIds = doctorProfiles.map((doctor) => doctor.user_id);
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('profiles')
-          .select('user_id, full_name, phone, email')
-          .in('user_id', userIds);
-
-        if (profilesError) throw profilesError;
-
-        const profileMap = new Map((profilesData || []).map((profile) => [profile.user_id, profile]));
-
         // Transform data to match component structure
-        const transformedDoctors = doctorProfiles.map((doctor) => {
-          const profile = profileMap.get(doctor.user_id);
-          return {
-            id: doctor.user_id,
-            name: profile?.full_name || 'Doctor',
-            specialty: doctor.specialty,
-            experience: doctor.years_experience || 0,
-            fee: doctor.consultation_fee || null,
-            consultationType: doctor.consultation_type || 'video',
-            image: '/placeholder.svg',
-            location: doctor.hospital_affiliation || 'Not specified',
-            availability: 'Available',
-            licenseNumber: doctor.license_number,
-          };
-        });
+        // Note: license_number is no longer exposed for security
+        const transformedDoctors = doctorProfiles.map((doctor) => ({
+          id: doctor.user_id,
+          name: doctor.full_name || 'Doctor',
+          specialty: doctor.specialty,
+          experience: doctor.years_experience || 0,
+          fee: null, // consultation_fee not in public view
+          consultationType: 'video',
+          image: '/placeholder.svg',
+          location: doctor.hospital_affiliation || 'Not specified',
+          availability: 'Available',
+        }));
 
         setDoctors(transformedDoctors);
         setFilteredDoctors(transformedDoctors);
