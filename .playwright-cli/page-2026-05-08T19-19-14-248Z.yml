@@ -1,0 +1,512 @@
+- generic [ref=e2]:
+  - region "Notifications (F8)":
+    - list
+  - region "Notifications alt+T"
+  - generic [ref=e6]:
+    - generic [ref=e11]:
+      - generic [ref=e12]:
+        - generic [ref=e13]:
+          - img [ref=e14]
+          - text: Not a diagnosis
+        - generic [ref=e16]: AI Health Triage
+      - generic [ref=e17]:
+        - heading "Understand urgency, choose the right specialist, and create a doctor-ready summary." [level=1] [ref=e18]
+        - paragraph [ref=e19]: Tell us what you are feeling in natural language, optionally narrow symptoms with chips, and get a safe triage result you can take to a clinician.
+    - generic [ref=e20]:
+      - generic [ref=e22]:
+        - generic [ref=e23]:
+          - heading "Symptom assessment" [level=3] [ref=e24]
+          - paragraph [ref=e25]: Start with the main complaint, then add supporting symptoms and context.
+          - paragraph [ref=e26]: Your symptom summary is stored securely and is only visible to your account unless you share it during booking.
+        - generic [ref=e27]:
+          - generic [ref=e28]:
+            - text: Chief complaint
+            - textbox "Chief complaint" [ref=e29]:
+              - /placeholder: "Example: sharp chest discomfort with shortness of breath for the last 4 hours"
+              - text: joint pain and skin rash for 5 days
+            - paragraph [ref=e30]: Describe the main problem in your own words. Avoid abbreviations if possible.
+          - generic [ref=e31]:
+            - generic [ref=e32]:
+              - generic [ref=e33]: Optional symptom chips
+              - generic [ref=e34]: 1 selected
+            - generic [ref=e35]:
+              - img
+              - textbox "Search symptoms like fever, cough, dizziness..." [ref=e36]
+            - button "Joint Pain" [ref=e521] [cursor=pointer]:
+              - text: Joint Pain
+              - img
+            - generic [ref=e41]:
+              - button "Itching +" [ref=e42] [cursor=pointer]:
+                - generic [ref=e43]: Itching
+                - generic [ref=e44]: +
+              - button "Skin Rash +" [ref=e45] [cursor=pointer]:
+                - generic [ref=e46]: Skin Rash
+                - generic [ref=e47]: +
+              - button "Nodal Skin Eruptions +" [ref=e48] [cursor=pointer]:
+                - generic [ref=e49]: Nodal Skin Eruptions
+                - generic [ref=e50]: +
+              - button "Continuous Sneezing +" [ref=e51] [cursor=pointer]:
+                - generic [ref=e52]: Continuous Sneezing
+                - generic [ref=e53]: +
+              - button "Shivering +" [ref=e54] [cursor=pointer]:
+                - generic [ref=e55]: Shivering
+                - generic [ref=e56]: +
+              - button "Chills +" [ref=e57] [cursor=pointer]:
+                - generic [ref=e58]: Chills
+                - generic [ref=e59]: +
+              - button "Joint Pain ✓" [active] [ref=e522] [cursor=pointer]:
+                - generic [ref=e61]: Joint Pain
+                - generic [ref=e62]: ✓
+              - button "Stomach Pain +" [ref=e63] [cursor=pointer]:
+                - generic [ref=e64]: Stomach Pain
+                - generic [ref=e65]: +
+              - button "Acidity +" [ref=e66] [cursor=pointer]:
+                - generic [ref=e67]: Acidity
+                - generic [ref=e68]: +
+              - button "Ulcers On Tongue +" [ref=e69] [cursor=pointer]:
+                - generic [ref=e70]: Ulcers On Tongue
+                - generic [ref=e71]: +
+              - button "Muscle Wasting +" [ref=e72] [cursor=pointer]:
+                - generic [ref=e73]: Muscle Wasting
+                - generic [ref=e74]: +
+              - button "Vomiting +" [ref=e75] [cursor=pointer]:
+                - generic [ref=e76]: Vomiting
+                - generic [ref=e77]: +
+              - button "Burning Micturition +" [ref=e78] [cursor=pointer]:
+                - generic [ref=e79]: Burning Micturition
+                - generic [ref=e80]: +
+              - button "Spotting Urination +" [ref=e81] [cursor=pointer]:
+                - generic [ref=e82]: Spotting Urination
+                - generic [ref=e83]: +
+              - button "Fatigue +" [ref=e84] [cursor=pointer]:
+                - generic [ref=e85]: Fatigue
+                - generic [ref=e86]: +
+              - button "Weight Gain +" [ref=e87] [cursor=pointer]:
+                - generic [ref=e88]: Weight Gain
+                - generic [ref=e89]: +
+              - button "Anxiety +" [ref=e90] [cursor=pointer]:
+                - generic [ref=e91]: Anxiety
+                - generic [ref=e92]: +
+              - button "Cold Hands And Feets +" [ref=e93] [cursor=pointer]:
+                - generic [ref=e94]: Cold Hands And Feets
+                - generic [ref=e95]: +
+              - button "Mood Swings +" [ref=e96] [cursor=pointer]:
+                - generic [ref=e97]: Mood Swings
+                - generic [ref=e98]: +
+              - button "Weight Loss +" [ref=e99] [cursor=pointer]:
+                - generic [ref=e100]: Weight Loss
+                - generic [ref=e101]: +
+              - button "Restlessness +" [ref=e102] [cursor=pointer]:
+                - generic [ref=e103]: Restlessness
+                - generic [ref=e104]: +
+              - button "Lethargy +" [ref=e105] [cursor=pointer]:
+                - generic [ref=e106]: Lethargy
+                - generic [ref=e107]: +
+              - button "Patches In Throat +" [ref=e108] [cursor=pointer]:
+                - generic [ref=e109]: Patches In Throat
+                - generic [ref=e110]: +
+              - button "Irregular Sugar Level +" [ref=e111] [cursor=pointer]:
+                - generic [ref=e112]: Irregular Sugar Level
+                - generic [ref=e113]: +
+              - button "Cough +" [ref=e114] [cursor=pointer]:
+                - generic [ref=e115]: Cough
+                - generic [ref=e116]: +
+              - button "High Fever +" [ref=e117] [cursor=pointer]:
+                - generic [ref=e118]: High Fever
+                - generic [ref=e119]: +
+              - button "Sunken Eyes +" [ref=e120] [cursor=pointer]:
+                - generic [ref=e121]: Sunken Eyes
+                - generic [ref=e122]: +
+              - button "Breathlessness +" [ref=e123] [cursor=pointer]:
+                - generic [ref=e124]: Breathlessness
+                - generic [ref=e125]: +
+              - button "Sweating +" [ref=e126] [cursor=pointer]:
+                - generic [ref=e127]: Sweating
+                - generic [ref=e128]: +
+              - button "Dehydration +" [ref=e129] [cursor=pointer]:
+                - generic [ref=e130]: Dehydration
+                - generic [ref=e131]: +
+              - button "Indigestion +" [ref=e132] [cursor=pointer]:
+                - generic [ref=e133]: Indigestion
+                - generic [ref=e134]: +
+              - button "Headache +" [ref=e135] [cursor=pointer]:
+                - generic [ref=e136]: Headache
+                - generic [ref=e137]: +
+              - button "Yellowish Skin +" [ref=e138] [cursor=pointer]:
+                - generic [ref=e139]: Yellowish Skin
+                - generic [ref=e140]: +
+              - button "Dark Urine +" [ref=e141] [cursor=pointer]:
+                - generic [ref=e142]: Dark Urine
+                - generic [ref=e143]: +
+              - button "Nausea +" [ref=e144] [cursor=pointer]:
+                - generic [ref=e145]: Nausea
+                - generic [ref=e146]: +
+              - button "Loss Of Appetite +" [ref=e147] [cursor=pointer]:
+                - generic [ref=e148]: Loss Of Appetite
+                - generic [ref=e149]: +
+              - button "Pain Behind The Eyes +" [ref=e150] [cursor=pointer]:
+                - generic [ref=e151]: Pain Behind The Eyes
+                - generic [ref=e152]: +
+              - button "Back Pain +" [ref=e153] [cursor=pointer]:
+                - generic [ref=e154]: Back Pain
+                - generic [ref=e155]: +
+              - button "Constipation +" [ref=e156] [cursor=pointer]:
+                - generic [ref=e157]: Constipation
+                - generic [ref=e158]: +
+              - button "Abdominal Pain +" [ref=e159] [cursor=pointer]:
+                - generic [ref=e160]: Abdominal Pain
+                - generic [ref=e161]: +
+              - button "Diarrhoea +" [ref=e162] [cursor=pointer]:
+                - generic [ref=e163]: Diarrhoea
+                - generic [ref=e164]: +
+              - button "Mild Fever +" [ref=e165] [cursor=pointer]:
+                - generic [ref=e166]: Mild Fever
+                - generic [ref=e167]: +
+              - button "Yellow Urine +" [ref=e168] [cursor=pointer]:
+                - generic [ref=e169]: Yellow Urine
+                - generic [ref=e170]: +
+              - button "Yellowing Of Eyes +" [ref=e171] [cursor=pointer]:
+                - generic [ref=e172]: Yellowing Of Eyes
+                - generic [ref=e173]: +
+              - button "Acute Liver Failure +" [ref=e174] [cursor=pointer]:
+                - generic [ref=e175]: Acute Liver Failure
+                - generic [ref=e176]: +
+              - button "Fluid Overload +" [ref=e177] [cursor=pointer]:
+                - generic [ref=e178]: Fluid Overload
+                - generic [ref=e179]: +
+              - button "Swelling Of Stomach +" [ref=e180] [cursor=pointer]:
+                - generic [ref=e181]: Swelling Of Stomach
+                - generic [ref=e182]: +
+              - button "Swelled Lymph Nodes +" [ref=e183] [cursor=pointer]:
+                - generic [ref=e184]: Swelled Lymph Nodes
+                - generic [ref=e185]: +
+              - button "Malaise +" [ref=e186] [cursor=pointer]:
+                - generic [ref=e187]: Malaise
+                - generic [ref=e188]: +
+              - button "Blurred And Distorted Vision +" [ref=e189] [cursor=pointer]:
+                - generic [ref=e190]: Blurred And Distorted Vision
+                - generic [ref=e191]: +
+              - button "Phlegm +" [ref=e192] [cursor=pointer]:
+                - generic [ref=e193]: Phlegm
+                - generic [ref=e194]: +
+              - button "Throat Irritation +" [ref=e195] [cursor=pointer]:
+                - generic [ref=e196]: Throat Irritation
+                - generic [ref=e197]: +
+              - button "Redness Of Eyes +" [ref=e198] [cursor=pointer]:
+                - generic [ref=e199]: Redness Of Eyes
+                - generic [ref=e200]: +
+              - button "Sinus Pressure +" [ref=e201] [cursor=pointer]:
+                - generic [ref=e202]: Sinus Pressure
+                - generic [ref=e203]: +
+              - button "Runny Nose +" [ref=e204] [cursor=pointer]:
+                - generic [ref=e205]: Runny Nose
+                - generic [ref=e206]: +
+              - button "Congestion +" [ref=e207] [cursor=pointer]:
+                - generic [ref=e208]: Congestion
+                - generic [ref=e209]: +
+              - button "Chest Pain +" [ref=e210] [cursor=pointer]:
+                - generic [ref=e211]: Chest Pain
+                - generic [ref=e212]: +
+              - button "Weakness In Limbs +" [ref=e213] [cursor=pointer]:
+                - generic [ref=e214]: Weakness In Limbs
+                - generic [ref=e215]: +
+              - button "Fast Heart Rate +" [ref=e216] [cursor=pointer]:
+                - generic [ref=e217]: Fast Heart Rate
+                - generic [ref=e218]: +
+              - button "Pain During Bowel Movements +" [ref=e219] [cursor=pointer]:
+                - generic [ref=e220]: Pain During Bowel Movements
+                - generic [ref=e221]: +
+              - button "Pain In Anal Region +" [ref=e222] [cursor=pointer]:
+                - generic [ref=e223]: Pain In Anal Region
+                - generic [ref=e224]: +
+              - button "Bloody Stool +" [ref=e225] [cursor=pointer]:
+                - generic [ref=e226]: Bloody Stool
+                - generic [ref=e227]: +
+              - button "Irritation In Anus +" [ref=e228] [cursor=pointer]:
+                - generic [ref=e229]: Irritation In Anus
+                - generic [ref=e230]: +
+              - button "Neck Pain +" [ref=e231] [cursor=pointer]:
+                - generic [ref=e232]: Neck Pain
+                - generic [ref=e233]: +
+              - button "Dizziness +" [ref=e234] [cursor=pointer]:
+                - generic [ref=e235]: Dizziness
+                - generic [ref=e236]: +
+              - button "Cramps +" [ref=e237] [cursor=pointer]:
+                - generic [ref=e238]: Cramps
+                - generic [ref=e239]: +
+              - button "Bruising +" [ref=e240] [cursor=pointer]:
+                - generic [ref=e241]: Bruising
+                - generic [ref=e242]: +
+              - button "Obesity +" [ref=e243] [cursor=pointer]:
+                - generic [ref=e244]: Obesity
+                - generic [ref=e245]: +
+              - button "Swollen Legs +" [ref=e246] [cursor=pointer]:
+                - generic [ref=e247]: Swollen Legs
+                - generic [ref=e248]: +
+              - button "Swollen Blood Vessels +" [ref=e249] [cursor=pointer]:
+                - generic [ref=e250]: Swollen Blood Vessels
+                - generic [ref=e251]: +
+              - button "Puffy Face And Eyes +" [ref=e252] [cursor=pointer]:
+                - generic [ref=e253]: Puffy Face And Eyes
+                - generic [ref=e254]: +
+              - button "Enlarged Thyroid +" [ref=e255] [cursor=pointer]:
+                - generic [ref=e256]: Enlarged Thyroid
+                - generic [ref=e257]: +
+              - button "Brittle Nails +" [ref=e258] [cursor=pointer]:
+                - generic [ref=e259]: Brittle Nails
+                - generic [ref=e260]: +
+              - button "Swollen Extremeties +" [ref=e261] [cursor=pointer]:
+                - generic [ref=e262]: Swollen Extremeties
+                - generic [ref=e263]: +
+              - button "Excessive Hunger +" [ref=e264] [cursor=pointer]:
+                - generic [ref=e265]: Excessive Hunger
+                - generic [ref=e266]: +
+              - button "Extra Marital Contacts +" [ref=e267] [cursor=pointer]:
+                - generic [ref=e268]: Extra Marital Contacts
+                - generic [ref=e269]: +
+              - button "Drying And Tingling Lips +" [ref=e270] [cursor=pointer]:
+                - generic [ref=e271]: Drying And Tingling Lips
+                - generic [ref=e272]: +
+              - button "Slurred Speech +" [ref=e273] [cursor=pointer]:
+                - generic [ref=e274]: Slurred Speech
+                - generic [ref=e275]: +
+              - button "Knee Pain +" [ref=e276] [cursor=pointer]:
+                - generic [ref=e277]: Knee Pain
+                - generic [ref=e278]: +
+              - button "Hip Joint Pain +" [ref=e279] [cursor=pointer]:
+                - generic [ref=e280]: Hip Joint Pain
+                - generic [ref=e281]: +
+              - button "Muscle Weakness +" [ref=e282] [cursor=pointer]:
+                - generic [ref=e283]: Muscle Weakness
+                - generic [ref=e284]: +
+              - button "Stiff Neck +" [ref=e285] [cursor=pointer]:
+                - generic [ref=e286]: Stiff Neck
+                - generic [ref=e287]: +
+              - button "Swelling Joints +" [ref=e288] [cursor=pointer]:
+                - generic [ref=e289]: Swelling Joints
+                - generic [ref=e290]: +
+              - button "Movement Stiffness +" [ref=e291] [cursor=pointer]:
+                - generic [ref=e292]: Movement Stiffness
+                - generic [ref=e293]: +
+              - button "Spinning Movements +" [ref=e294] [cursor=pointer]:
+                - generic [ref=e295]: Spinning Movements
+                - generic [ref=e296]: +
+              - button "Loss Of Balance +" [ref=e297] [cursor=pointer]:
+                - generic [ref=e298]: Loss Of Balance
+                - generic [ref=e299]: +
+              - button "Unsteadiness +" [ref=e300] [cursor=pointer]:
+                - generic [ref=e301]: Unsteadiness
+                - generic [ref=e302]: +
+              - button "Weakness Of One Body Side +" [ref=e303] [cursor=pointer]:
+                - generic [ref=e304]: Weakness Of One Body Side
+                - generic [ref=e305]: +
+              - button "Loss Of Smell +" [ref=e306] [cursor=pointer]:
+                - generic [ref=e307]: Loss Of Smell
+                - generic [ref=e308]: +
+              - button "Bladder Discomfort +" [ref=e309] [cursor=pointer]:
+                - generic [ref=e310]: Bladder Discomfort
+                - generic [ref=e311]: +
+              - button "Foul Smell Ofurine +" [ref=e312] [cursor=pointer]:
+                - generic [ref=e313]: Foul Smell Ofurine
+                - generic [ref=e314]: +
+              - button "Continuous Feel Of Urine +" [ref=e315] [cursor=pointer]:
+                - generic [ref=e316]: Continuous Feel Of Urine
+                - generic [ref=e317]: +
+              - button "Passage Of Gases +" [ref=e318] [cursor=pointer]:
+                - generic [ref=e319]: Passage Of Gases
+                - generic [ref=e320]: +
+              - button "Internal Itching +" [ref=e321] [cursor=pointer]:
+                - generic [ref=e322]: Internal Itching
+                - generic [ref=e323]: +
+              - button "Toxic Look (Typhos) +" [ref=e324] [cursor=pointer]:
+                - generic [ref=e325]: Toxic Look (Typhos)
+                - generic [ref=e326]: +
+              - button "Depression +" [ref=e327] [cursor=pointer]:
+                - generic [ref=e328]: Depression
+                - generic [ref=e329]: +
+              - button "Irritability +" [ref=e330] [cursor=pointer]:
+                - generic [ref=e331]: Irritability
+                - generic [ref=e332]: +
+              - button "Muscle Pain +" [ref=e333] [cursor=pointer]:
+                - generic [ref=e334]: Muscle Pain
+                - generic [ref=e335]: +
+              - button "Altered Sensorium +" [ref=e336] [cursor=pointer]:
+                - generic [ref=e337]: Altered Sensorium
+                - generic [ref=e338]: +
+              - button "Red Spots Over Body +" [ref=e339] [cursor=pointer]:
+                - generic [ref=e340]: Red Spots Over Body
+                - generic [ref=e341]: +
+              - button "Belly Pain +" [ref=e342] [cursor=pointer]:
+                - generic [ref=e343]: Belly Pain
+                - generic [ref=e344]: +
+              - button "Abnormal Menstruation +" [ref=e345] [cursor=pointer]:
+                - generic [ref=e346]: Abnormal Menstruation
+                - generic [ref=e347]: +
+              - button "Dischromic Patches +" [ref=e348] [cursor=pointer]:
+                - generic [ref=e349]: Dischromic Patches
+                - generic [ref=e350]: +
+              - button "Watering From Eyes +" [ref=e351] [cursor=pointer]:
+                - generic [ref=e352]: Watering From Eyes
+                - generic [ref=e353]: +
+              - button "Increased Appetite +" [ref=e354] [cursor=pointer]:
+                - generic [ref=e355]: Increased Appetite
+                - generic [ref=e356]: +
+              - button "Polyuria +" [ref=e357] [cursor=pointer]:
+                - generic [ref=e358]: Polyuria
+                - generic [ref=e359]: +
+              - button "Family History +" [ref=e360] [cursor=pointer]:
+                - generic [ref=e361]: Family History
+                - generic [ref=e362]: +
+              - button "Mucoid Sputum +" [ref=e363] [cursor=pointer]:
+                - generic [ref=e364]: Mucoid Sputum
+                - generic [ref=e365]: +
+              - button "Rusty Sputum +" [ref=e366] [cursor=pointer]:
+                - generic [ref=e367]: Rusty Sputum
+                - generic [ref=e368]: +
+              - button "Lack Of Concentration +" [ref=e369] [cursor=pointer]:
+                - generic [ref=e370]: Lack Of Concentration
+                - generic [ref=e371]: +
+              - button "Visual Disturbances +" [ref=e372] [cursor=pointer]:
+                - generic [ref=e373]: Visual Disturbances
+                - generic [ref=e374]: +
+              - button "Receiving Blood Transfusion +" [ref=e375] [cursor=pointer]:
+                - generic [ref=e376]: Receiving Blood Transfusion
+                - generic [ref=e377]: +
+              - button "Receiving Unsterile Injections +" [ref=e378] [cursor=pointer]:
+                - generic [ref=e379]: Receiving Unsterile Injections
+                - generic [ref=e380]: +
+              - button "Coma +" [ref=e381] [cursor=pointer]:
+                - generic [ref=e382]: Coma
+                - generic [ref=e383]: +
+              - button "Stomach Bleeding +" [ref=e384] [cursor=pointer]:
+                - generic [ref=e385]: Stomach Bleeding
+                - generic [ref=e386]: +
+              - button "Distention Of Abdomen +" [ref=e387] [cursor=pointer]:
+                - generic [ref=e388]: Distention Of Abdomen
+                - generic [ref=e389]: +
+              - button "History Of Alcohol Consumption +" [ref=e390] [cursor=pointer]:
+                - generic [ref=e391]: History Of Alcohol Consumption
+                - generic [ref=e392]: +
+              - button "Blood In Sputum +" [ref=e393] [cursor=pointer]:
+                - generic [ref=e394]: Blood In Sputum
+                - generic [ref=e395]: +
+              - button "Prominent Veins On Calf +" [ref=e396] [cursor=pointer]:
+                - generic [ref=e397]: Prominent Veins On Calf
+                - generic [ref=e398]: +
+              - button "Palpitations +" [ref=e399] [cursor=pointer]:
+                - generic [ref=e400]: Palpitations
+                - generic [ref=e401]: +
+              - button "Painful Walking +" [ref=e402] [cursor=pointer]:
+                - generic [ref=e403]: Painful Walking
+                - generic [ref=e404]: +
+              - button "Pus Filled Pimples +" [ref=e405] [cursor=pointer]:
+                - generic [ref=e406]: Pus Filled Pimples
+                - generic [ref=e407]: +
+              - button "Blackheads +" [ref=e408] [cursor=pointer]:
+                - generic [ref=e409]: Blackheads
+                - generic [ref=e410]: +
+              - button "Scurring +" [ref=e411] [cursor=pointer]:
+                - generic [ref=e412]: Scurring
+                - generic [ref=e413]: +
+              - button "Skin Peeling +" [ref=e414] [cursor=pointer]:
+                - generic [ref=e415]: Skin Peeling
+                - generic [ref=e416]: +
+              - button "Silver Like Dusting +" [ref=e417] [cursor=pointer]:
+                - generic [ref=e418]: Silver Like Dusting
+                - generic [ref=e419]: +
+              - button "Small Dents In Nails +" [ref=e420] [cursor=pointer]:
+                - generic [ref=e421]: Small Dents In Nails
+                - generic [ref=e422]: +
+              - button "Inflammatory Nails +" [ref=e423] [cursor=pointer]:
+                - generic [ref=e424]: Inflammatory Nails
+                - generic [ref=e425]: +
+              - button "Blister +" [ref=e426] [cursor=pointer]:
+                - generic [ref=e427]: Blister
+                - generic [ref=e428]: +
+              - button "Red Sore Around Nose +" [ref=e429] [cursor=pointer]:
+                - generic [ref=e430]: Red Sore Around Nose
+                - generic [ref=e431]: +
+              - button "Yellow Crust Ooze +" [ref=e432] [cursor=pointer]:
+                - generic [ref=e433]: Yellow Crust Ooze
+                - generic [ref=e434]: +
+              - button "Prognosis +" [ref=e435] [cursor=pointer]:
+                - generic [ref=e436]: Prognosis
+                - generic [ref=e437]: +
+          - generic [ref=e438]:
+            - generic [ref=e439]:
+              - text: Age
+              - spinbutton "Age" [ref=e440]
+            - generic [ref=e441]:
+              - text: Duration
+              - textbox "Duration" [ref=e442]:
+                - /placeholder: e.g. 3 days
+            - generic [ref=e443]:
+              - text: Severity
+              - combobox "Severity" [ref=e444] [cursor=pointer]:
+                - generic: Moderate
+                - img [ref=e445]
+            - generic [ref=e447]:
+              - text: Sex
+              - combobox "Sex" [ref=e448] [cursor=pointer]:
+                - generic: Optional
+                - img [ref=e449]
+          - generic [ref=e451]:
+            - generic [ref=e452]:
+              - text: Existing conditions
+              - textbox "Existing conditions" [ref=e453]:
+                - /placeholder: Diabetes, hypertension, asthma...
+            - generic [ref=e454]:
+              - text: Current medicines
+              - textbox "Current medicines" [ref=e455]:
+                - /placeholder: Metformin, inhaler, blood pressure medicine...
+            - generic [ref=e456]:
+              - text: Allergies
+              - textbox "Allergies" [ref=e457]:
+                - /placeholder: Penicillin, peanuts, dust, latex...
+          - generic [ref=e458]:
+            - generic [ref=e459]:
+              - generic [ref=e460]:
+                - checkbox "Fever" [ref=e461] [cursor=pointer]
+                - generic [ref=e462] [cursor=pointer]: Fever
+              - paragraph [ref=e463]: Mark if you have a temperature or feel feverish.
+            - generic [ref=e464]:
+              - generic [ref=e465]:
+                - checkbox "Pregnant" [ref=e466] [cursor=pointer]
+                - generic [ref=e467] [cursor=pointer]: Pregnant
+              - paragraph [ref=e468]: Optional. Important for safe triage if it applies to you.
+        - generic [ref=e469]:
+          - button "Analyze Symptoms" [ref=e470] [cursor=pointer]:
+            - text: Analyze Symptoms
+            - img
+          - button "Start new assessment" [ref=e471] [cursor=pointer]
+        - generic [ref=e472]: Your symptom summary is stored securely and visible only to your account unless you share it during booking.
+      - generic [ref=e474]:
+        - generic [ref=e475]:
+          - heading "What you will get" [level=3] [ref=e476]
+          - paragraph [ref=e477]: A safe triage result that helps you decide urgency and prepare for a visit.
+        - generic [ref=e478]:
+          - generic [ref=e479]:
+            - generic [ref=e481]:
+              - img [ref=e483]
+              - generic [ref=e485]:
+                - heading "Urgency level" [level=3] [ref=e486]
+                - paragraph [ref=e487]: Emergency, urgent, soon, routine, or self care.
+            - generic [ref=e489]:
+              - img [ref=e491]
+              - generic [ref=e495]:
+                - heading "Recommended specialist" [level=3] [ref=e496]
+                - paragraph [ref=e497]: Route yourself to the right clinician faster.
+            - generic [ref=e499]:
+              - img [ref=e501]
+              - generic [ref=e503]:
+                - heading "Doctor-ready summary" [level=3] [ref=e504]
+                - paragraph [ref=e505]: A concise summary you can share at booking or in clinic.
+            - generic [ref=e507]:
+              - img [ref=e509]
+              - generic [ref=e512]:
+                - heading "Safety-first checks" [level=3] [ref=e513]
+                - paragraph [ref=e514]: Local red-flag screening before any AI reasoning.
+          - alert [ref=e515]:
+            - img [ref=e516]
+            - heading "Not a diagnosis" [level=5] [ref=e518]
+            - generic [ref=e519]: This flow helps you prepare for a consultation. It does not replace a clinician.

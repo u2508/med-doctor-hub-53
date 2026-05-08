@@ -1,0 +1,255 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e4]:
+      - generic [ref=e225]:
+        - generic [ref=e229]:
+          - img [ref=e230]
+          - generic [ref=e232]:
+            - paragraph [ref=e233]: We are investigating a technical issue
+            - generic [ref=e234]:
+              - generic [ref=e235]: ·
+              - generic [ref=e236]:
+                - text: Follow the
+                - link "status page" [ref=e237] [cursor=pointer]:
+                  - /url: https://status.supabase.com
+                - text: for updates
+        - generic [ref=e239]:
+          - generic [ref=e241]:
+            - img [ref=e242]
+            - generic [ref=e244]:
+              - paragraph [ref=e245]: We've updated our Terms of Service
+              - generic [ref=e246]:
+                - generic [ref=e247]: ·
+                - button "Learn more" [ref=e249] [cursor=pointer]
+          - button "Dismiss banner" [ref=e250] [cursor=pointer]:
+            - img [ref=e252]
+      - banner [ref=e6]:
+        - generic [ref=e7]:
+          - generic [ref=e8]:
+            - link "Supabase" [ref=e9] [cursor=pointer]:
+              - /url: /dashboard/org/qwhkiiqyivqoglvfkakt
+              - img "Supabase" [ref=e10]
+            - generic [ref=e11]:
+              - img [ref=e256]
+              - generic [ref=e258]:
+                - link "u2508's Org Free" [ref=e259] [cursor=pointer]:
+                  - /url: /dashboard/org/qwhkiiqyivqoglvfkakt
+                  - img [ref=e260]
+                  - generic [ref=e270]: u2508's Org
+                  - generic [ref=e271]: Free
+                - button [ref=e272] [cursor=pointer]:
+                  - img [ref=e274]
+              - generic [ref=e12]:
+                - img [ref=e14]
+                - generic [ref=e277]:
+                  - link "MED.IO" [ref=e278] [cursor=pointer]:
+                    - /url: /dashboard/project/xmgtgpfsijbteijceneq
+                    - img [ref=e279]
+                    - generic "MED.IO" [ref=e282]
+                  - button [ref=e283] [cursor=pointer]:
+                    - img [ref=e285]
+                - img [ref=e289]
+                - generic [ref=e291]:
+                  - link "main Production" [ref=e292] [cursor=pointer]:
+                    - /url: /dashboard/project/xmgtgpfsijbteijceneq
+                    - generic "main" [ref=e293]
+                    - generic [ref=e294]: Production
+                  - button [ref=e295] [cursor=pointer]:
+                    - img [ref=e297]
+            - button "Connect" [ref=e632] [cursor=pointer]:
+              - img [ref=e20]
+              - generic [ref=e22]: Connect
+          - generic [ref=e23]:
+            - generic [ref=e25] [cursor=pointer]: Feedback
+            - generic [ref=e26]:
+              - button "Search..." [ref=e27]:
+                - generic [ref=e28]:
+                  - img [ref=e29]
+                  - paragraph [ref=e32]: Search...
+                - generic [ref=e34]: ⌘K
+              - button [ref=e35] [cursor=pointer]:
+                - img [ref=e37]
+              - button [ref=e41] [cursor=pointer]:
+                - img [ref=e43]
+              - button [ref=e45] [cursor=pointer]:
+                - img [ref=e47]
+              - button [ref=e49] [cursor=pointer]:
+                - img [ref=e53]
+            - button "u2508" [ref=e633] [cursor=pointer]:
+              - img "u2508" [ref=e634]
+      - generic [ref=e61]:
+        - generic [ref=e65]:
+          - list [ref=e68]:
+            - generic [ref=e69]:
+              - listitem [ref=e70]:
+                - link "Project Overview" [ref=e71] [cursor=pointer]:
+                  - /url: /dashboard/project/xmgtgpfsijbteijceneq
+                  - img [ref=e72]
+                  - generic: Project Overview
+              - listitem [ref=e74]:
+                - link "Table Editor" [ref=e302] [cursor=pointer]:
+                  - /url: /dashboard/project/xmgtgpfsijbteijceneq/editor
+                  - img [ref=e303]
+                  - generic: Table Editor
+              - listitem [ref=e75]:
+                - link "SQL Editor" [ref=e305] [cursor=pointer]:
+                  - /url: /dashboard/project/xmgtgpfsijbteijceneq/sql
+                  - img [ref=e306]
+                  - generic: SQL Editor
+            - generic [ref=e76]:
+              - listitem [ref=e77]:
+                - link "Database" [ref=e308] [cursor=pointer]:
+                  - /url: /dashboard/project/xmgtgpfsijbteijceneq/database/schemas
+                  - img [ref=e309]
+                  - generic: Database
+              - listitem [ref=e78]:
+                - link "Authentication" [ref=e313] [cursor=pointer]:
+                  - /url: /dashboard/project/xmgtgpfsijbteijceneq/auth/users
+                  - img [ref=e314]
+                  - generic: Authentication
+              - listitem [ref=e79]:
+                - link "Storage" [ref=e316] [cursor=pointer]:
+                  - /url: /dashboard/project/xmgtgpfsijbteijceneq/storage/files
+                  - img [ref=e317]
+                  - generic: Storage
+              - listitem [ref=e80]:
+                - link "Edge Functions" [ref=e81] [cursor=pointer]:
+                  - /url: /dashboard/project/xmgtgpfsijbteijceneq/functions
+                  - img [ref=e82]
+                  - generic: Edge Functions
+              - listitem [ref=e87]:
+                - link "Realtime" [ref=e319] [cursor=pointer]:
+                  - /url: /dashboard/project/xmgtgpfsijbteijceneq/realtime/inspector
+                  - img [ref=e320]
+                  - generic: Realtime
+            - generic [ref=e88]:
+              - listitem [ref=e90]:
+                - link "Advisors" [ref=e322] [cursor=pointer]:
+                  - /url: /dashboard/project/xmgtgpfsijbteijceneq/advisors/security
+                  - img [ref=e323]
+                  - generic: Advisors
+              - listitem [ref=e91]:
+                - link "Observability" [ref=e325] [cursor=pointer]:
+                  - /url: /dashboard/project/xmgtgpfsijbteijceneq/observability
+                  - img [ref=e326]
+                  - generic: Observability
+              - listitem [ref=e92]:
+                - link "Logs" [ref=e93] [cursor=pointer]:
+                  - /url: /dashboard/project/xmgtgpfsijbteijceneq/logs/explorer
+                  - img [ref=e94]
+                  - generic: Logs
+              - listitem [ref=e95]:
+                - link "Integrations" [ref=e334] [cursor=pointer]:
+                  - /url: /dashboard/project/xmgtgpfsijbteijceneq/integrations
+                  - img [ref=e335]
+                  - generic: Integrations
+            - listitem [ref=e97]:
+              - link "Project Settings" [ref=e98] [cursor=pointer]:
+                - /url: /dashboard/project/xmgtgpfsijbteijceneq/settings/general
+                - img [ref=e99]
+                - generic: Project Settings
+          - button [ref=e104] [cursor=pointer]:
+            - img [ref=e106]
+        - generic [ref=e113]:
+          - generic [ref=e117]:
+            - heading "Edge Functions" [level=4] [ref=e119]
+            - menu "Sidebar" [disabled] [ref=e122]:
+              - list [ref=e123]:
+                - generic [ref=e126]:
+                  - generic [ref=e130]: Manage
+                  - generic [ref=e131]:
+                    - link "Functions" [disabled] [ref=e132] [cursor=pointer]:
+                      - /url: /dashboard/project/xmgtgpfsijbteijceneq/functions
+                      - menuitem "Functions" [disabled] [ref=e133]:
+                        - generic "Functions" [ref=e136]:
+                          - generic [ref=e137]: Functions
+                    - link "Secrets" [disabled] [ref=e138] [cursor=pointer]:
+                      - /url: /dashboard/project/xmgtgpfsijbteijceneq/functions/secrets
+                      - menuitem "Secrets" [disabled] [ref=e139]:
+                        - generic "Secrets" [ref=e142]:
+                          - generic [ref=e143]: Secrets
+          - separator [disabled] [ref=e144]:
+            - img [ref=e146]
+          - main [ref=e155]:
+            - generic [ref=e338]:
+              - generic [ref=e339]:
+                - navigation "breadcrumb" [ref=e341]:
+                  - list [ref=e342]:
+                    - listitem [ref=e343]:
+                      - link "Edge Functions" [ref=e344] [cursor=pointer]:
+                        - /url: /dashboard/project/xmgtgpfsijbteijceneq/functions
+                    - listitem [ref=e345]:
+                      - img [ref=e346]
+                    - listitem [ref=e348]:
+                      - link "ai-triage" [ref=e349] [cursor=pointer]:
+                        - /url: /dashboard/project/xmgtgpfsijbteijceneq/functions/ai-triage
+                - generic [ref=e351]:
+                  - generic [ref=e352]:
+                    - heading "ai-triage" [level=1] [ref=e353]
+                    - generic [ref=e354]:
+                      - generic [ref=e355]:
+                        - generic [ref=e356]: https://xmgtgpfsijbteijceneq.supabase.co/functions/v1/ai-triage
+                        - button [ref=e357] [cursor=pointer]:
+                          - img [ref=e359]
+                      - button "a few seconds ago" [ref=e635]:
+                        - img [ref=e363]
+                        - generic [ref=e366]: a few seconds ago
+                  - generic [ref=e368]:
+                    - link "Docs" [ref=e369] [cursor=pointer]:
+                      - /url: https://supabase.com/docs/guides/functions
+                      - img [ref=e371]
+                      - generic [ref=e374]: Docs
+                    - button "Download" [ref=e375] [cursor=pointer]:
+                      - img [ref=e377]
+                      - generic [ref=e380]: Download
+                    - button "Test" [ref=e381] [cursor=pointer]:
+                      - img [ref=e383]
+                      - generic [ref=e386]: Test
+                - navigation [ref=e389]:
+                  - menu [ref=e390]:
+                    - listitem [ref=e391]:
+                      - link "Overview" [ref=e392] [cursor=pointer]:
+                        - /url: /dashboard/project/xmgtgpfsijbteijceneq/functions/ai-triage
+                    - listitem [ref=e393]:
+                      - link "Invocations" [ref=e394] [cursor=pointer]:
+                        - /url: /dashboard/project/xmgtgpfsijbteijceneq/functions/ai-triage/invocations
+                    - listitem [ref=e395]:
+                      - link "Logs" [ref=e396] [cursor=pointer]:
+                        - /url: /dashboard/project/xmgtgpfsijbteijceneq/functions/ai-triage/logs
+                    - listitem [ref=e397]:
+                      - link "Code" [ref=e398] [cursor=pointer]:
+                        - /url: /dashboard/project/xmgtgpfsijbteijceneq/functions/ai-triage/code
+                    - listitem [ref=e399]:
+                      - link "Settings" [ref=e400] [cursor=pointer]:
+                        - /url: /dashboard/project/xmgtgpfsijbteijceneq/functions/ai-triage/details
+              - generic [ref=e401]:
+                - generic [ref=e402]:
+                  - generic [ref=e403]:
+                    - generic [ref=e404]:
+                      - heading "Files" [level=3] [ref=e405]
+                      - button "Add File" [ref=e406] [cursor=pointer]:
+                        - img [ref=e408]
+                        - generic [ref=e409]: Add File
+                    - tree "files tree" [ref=e411]:
+                      - treeitem "index.ts" [level=1] [selected] [ref=e636] [cursor=pointer]:
+                        - generic [ref=e415]:
+                          - img [ref=e416]
+                          - generic [ref=e419]: index.ts
+                  - code [ref=e425]:
+                    - generic [ref=e426]:
+                      - generic [ref=e639]: "768"
+                      - textbox "Editor content" [ref=e519]: "} catch (error) { console.error(\"AI triage error:\", error); return new Response(JSON.stringify({ error: \"Server encountered an issue. Please try again later.\" }), { status: 500, headers: { ...corsHeaders, \"Content-Type\": \"application/json\" }, }); } });"
+                - button "Deploy updates" [ref=e645] [cursor=pointer]:
+                  - generic [ref=e523]: Deploy updates
+                  - img [ref=e648]
+    - region "Notifications alt+T":
+      - list:
+        - status [ref=e651]:
+          - button "Close toast" [ref=e652] [cursor=pointer]:
+            - img [ref=e653]
+          - img [ref=e657]
+          - generic [ref=e660]: Successfully updated edge function
+  - alert [ref=e223]: ai-triage | Code | Edge Functions | Supabase
+  - generic [ref=e529]:
+    - alert
+    - alert

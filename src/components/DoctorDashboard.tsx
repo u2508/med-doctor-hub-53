@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Users, Clock, FileText, LogOut, Stethoscope, TrendingUp, CheckCircle2, XCircle, ClockIcon, Heart, Star, History, CalendarDays, UserRound, User, ChevronDown, LayoutDashboard, Shield } from 'lucide-react';
+import { Calendar, Users, Clock, FileText, LogOut, Stethoscope, TrendingUp, CheckCircle2, XCircle, ClockIcon, Heart, Star, History, CalendarDays, UserRound, User, ChevronDown, LayoutDashboard, Shield, Copy, Sparkles, MessageSquareWarning } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -16,6 +16,8 @@ import AppointmentCalendar from '@/components/doctor/AppointmentCalendar';
 import CompleteAppointmentDialog from '@/components/doctor/CompleteAppointmentDialog';
 import PatientManagement from '@/components/doctor/PatientManagement';
 import PatientDetailView from '@/components/doctor/PatientDetailView';
+import { getTriageAssessment } from '@/lib/triage';
+import type { TriageAssessment } from '@/lib/triageTypes';
 
 interface DoctorProfile {
   full_name: string;
@@ -31,6 +33,7 @@ interface DoctorDetails {
 }
 
 interface PatientProfile {
+  user_id: string;
   full_name: string;
   email?: string;
 }
@@ -43,6 +46,8 @@ interface Appointment {
   patient_id: string;
   diagnosis?: string;
   prescription?: string;
+  triage_assessment_id?: string | null;
+  triage_assessment?: TriageAssessment | null;
   patient_profile?: PatientProfile;
 }
 
@@ -145,35 +150,7 @@ const DoctorDashboard = () => {
       if (appointmentsError && appointmentsError.code !== 'PGRST116') {
         console.error('Error fetching appointments:', appointmentsError);
       } else if (appointmentsData) {
-        // Fetch patient profiles for appointments
-        const patientIds = appointmentsData.map(apt => apt.patient_id);
-        const { data: profilesData } = await supabase
-          .from('profiles')
-          .select('user_id, full_name, email')
-          .in('user_id', patientIds);
-
-        // Map profiles to appointments
-        const appointmentsWithProfiles = appointmentsData.map(apt => ({
-          ...apt,
-          patient_profile: profilesData?.find(p => p.user_id === apt.patient_id)
-        }));
-
-        setAppointments(appointmentsWithProfiles);
-
-        // Calculate stats
-        const now = new Date();
-        const completed = appointmentsData.filter(apt => apt.status === 'completed').length;
-        const upcoming = appointmentsData.filter(apt =>
-          apt.status === 'scheduled' && new Date(apt.appointment_date) > now
-        ).length;
-        const cancelled = appointmentsData.filter(apt => apt.status === 'cancelled').length;
-
-        setStats({
-          total: appointmentsData.length,
-          completed,
-          upcoming,
-          cancelled
-        });
+        await syncAppointments(appointmentsData);
       }
     } catch (error) {
       console.error('Error fetching doctor data:', error);
@@ -185,6 +162,54 @@ const DoctorDashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const calculateStats = (appointmentsData: Appointment[]) => {
+    const now = new Date();
+    const completed = appointmentsData.filter(apt => apt.status === 'completed').length;
+    const upcoming = appointmentsData.filter(apt =>
+      apt.status === 'scheduled' && new Date(apt.appointment_date) > now
+    ).length;
+    const cancelled = appointmentsData.filter(apt => apt.status === 'cancelled').length;
+
+    setStats({
+      total: appointmentsData.length,
+      completed,
+      upcoming,
+      cancelled
+    });
+  };
+
+  const hydrateAppointments = async (appointmentsData: Appointment[]) => {
+    const patientIds = [...new Set(appointmentsData.map(apt => apt.patient_id).filter(Boolean))];
+    const triageIds = [...new Set(appointmentsData.map(apt => apt.triage_assessment_id).filter(Boolean))];
+
+    const [profilesResult, triageResults] = await Promise.all([
+      patientIds.length > 0
+        ? supabase.from('profiles').select('user_id, full_name, email').in('user_id', patientIds)
+        : Promise.resolve({ data: [] as PatientProfile[] }),
+      triageIds.length > 0
+        ? Promise.all(triageIds.map((triageId) => getTriageAssessment(triageId as string)))
+        : Promise.resolve([] as (TriageAssessment | null)[]),
+    ]);
+
+    const triageMap = new Map(
+      triageResults
+        .filter((assessment): assessment is TriageAssessment => Boolean(assessment))
+        .map((assessment) => [assessment.id, assessment]),
+    );
+
+    return appointmentsData.map((apt) => ({
+      ...apt,
+      patient_profile: profilesResult.data?.find((profile) => profile.user_id === apt.patient_id),
+      triage_assessment: apt.triage_assessment_id ? triageMap.get(apt.triage_assessment_id) || null : null,
+    }));
+  };
+
+  const syncAppointments = async (appointmentsData: Appointment[]) => {
+    const hydratedAppointments = await hydrateAppointments(appointmentsData);
+    setAppointments(hydratedAppointments);
+    calculateStats(hydratedAppointments);
   };
 
   const refreshAppointments = async () => {
@@ -204,32 +229,7 @@ const DoctorDashboard = () => {
       }
 
       if (appointmentsData) {
-        const patientIds = appointmentsData.map(apt => apt.patient_id);
-        const { data: profilesData } = await supabase
-          .from('profiles')
-          .select('user_id, full_name, email')
-          .in('user_id', patientIds);
-
-        const appointmentsWithProfiles = appointmentsData.map(apt => ({
-          ...apt,
-          patient_profile: profilesData?.find(p => p.user_id === apt.patient_id)
-        }));
-
-        setAppointments(appointmentsWithProfiles);
-
-        const now = new Date();
-        const completed = appointmentsData.filter(apt => apt.status === 'completed').length;
-        const upcoming = appointmentsData.filter(apt =>
-          apt.status === 'scheduled' && new Date(apt.appointment_date) > now
-        ).length;
-        const cancelled = appointmentsData.filter(apt => apt.status === 'cancelled').length;
-
-        setStats({
-          total: appointmentsData.length,
-          completed,
-          upcoming,
-          cancelled
-        });
+        await syncAppointments(appointmentsData);
       }
     } catch (error) {
       console.error('Error refreshing appointments:', error);
@@ -379,6 +379,75 @@ const DoctorDashboard = () => {
   const handleOpenCompleteDialog = (appointment: Appointment) => {
     setSelectedAppointmentForComplete(appointment);
     setCompleteDialogOpen(true);
+  };
+
+  const buildVisitSummary = (appointment: Appointment) => {
+    const triage = appointment.triage_assessment;
+    if (!triage) {
+      return appointment.notes || '';
+    }
+
+    const parts = [
+      `Chief complaint: ${triage.chiefComplaint}`,
+      `Selected symptoms: ${triage.selectedSymptoms.length > 0 ? triage.selectedSymptoms.join(', ') : 'None selected'}`,
+      `Urgency: ${triage.urgency.replace('_', ' ')}`,
+      `Recommended specialist: ${triage.recommendedSpecialty || 'General Physician'}`,
+      triage.redFlags.length > 0 ? `Red flags: ${triage.redFlags.join(', ')}` : 'Red flags: None noted',
+      `Doctor questions: ${triage.doctorQuestions.length > 0 ? triage.doctorQuestions.join(' | ') : 'None recorded'}`,
+      `Doctor-ready summary: ${triage.appointmentSummary}`,
+    ];
+
+    return parts.join('\n');
+  };
+
+  const handleCopyVisitSummary = async (appointment: Appointment) => {
+    const summary = buildVisitSummary(appointment);
+    if (!summary) return;
+
+    try {
+      await navigator.clipboard.writeText(summary);
+      toast({
+        title: 'Summary copied',
+        description: 'The visit summary has been copied to your clipboard.'
+      });
+    } catch (error) {
+      console.error('Error copying visit summary:', error);
+      toast({
+        title: 'Copy failed',
+        description: 'We could not copy the summary right now.',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleMarkFollowUpNeeded = async (appointment: Appointment) => {
+    try {
+      const note = 'Follow-up recommended based on triage context.';
+      const updatedNotes = appointment.notes
+        ? `${appointment.notes}\n\n${note}`
+        : note;
+
+      const { error } = await supabase
+        .from('appointments')
+        .update({ notes: updatedNotes })
+        .eq('id', appointment.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Follow-up noted',
+        description: 'The appointment has been marked for follow-up.'
+      });
+
+      await refreshAppointments();
+    } catch (error) {
+      console.error('Error marking follow-up needed:', error);
+      toast({
+        title: 'Follow-up unavailable',
+        description: 'We could not update the appointment right now.',
+        variant: 'destructive'
+      });
+    }
   };
 
   const initializeAppointmentEdit = (appointment: Appointment) => {
@@ -728,6 +797,43 @@ const DoctorDashboard = () => {
                                         {appointment.notes}
                                       </p>
                                     )}
+                                    {appointment.triage_assessment && (
+                                      <div className="rounded-2xl border border-sky-200 bg-sky-50/70 p-4">
+                                        <div className="flex flex-wrap items-center justify-between gap-2">
+                                          <div className="flex items-center gap-2">
+                                            <Sparkles className="w-4 h-4 text-sky-700" />
+                                            <span className="text-sm font-semibold text-sky-900">Triage context</span>
+                                          </div>
+                                          <Badge variant="outline" className="border-sky-200 bg-white text-sky-700">
+                                            {appointment.triage_assessment.urgency.replace('_', ' ')}
+                                          </Badge>
+                                        </div>
+                                        <div className="mt-3 grid gap-3 md:grid-cols-2">
+                                          <div className="rounded-2xl border border-white/80 bg-white p-3">
+                                            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Patient summary</p>
+                                            <p className="mt-2 text-sm text-foreground">
+                                              {appointment.triage_assessment.appointmentSummary}
+                                            </p>
+                                          </div>
+                                          <div className="rounded-2xl border border-white/80 bg-white p-3">
+                                            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Questions patient wants to ask</p>
+                                            <p className="mt-2 text-sm text-foreground">
+                                              {appointment.triage_assessment.doctorQuestions.slice(0, 2).join(' · ') || 'None recorded'}
+                                            </p>
+                                          </div>
+                                          <div className="rounded-2xl border border-white/80 bg-white p-3">
+                                            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Red flags</p>
+                                            <p className="mt-2 text-sm text-foreground">
+                                              {appointment.triage_assessment.redFlags.length > 0 ? appointment.triage_assessment.redFlags.join(', ') : 'None noted'}
+                                            </p>
+                                          </div>
+                                          <div className="rounded-2xl border border-white/80 bg-white p-3">
+                                            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Chief complaint</p>
+                                            <p className="mt-2 text-sm text-foreground">{appointment.triage_assessment.chiefComplaint}</p>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
                                   <Badge className={getStatusColor(appointment.status)}>
                                     {appointment.status}
@@ -815,6 +921,28 @@ const DoctorDashboard = () => {
                                     >
                                       <FileText className="w-4 h-4 mr-1" />
                                       Add Details
+                                    </Button>
+                                  )}
+
+                                  {appointment.triage_assessment && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleCopyVisitSummary(appointment)}
+                                    >
+                                      <Copy className="w-4 h-4 mr-1" />
+                                      Copy visit summary
+                                    </Button>
+                                  )}
+
+                                  {appointment.triage_assessment && (
+                                    <Button
+                                      size="sm"
+                                      variant="secondary"
+                                      onClick={() => handleMarkFollowUpNeeded(appointment)}
+                                    >
+                                      <MessageSquareWarning className="w-4 h-4 mr-1" />
+                                      Mark follow-up needed
                                     </Button>
                                   )}
 

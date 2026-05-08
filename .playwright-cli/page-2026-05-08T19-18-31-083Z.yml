@@ -1,0 +1,322 @@
+- generic:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - img
+                  - generic:
+                    - paragraph: We are investigating a technical issue
+                    - generic:
+                      - generic: ·
+                      - generic:
+                        - text: Follow the
+                        - link:
+                          - /url: https://status.supabase.com
+                          - text: status page
+                        - text: for updates
+            - generic:
+              - generic:
+                - generic:
+                  - img
+                  - generic:
+                    - paragraph: We've updated our Terms of Service
+                    - generic:
+                      - generic: ·
+                      - generic:
+                        - button: Learn more
+                - button:
+                  - generic:
+                    - img
+        - generic:
+          - banner:
+            - generic:
+              - generic:
+                - link:
+                  - /url: /dashboard/org/qwhkiiqyivqoglvfkakt
+                  - img
+                - generic:
+                  - generic:
+                    - img
+                  - generic:
+                    - link:
+                      - /url: /dashboard/org/qwhkiiqyivqoglvfkakt
+                      - img
+                      - generic: u2508's Org
+                      - generic: Free
+                    - button:
+                      - generic:
+                        - img
+                  - generic:
+                    - generic:
+                      - img
+                    - generic:
+                      - link:
+                        - /url: /dashboard/project/xmgtgpfsijbteijceneq
+                        - img
+                        - generic: MED.IO
+                      - button:
+                        - generic:
+                          - img
+                    - generic:
+                      - img
+                    - generic:
+                      - link:
+                        - /url: /dashboard/project/xmgtgpfsijbteijceneq
+                        - generic: main
+                        - generic: Production
+                      - button:
+                        - generic:
+                          - img
+                - button [ref=e611] [cursor=pointer]:
+                  - img [ref=e20]
+                  - generic [ref=e22]: Connect
+              - generic:
+                - generic:
+                  - generic: Feedback
+                - generic:
+                  - button:
+                    - generic:
+                      - img
+                      - paragraph: Search...
+                    - generic:
+                      - generic: ⌘K
+                  - button [ref=e35] [cursor=pointer]:
+                    - img [ref=e37]
+                  - button [ref=e41] [cursor=pointer]:
+                    - img [ref=e43]
+                  - button [ref=e45] [cursor=pointer]:
+                    - img [ref=e47]
+                  - button [ref=e49] [cursor=pointer]:
+                    - img [ref=e53]
+                - button [ref=e612] [cursor=pointer]:
+                  - img [ref=e613]
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - list:
+                      - generic:
+                        - listitem:
+                          - link:
+                            - /url: /dashboard/project/xmgtgpfsijbteijceneq
+                            - img
+                        - listitem:
+                          - link:
+                            - /url: /dashboard/project/xmgtgpfsijbteijceneq/editor
+                            - img
+                        - listitem:
+                          - link:
+                            - /url: /dashboard/project/xmgtgpfsijbteijceneq/sql
+                            - img
+                      - generic:
+                        - listitem:
+                          - link:
+                            - /url: /dashboard/project/xmgtgpfsijbteijceneq/database/schemas
+                            - img
+                        - listitem:
+                          - link:
+                            - /url: /dashboard/project/xmgtgpfsijbteijceneq/auth/users
+                            - img
+                        - listitem:
+                          - link:
+                            - /url: /dashboard/project/xmgtgpfsijbteijceneq/storage/files
+                            - img
+                        - listitem:
+                          - link:
+                            - /url: /dashboard/project/xmgtgpfsijbteijceneq/functions
+                            - img
+                        - listitem:
+                          - link:
+                            - /url: /dashboard/project/xmgtgpfsijbteijceneq/realtime/inspector
+                            - img
+                      - generic:
+                        - generic:
+                          - listitem:
+                            - link:
+                              - /url: /dashboard/project/xmgtgpfsijbteijceneq/advisors/security
+                              - img
+                        - listitem:
+                          - link:
+                            - /url: /dashboard/project/xmgtgpfsijbteijceneq/observability
+                            - img
+                        - listitem:
+                          - link:
+                            - /url: /dashboard/project/xmgtgpfsijbteijceneq/logs/explorer
+                            - img
+                        - listitem:
+                          - link:
+                            - /url: /dashboard/project/xmgtgpfsijbteijceneq/integrations
+                            - img
+                      - generic:
+                        - listitem:
+                          - link:
+                            - /url: /dashboard/project/xmgtgpfsijbteijceneq/settings/general
+                            - img
+                - generic:
+                  - generic:
+                    - button:
+                      - generic:
+                        - img
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - heading [level=4]: Edge Functions
+                              - generic:
+                                - generic:
+                                  - menu [disabled]:
+                                    - list:
+                                      - generic:
+                                        - generic:
+                                          - generic:
+                                            - generic:
+                                              - generic:
+                                                - generic:
+                                                  - generic: Manage
+                                            - generic:
+                                              - link [disabled]:
+                                                - /url: /dashboard/project/xmgtgpfsijbteijceneq/functions
+                                                - menuitem [disabled]:
+                                                  - generic:
+                                                    - generic:
+                                                      - generic:
+                                                        - generic: Functions
+                                              - link [disabled]:
+                                                - /url: /dashboard/project/xmgtgpfsijbteijceneq/functions/secrets
+                                                - menuitem [disabled]:
+                                                  - generic:
+                                                    - generic:
+                                                      - generic:
+                                                        - generic: Secrets
+                      - separator [disabled]:
+                        - generic:
+                          - img
+                      - generic:
+                        - generic:
+                          - main:
+                            - generic:
+                              - generic:
+                                - generic:
+                                  - navigation:
+                                    - list:
+                                      - listitem:
+                                        - link:
+                                          - /url: /dashboard/project/xmgtgpfsijbteijceneq/functions
+                                          - text: Edge Functions
+                                      - listitem:
+                                        - img
+                                      - listitem:
+                                        - link:
+                                          - /url: /dashboard/project/xmgtgpfsijbteijceneq/functions/ai-triage
+                                          - text: ai-triage
+                                - generic:
+                                  - generic:
+                                    - generic:
+                                      - heading [level=1]: ai-triage
+                                      - generic:
+                                        - generic:
+                                          - generic: https://xmgtgpfsijbteijceneq.supabase.co/functions/v1/ai-triage
+                                          - button:
+                                            - generic:
+                                              - img
+                                        - button:
+                                          - img
+                                          - generic: 5 days ago
+                                    - generic:
+                                      - generic:
+                                        - link:
+                                          - /url: https://supabase.com/docs/guides/functions
+                                          - generic:
+                                            - img
+                                          - generic: Docs
+                                        - button:
+                                          - generic:
+                                            - img
+                                          - generic: Download
+                                        - button:
+                                          - generic:
+                                            - img
+                                          - generic: Test
+                                - generic:
+                                  - generic:
+                                    - navigation:
+                                      - menu:
+                                        - listitem:
+                                          - link:
+                                            - /url: /dashboard/project/xmgtgpfsijbteijceneq/functions/ai-triage
+                                            - text: Overview
+                                        - listitem:
+                                          - link:
+                                            - /url: /dashboard/project/xmgtgpfsijbteijceneq/functions/ai-triage/invocations
+                                            - text: Invocations
+                                        - listitem:
+                                          - link:
+                                            - /url: /dashboard/project/xmgtgpfsijbteijceneq/functions/ai-triage/logs
+                                            - text: Logs
+                                        - listitem:
+                                          - link:
+                                            - /url: /dashboard/project/xmgtgpfsijbteijceneq/functions/ai-triage/code
+                                            - text: Code
+                                        - listitem:
+                                          - link:
+                                            - /url: /dashboard/project/xmgtgpfsijbteijceneq/functions/ai-triage/details
+                                            - text: Settings
+                              - generic:
+                                - generic:
+                                  - generic:
+                                    - generic:
+                                      - heading [level=3]: Files
+                                      - button:
+                                        - generic:
+                                          - img
+                                        - generic: Add File
+                                    - generic:
+                                      - tree:
+                                        - generic:
+                                          - treeitem [level=1] [selected]:
+                                            - generic:
+                                              - img
+                                              - generic: index.ts
+                                            - generic:
+                                              - button: M
+                                  - generic:
+                                    - generic:
+                                      - generic:
+                                        - generic:
+                                          - generic:
+                                            - code:
+                                              - generic:
+                                                - generic:
+                                                  - generic:
+                                                    - generic:
+                                                      - generic: "768"
+                                                - textbox: "import { createClient } from \"npm:@supabase/supabase-js@2\"; const corsHeaders = { \"Access-Control-Allow-Origin\": \"*\", \"Access-Control-Allow-Headers\": \"authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version\", };"
+                                - button [ref=e614] [cursor=pointer]:
+                                  - generic [ref=e523]: Deploy updates
+                                  - img [ref=e526]
+  - generic:
+    - alert: ai-triage | Code | Edge Functions | Supabase
+  - dialog "Confirm to deploy updates" [ref=e616]:
+    - heading "Confirm to deploy updates" [level=2] [ref=e618]
+    - paragraph [ref=e620]: Deploying will immediately update your live Edge Function for this project and cannot be rolled back automatically. Are you sure you want to deploy the changes?
+    - generic [ref=e622]:
+      - button "Cancel" [active] [ref=e623] [cursor=pointer]:
+        - generic [ref=e624]: Cancel
+      - button "Deploy updates" [ref=e625] [cursor=pointer]:
+        - generic [ref=e626]: Deploy updates
+    - button "Close" [ref=e627]:
+      - img [ref=e628]
+      - generic [ref=e631]: Close

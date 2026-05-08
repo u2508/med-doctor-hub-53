@@ -30,6 +30,8 @@ const MoodTracker = lazy(() => import("@/components/MoodTracker"));
 const Chatbot = lazy(() => import("@/components/Chatbot"));
 const StressManagement = lazy(() => import("@/components/StressManagement"));
 const HealthAnalytics = lazy(() => import("@/components/HealthAnalytics"));
+const AITriage = lazy(() => import("@/components/AITriage"));
+const PitchPage = lazy(() => import("@/components/PitchPage"));
 const Support = lazy(() => import("@/components/Support"));
 const UserProfile = lazy(() => import("./pages/UserProfile"));
 const PatientOnboarding = lazy(() => import("./pages/PatientOnboarding"));
@@ -74,6 +76,7 @@ const PATIENT_ROUTES = [
   "/my-appointments",
   "/mood-tracker",
   "/chatbot",
+  "/ai-triage",
   "/stress-management",
   "/health-analytics",
   "/patient-onboarding",
@@ -103,6 +106,16 @@ const AuthWrapper = ({
     );
 
     if (!user && isProtected) {
+      if (location.pathname.startsWith("/ai-triage")) {
+        toast({
+          title: "Sign in required",
+          description: "Please sign in to use AI Health Triage.",
+          variant: "destructive",
+        });
+        navigate("/user-signin", { replace: true });
+        return;
+      }
+
       navigate("/", { replace: true });
       return;
     }
@@ -232,6 +245,8 @@ const AppContent = () => {
             <Route path="/my-appointments" element={<PatientAppointments />} />
             <Route path="/mood-tracker" element={<MoodTracker />} />
             <Route path="/chatbot" element={<Chatbot />} />
+            <Route path="/ai-triage" element={<AITriage />} />
+            <Route path="/pitch" element={<PitchPage />} />
             <Route path="/stress-management" element={<StressManagement />} />
             <Route path="/health-analytics" element={<HealthAnalytics />} />
 

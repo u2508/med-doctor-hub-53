@@ -1,0 +1,166 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e4]:
+    - banner [ref=e6]:
+      - generic [ref=e7]:
+        - generic [ref=e8]:
+          - link "Supabase" [ref=e9] [cursor=pointer]:
+            - /url: /dashboard/org/qwhkiiqyivqoglvfkakt
+            - img "Supabase" [ref=e10]
+          - img [ref=e14]
+          - button "Connect" [disabled] [ref=e18]:
+            - img [ref=e20]
+            - generic [ref=e22]: Connect
+        - generic [ref=e23]:
+          - generic [ref=e25] [cursor=pointer]: Feedback
+          - generic [ref=e26]:
+            - button "Search..." [ref=e27]:
+              - generic [ref=e28]:
+                - img [ref=e29]
+                - paragraph [ref=e32]: Search...
+              - generic [ref=e34]: ⌘K
+            - button [ref=e35] [cursor=pointer]:
+              - img [ref=e37]
+            - button [ref=e41] [cursor=pointer]:
+              - img [ref=e43]
+            - button [ref=e45] [cursor=pointer]:
+              - img [ref=e47]
+            - button [ref=e49] [cursor=pointer]:
+              - img [ref=e53]
+          - button [ref=e56] [cursor=pointer]:
+            - img [ref=e59]
+    - generic [ref=e61]:
+      - generic [ref=e65]:
+        - list [ref=e68]:
+          - generic [ref=e69]:
+            - listitem [ref=e70]:
+              - link "Project Overview" [ref=e71] [cursor=pointer]:
+                - /url: /dashboard/project/xmgtgpfsijbteijceneq
+                - img [ref=e72]
+                - generic: Project Overview
+            - listitem [ref=e74]:
+              - button "Table Editor" [disabled]:
+                - img
+                - generic: Table Editor
+            - listitem [ref=e75]:
+              - button "SQL Editor" [disabled]:
+                - img
+                - generic: SQL Editor
+          - generic [ref=e76]:
+            - listitem [ref=e77]:
+              - button "Database" [disabled]:
+                - img
+                - generic: Database
+            - listitem [ref=e78]:
+              - button "Authentication" [disabled]:
+                - img
+                - generic: Authentication
+            - listitem [ref=e79]:
+              - button "Storage" [disabled]:
+                - img
+                - generic: Storage
+            - listitem [ref=e80]:
+              - link "Edge Functions" [ref=e81] [cursor=pointer]:
+                - /url: /dashboard/project/xmgtgpfsijbteijceneq/functions
+                - img [ref=e82]
+                - generic: Edge Functions
+            - listitem [ref=e87]:
+              - button "Realtime" [disabled]:
+                - img
+                - generic: Realtime
+          - generic [ref=e88]:
+            - listitem [ref=e90]:
+              - button "Advisors" [disabled]:
+                - img
+                - generic: Advisors
+            - listitem [ref=e91]:
+              - button "Observability" [disabled]:
+                - img
+                - generic: Observability
+            - listitem [ref=e92]:
+              - link "Logs" [ref=e93] [cursor=pointer]:
+                - /url: /dashboard/project/xmgtgpfsijbteijceneq/logs/explorer
+                - img [ref=e94]
+                - generic: Logs
+            - listitem [ref=e95]:
+              - button "Integrations" [disabled]:
+                - img
+                - generic: Integrations
+          - listitem [ref=e97]:
+            - link "Project Settings" [ref=e98] [cursor=pointer]:
+              - /url: /dashboard/project/xmgtgpfsijbteijceneq/settings/general
+              - img [ref=e99]
+              - generic: Project Settings
+        - button [ref=e104] [cursor=pointer]:
+          - img [ref=e106]
+      - generic [ref=e113]:
+        - generic [ref=e117]:
+          - heading "Edge Functions" [level=4] [ref=e119]
+          - menu "Sidebar" [disabled] [ref=e122]:
+            - list [ref=e123]:
+              - generic [ref=e126]:
+                - generic [ref=e130]: Manage
+                - generic [ref=e131]:
+                  - link "Functions" [disabled] [ref=e132] [cursor=pointer]:
+                    - /url: /dashboard/project/xmgtgpfsijbteijceneq/functions
+                    - menuitem "Functions" [disabled] [ref=e133]:
+                      - generic "Functions" [ref=e136]:
+                        - generic [ref=e137]: Functions
+                  - link "Secrets" [disabled] [ref=e138] [cursor=pointer]:
+                    - /url: /dashboard/project/xmgtgpfsijbteijceneq/functions/secrets
+                    - menuitem "Secrets" [disabled] [ref=e139]:
+                      - generic "Secrets" [ref=e142]:
+                        - generic [ref=e143]: Secrets
+        - separator [disabled] [ref=e144]:
+          - img [ref=e146]
+        - main [ref=e155]:
+          - generic [ref=e156]:
+            - generic [ref=e157]:
+              - navigation "breadcrumb" [ref=e159]:
+                - list [ref=e160]:
+                  - listitem [ref=e161]:
+                    - link "Edge Functions" [ref=e162] [cursor=pointer]:
+                      - /url: /dashboard/project/xmgtgpfsijbteijceneq/functions
+                  - listitem [ref=e163]:
+                    - img [ref=e164]
+                  - listitem [ref=e166]:
+                    - link "ai-triage" [ref=e167] [cursor=pointer]:
+                      - /url: /dashboard/project/xmgtgpfsijbteijceneq/functions/ai-triage
+              - generic [ref=e169]:
+                - generic [ref=e170]:
+                  - heading [level=1]
+                  - generic [ref=e171]:
+                    - button [ref=e173] [cursor=pointer]:
+                      - img [ref=e175]
+                    - button "Deploy status unavailable" [ref=e178]:
+                      - img [ref=e179]
+                      - generic [ref=e182]: Deploy status unavailable
+                - generic [ref=e184]:
+                  - link "Docs" [ref=e185] [cursor=pointer]:
+                    - /url: https://supabase.com/docs/guides/functions
+                    - img [ref=e187]
+                    - generic [ref=e190]: Docs
+                  - button "Download" [ref=e191] [cursor=pointer]:
+                    - img [ref=e193]
+                    - generic [ref=e196]: Download
+                  - button "Test" [ref=e197] [cursor=pointer]:
+                    - img [ref=e199]
+                    - generic [ref=e202]: Test
+              - navigation [ref=e205]:
+                - menu [ref=e206]:
+                  - listitem [ref=e207]:
+                    - link "Overview" [ref=e208] [cursor=pointer]:
+                      - /url: /dashboard/project/xmgtgpfsijbteijceneq/functions/ai-triage
+                  - listitem [ref=e209]:
+                    - link "Invocations" [ref=e210] [cursor=pointer]:
+                      - /url: /dashboard/project/xmgtgpfsijbteijceneq/functions/ai-triage/invocations
+                  - listitem [ref=e211]:
+                    - link "Logs" [ref=e212] [cursor=pointer]:
+                      - /url: /dashboard/project/xmgtgpfsijbteijceneq/functions/ai-triage/logs
+                  - listitem [ref=e213]:
+                    - link "Code" [ref=e214] [cursor=pointer]:
+                      - /url: /dashboard/project/xmgtgpfsijbteijceneq/functions/ai-triage/code
+                  - listitem [ref=e215]:
+                    - link "Settings" [ref=e216] [cursor=pointer]:
+                      - /url: /dashboard/project/xmgtgpfsijbteijceneq/functions/ai-triage/details
+            - img [ref=e219]
+  - alert [ref=e221]: ai-triage | Overview | Edge Functions | Supabase

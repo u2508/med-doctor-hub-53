@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, User, Phone, Mail, MapPin, Heart, Calendar, AlertCircle, Pill, FileText, Activity, Plus, Upload, Wind, Brain } from 'lucide-react';
+import { ArrowLeft, User, Phone, Mail, MapPin, Heart, Calendar, AlertCircle, Pill, FileText, Activity, Plus, Upload, Wind, Brain, Sparkles, Copy } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -41,6 +41,17 @@ interface Appointment {
   patient_id: string;
   diagnosis?: string;
   prescription?: string;
+  triage_assessment_id?: string | null;
+  triage_assessment?: {
+    id: string;
+    chiefComplaint: string;
+    selectedSymptoms: string[];
+    urgency: string;
+    recommendedSpecialty: string;
+    redFlags: string[];
+    doctorQuestions: string[];
+    appointmentSummary: string;
+  } | null;
   patient_profile?: PatientProfile;
 }
 
@@ -237,6 +248,38 @@ const PatientDetailView = ({ patientId, appointment, onBack }: PatientDetailView
     toast({ title: 'Medication added successfully' });
   };
 
+  const buildVisitSummary = () => {
+    const triage = appointment.triage_assessment;
+    if (!triage) return appointment.notes || appointment.diagnosis || '';
+
+    return [
+      `Chief complaint: ${triage.chiefComplaint}`,
+      `Selected symptoms: ${triage.selectedSymptoms.length > 0 ? triage.selectedSymptoms.join(', ') : 'None selected'}`,
+      `Urgency: ${triage.urgency.replace('_', ' ')}`,
+      `Recommended specialist: ${triage.recommendedSpecialty || 'General Physician'}`,
+      triage.redFlags.length > 0 ? `Red flags: ${triage.redFlags.join(', ')}` : 'Red flags: None noted',
+      `Questions patient wants to ask: ${triage.doctorQuestions.length > 0 ? triage.doctorQuestions.join(' | ') : 'None recorded'}`,
+      `Doctor-ready summary: ${triage.appointmentSummary}`,
+    ].join('\n');
+  };
+
+  const handleCopyVisitSummary = async () => {
+    const summary = buildVisitSummary();
+    if (!summary) return;
+
+    try {
+      await navigator.clipboard.writeText(summary);
+      toast({ title: 'Copied', description: 'Triage summary copied to clipboard.' });
+    } catch (error) {
+      console.error('Error copying triage summary:', error);
+      toast({
+        title: 'Copy failed',
+        description: 'Could not copy the summary right now.',
+        variant: 'destructive'
+      });
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -389,6 +432,55 @@ const PatientDetailView = ({ patientId, appointment, onBack }: PatientDetailView
               </CardContent>
             </Card>
           </div>
+
+          {appointment.triage_assessment && (
+            <Card className="mt-6 border-sky-200 bg-sky-50/60">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Sparkles className="w-5 h-5 text-sky-600" />
+                  Triage Context
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-3 md:grid-cols-3">
+                  <div className="rounded-2xl border border-white/70 bg-white p-4">
+                    <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Urgency</p>
+                    <p className="mt-2 text-sm font-semibold text-foreground">{appointment.triage_assessment.urgency.replace('_', ' ')}</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/70 bg-white p-4">
+                    <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Recommended specialist</p>
+                    <p className="mt-2 text-sm font-semibold text-foreground">{appointment.triage_assessment.recommendedSpecialty}</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/70 bg-white p-4">
+                    <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Red flags</p>
+                    <p className="mt-2 text-sm font-semibold text-foreground">
+                      {appointment.triage_assessment.redFlags.length > 0 ? appointment.triage_assessment.redFlags.join(', ') : 'None noted'}
+                    </p>
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-white/70 bg-white p-4 text-sm leading-6 text-muted-foreground">
+                  {appointment.triage_assessment.appointmentSummary}
+                </div>
+                <div className="rounded-2xl border border-white/70 bg-white p-4 text-sm leading-6 text-muted-foreground">
+                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Questions patient wants to ask</p>
+                  <p className="mt-2 text-sm text-foreground">
+                    {appointment.triage_assessment.doctorQuestions.length > 0
+                      ? appointment.triage_assessment.doctorQuestions.join(' · ')
+                      : 'None recorded'}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" onClick={handleCopyVisitSummary}>
+                    <Copy className="mr-2 w-4 h-4" />
+                    Copy visit summary
+                  </Button>
+                  <Button variant="secondary" onClick={() => toast({ title: 'Follow-up noted', description: 'Use the doctor dashboard to mark this patient for follow-up.' })}>
+                    Mark follow-up needed
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Medications Tab */}

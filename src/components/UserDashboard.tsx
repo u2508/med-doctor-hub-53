@@ -1,9 +1,10 @@
 import React, { memo, useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Heart,HeartPulse, UserCheck, MessageCircle, BarChart3, Clock, Loader2, Sparkles, Calendar, User, LogOut, ChevronDown, Shield, Stethoscope, LayoutDashboard, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, Heart,HeartPulse, UserCheck, MessageCircle, BarChart3, Clock, Loader2, Sparkles, Calendar, User, LogOut, ChevronDown, Shield, Stethoscope, LayoutDashboard, CheckCircle2 } from 'lucide-react';
 import { useUserActivity } from '@/hooks/useUserActivity';
 import { supabase } from '@/integrations/supabase/client';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,8 +18,17 @@ interface Feature {
   path: string;
 }
 
+interface DashboardActivity {
+  id: string;
+  title: string;
+  description: string;
+  timestamp: Date;
+  type: 'mood' | 'appointment' | 'chat' | 'meditation';
+  status?: 'completed' | 'scheduled' | 'active';
+}
+
 interface UserDashboardProps {
-  user: any;
+  user: SupabaseUser | null;
 }
 
 // Memoized feature card component for better performance
@@ -48,7 +58,7 @@ const FeatureCard = memo(({ feature, onClick }: { feature: Feature; onClick: () 
 FeatureCard.displayName = 'FeatureCard';
 
 // Memoized activity item component
-const ActivityItem = memo(({ activity }: { activity: any }) => {
+const ActivityItem = memo(({ activity }: { activity: DashboardActivity }) => {
   const getActivityIcon = useMemo(() => {
     switch (activity.type) {
       case 'mood': return '📊';
@@ -173,6 +183,7 @@ const UserDashboard = memo(({ user }: UserDashboardProps) => {
         if (profile?.email) {
           setUserEmail(profile.email);
         }
+
       } catch (error) {
         console.error('Session validation error:', error);
         navigate('/', { replace: true });
@@ -208,8 +219,14 @@ const UserDashboard = memo(({ user }: UserDashboardProps) => {
   // Memoized features array to prevent re-creation on every render
   const features = useMemo<Feature[]>(() => [
     {
+      title: 'AI Health Triage',
+      description: 'Check urgency, get specialist guidance, and generate a doctor-ready summary.',
+      icon: <Sparkles className="w-8 h-8" />,
+      path: '/ai-triage'
+    },
+    {
       title: 'Doctor Finder',
-      description: 'Find and connect with qualified doctors for in-person or video consultations.',
+      description: 'Find and connect with the right specialist for in-person or video consultations.',
       icon: <UserCheck className="w-8 h-8" />,
       path: '/doctor-finder'
     },
@@ -340,14 +357,46 @@ const UserDashboard = memo(({ user }: UserDashboardProps) => {
 
       <main className="max-w-7xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
         <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-10 overflow-hidden rounded-[2rem] border border-sky-200/70 bg-[linear-gradient(135deg,rgba(14,165,233,0.12),rgba(16,185,129,0.10))] p-[1px] shadow-[0_24px_80px_rgba(14,165,233,0.14)]"
+        >
+          <div className="rounded-[calc(2rem-1px)] bg-white/90 px-6 py-6 backdrop-blur sm:px-8">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+              <div className="max-w-2xl">
+                <Badge className="mb-4 inline-flex border-sky-200 bg-sky-50 text-sky-700">
+                  <Sparkles className="mr-2 h-3.5 w-3.5" />
+                  Not a diagnosis
+                </Badge>
+                <h2 className="text-3xl font-bold text-card-foreground font-display">
+                  AI Health Triage
+                </h2>
+                <p className="mt-3 text-muted-foreground text-lg leading-relaxed">
+                  Not sure which doctor to visit? Check urgency and get routed to the right specialist.
+                </p>
+              </div>
+              <Button
+                onClick={() => navigate('/ai-triage')}
+                variant="medical"
+                size="lg"
+                className="w-full lg:w-auto shadow-lg shadow-sky-500/20"
+              >
+                Start Triage
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="card-elevated rounded-2xl overflow-hidden"
         >
           <div className="px-8 py-12 sm:px-12">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-card-foreground mb-4 font-display">Mental Health & Medical Care Platform</h2>
-              <p className="text-muted-foreground text-lg">Access all features from this comprehensive dashboard</p>
+              <h2 className="text-3xl font-bold text-card-foreground mb-4 font-display">AI pre-consultation care dashboard</h2>
+              <p className="text-muted-foreground text-lg">Route to the right doctor and keep your care workflow organized</p>
             </div>
             <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {features.map((feature, index) => (

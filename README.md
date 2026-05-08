@@ -1,254 +1,124 @@
-# MedDoctor Hub - Comprehensive Healthcare Platform
+# medDoctorHub
 
-A modern, full-stack healthcare platform that seamlessly integrates mental health support with medical care services. Built with React, TypeScript, and modern web technologies.
+AI pre-consultation triage and doctor-routing layer for healthcare platforms.
 
-## 🏥 Overview
+medDoctorHub helps patients understand urgency, choose the right specialist, and generate a doctor-ready summary before booking a consultation.
 
-MedDoctor Hub is a unified healthcare platform that combines:
-- **Mental Health Support**: AI-powered chatbot, mood tracking, stress management
-- **Medical Services**: Doctor discovery, appointment booking, patient management
-- **Telemedicine**: Virtual consultations and remote healthcare access
-- **Data Analytics**: Health insights and progress tracking
+## Problem
 
-## ✨ Key Features
+Patients often choose the wrong specialist or arrive without structured context. Doctors then spend time reconstructing the visit instead of focusing on care.
 
-### For Patients
-- **🧠 Mental Health Support**
-  - AI Chatbot for 24/7 emotional support
-  - Mood tracking with visual analytics
-  - Guided meditation and breathing exercises
-  - Stress management tools and resources
+## Solution
 
-- **🏥 Medical Services**
-  - Advanced doctor search and filtering
-  - Real-time appointment booking
-  - Virtual consultation scheduling
-  - Personal health dashboard
-  - Medical history tracking
+- AI health triage
+- Urgency detection with local red-flag checks
+- Specialist routing
+- Doctor-ready PDF reports
+- Booking integration with triage context
+- Follow-up loop after consultation
 
-### For Healthcare Providers
-- **👨‍⚕️ Doctor Dashboard**
-  - Comprehensive patient management
-  - Appointment scheduling system
-  - Earnings and analytics tracking
-  - Patient feedback and ratings
-  - Profile management and visibility
+## Practo-fit Positioning
 
-## 🛠️ Technology Stack
+This project is designed as a complementary AI layer for healthcare marketplaces and clinic platforms.
 
-### Frontend
-- **React 18** with TypeScript
-- **Vite** for fast development and building
-- **React Router** for client-side routing
-- **Tailwind CSS** for responsive styling
-- **Shadcn/ui** for consistent UI components
+It is not a Practo clone and does not claim any partnership.
 
-### Backend & Database
-- **Supabase** for backend services
-- **PostgreSQL** database
-- **Real-time subscriptions** for live updates
-- **Authentication & Authorization**
+## Key Features
 
-### State Management
-- **React Query** for server state management
-- **React Hook Form** for form handling
-- **Zod** for schema validation
+- AI Health Triage
+- Smart specialist routing
+- Doctor-ready PDF report
+- Doctor dashboard context
+- Follow-up loop
+- Conversion analytics
+- Demo doctor profiles for presentation mode
 
-### UI/UX
-- **Radix UI** for accessible components
-- **Lucide React** for icons
-- **Framer Motion** for animations
-- **Responsive design** for all devices
+## Safety
 
-## 📁 Project Structure
+This app does not provide diagnosis, prescriptions, or emergency medical services.
 
-```
-med-doctor-hub/
-├── src/
-│   ├── components/
-│   │   ├── auth/              # Authentication components
-│   │   ├── dashboard/         # Dashboard components
-│   │   ├── layout/            # Layout components (Header, Sidebar)
-│   │   ├── patient/           # Patient-specific components
-│   │   ├── ui/                # Reusable UI components
-│   │   ├── Chatbot.jsx        # AI mental health chatbot
-│   │   ├── DoctorFinder.jsx   # Doctor discovery interface
-│   │   ├── MoodTracker.jsx    # Mood tracking component
-│   │   ├── StressManagement.jsx # Stress relief tools
-│   │   └── ...
-│   ├── pages/
-│   │   ├── Index.tsx          # Main landing page
-│   │   └── NotFound.tsx       # 404 page
-│   ├── hooks/                 # Custom React hooks
-│   ├── integrations/          # Third-party integrations
-│   │   └── supabase/          # Supabase client and types
-│   ├── lib/                   # Utility functions
-│   └── styles/                # Global styles
-├── public/                    # Static assets
-├── media/                     # Audio files and media
-├── supabase/                  # Supabase configuration
-└── ...
+Every triage result includes clear disclaimer language and emergency-aware guidance.
+
+## Screenshots
+
+Add product screenshots here:
+
+- `docs/screenshots/homepage.png`
+- `docs/screenshots/ai-triage.png`
+- `docs/screenshots/doctor-finder.png`
+- `docs/screenshots/doctor-dashboard.png`
+- `docs/screenshots/pitch-page.png`
+
+## Demo Flow
+
+1. Sign in as a patient.
+2. Open `AI Health Triage`.
+3. Enter symptoms and context.
+4. Review urgency and recommended specialist.
+5. Download the doctor report PDF.
+6. Find recommended doctors.
+7. Book a consultation.
+8. Let the doctor review triage context.
+9. Submit a follow-up response after the visit.
+
+## Tech Stack
+
+- React
+- Vite
+- TypeScript
+- Supabase
+- Supabase Edge Functions
+- Gemini API
+- Tailwind CSS
+- shadcn/ui
+- jsPDF
+
+## Environment Variables
+
+Frontend:
+
+```env
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
 ```
 
-## 🚀 Getting Started
+Edge Function:
 
-### Prerequisites
-- Node.js (v18 or higher)
-- npm or yarn package manager
-
-### Installation
-
-1. **Clone the repository**
-```bash
-git clone https://github.com/your-username/med-doctor-hub.git
-cd med-doctor-hub
+```env
+SUPABASE_URL=
+SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+GEMINI_API_KEY=
 ```
 
-2. **Install dependencies**
+## Demo Doctors
+
+Demo doctor profiles are frontend-only placeholders for product demonstration.
+
+If no real doctors are returned from Supabase, the doctor finder shows demo profiles instead.
+
+Demo doctors cannot be booked into Supabase. Add real doctor profiles to enable booking.
+
+## Roadmap
+
+- EMR integration
+- ABDM-compatible records
+- Multilingual symptom intake
+- WhatsApp follow-ups
+- Clinic no-show prediction
+- Doctor copilot notes
+
+## Local Development
+
 ```bash
 npm install
-```
-
-3. **Set up environment variables**
-Create a `.env` file in the root directory:
-```env
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
-
-4. **Start the development server**
-```bash
 npm run dev
 ```
 
-5. **Open your browser**
-Navigate to `http://localhost:5173`
+## Verification
 
-## 🧪 Available Scripts
+```bash
+npm run build
+npm run lint
+```
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run build:dev` - Build for development
-- `npm run lint` - Run ESLint
-- `npm run preview` - Preview production build
-
-## 🔐 Authentication
-
-The platform supports multiple user types:
-
-### Patient Authentication
-- Email/password registration
-- Social login (Google, Apple)
-- Two-factor authentication
-- Password recovery
-
-### Doctor Authentication
-- Professional verification
-- Medical license validation
-- Secure credential management
-- Multi-factor authentication
-
-## 📊 Features in Detail
-
-### Mental Health Suite
-1. **AI Chatbot**
-   - Natural language processing
-   - Emotion detection
-   - Crisis intervention protocols
-   - Personalized recommendations
-
-2. **Mood Tracker**
-   - Daily mood logging
-   - Energy level tracking
-   - Activity correlation
-   - Progress visualization
-   - Export functionality
-
-3. **Stress Management**
-   - Guided breathing exercises
-   - Meditation timer
-   - Relaxation techniques
-   - Progress tracking
-
-### Medical Services
-1. **Doctor Discovery**
-   - Advanced search filters
-   - Specialty-based browsing
-   - Location-based search
-   - Rating and review system
-   - Availability calendar
-
-2. **Appointment System**
-   - Real-time booking
-   - Calendar integration
-   - Automated reminders
-   - Cancellation management
-   - Waitlist functionality
-
-3. **Telemedicine**
-   - Video consultation
-   - Secure messaging
-   - File sharing
-   - Prescription management
-
-## 🎯 Responsive Design
-
-The application is fully responsive and optimized for:
-- **Mobile devices** (iOS/Android)
-- **Tablets** (iPad, Android tablets)
-- **Desktop** (Windows, macOS, Linux)
-- **Progressive Web App** (PWA) support
-
-## 🔒 Security & Privacy
-
-- **HIPAA compliant** data handling
-- **End-to-end encryption** for communications
-- **Secure authentication** protocols
-- **Data anonymization** for analytics
-- **GDPR compliance** for EU users
-
-## 🏥 Medical Compliance
-
-- **HIPAA** (Health Insurance Portability and Accountability Act)
-- **HITECH** (Health Information Technology for Economic and Clinical Health Act)
-- **FDA** guidelines for medical software
-- **Telemedicine regulations** by jurisdiction
-
-## 📱 Progressive Web App
-
-The application can be installed as a PWA:
-- **Offline functionality** for core features
-- **Push notifications** for appointments
-- **Home screen installation** on mobile devices
-- **Background sync** for data updates
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
-
-### Development Workflow
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 🚨 Important Notice
-
-**Medical Disclaimer**: This platform provides support and guidance but is not a substitute for professional medical care. Always consult with qualified healthcare providers for medical concerns.
-
-### Emergency Resources
-- **National Suicide Prevention Lifeline**: 988
-- **Crisis Text Line**: Text HOME to 741741
-- **Emergency Services**: 911
-- **Find a Therapist**: [Psychology Today](https://www.psychologytoday.com)
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- **Shadcn/ui** for the excellent component library
-- **Supabase** for the backend infrastructure
-- **React community** for the amazing ecosystem

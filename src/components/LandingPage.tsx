@@ -20,10 +20,10 @@ const LandingPage = () => {
     },
     { 
       icon: MessageCircle, 
-      title: 'AI Chatbot Support', 
-      description: '24/7 emotional guidance from our advanced AI assistant, always here for you.',
+      title: 'AI Health Triage', 
+      description: 'Check urgency, surface possible causes to discuss with a doctor, and route to the right specialist.',
       color: 'from-accent/20 to-accent/5'
-    },
+    }, 
     { 
       icon: UserCheck, 
       title: 'Find Doctors', 
@@ -70,7 +70,7 @@ const LandingPage = () => {
     {
       name: 'Sarah Johnson',
       role: 'Patient',
-      content: 'MedDoctor Hub transformed how I manage my mental health. The mood tracking and AI chatbot have been invaluable.',
+      content: 'MedDoctor Hub transformed how I manage my health. The mood tracking and AI triage have been invaluable.',
       rating: 5
     },
     {
@@ -93,8 +93,8 @@ const LandingPage = () => {
       answer: 'We use enterprise-grade encryption and comply with HIPAA regulations. Your data is stored securely and never shared without your explicit consent. All communications between you and healthcare providers are encrypted end-to-end.'
     },
     {
-      question: 'Is the AI chatbot a replacement for professional therapy?',
-      answer: 'No, the AI chatbot is designed to provide support and guidance between sessions with healthcare professionals. It\'s a complementary tool, not a replacement for professional medical advice or therapy.'
+      question: 'Is the AI Health Triage a replacement for professional care?',
+      answer: 'No, the AI Health Triage is designed to help you understand urgency and prepare for a consultation with healthcare professionals. It\'s a complementary tool, not a replacement for professional medical advice.'
     },
     {
       question: 'How do I find and connect with doctors?',
@@ -102,7 +102,7 @@ const LandingPage = () => {
     },
     {
       question: 'What features are included in the free plan?',
-      answer: 'The free plan includes basic mood tracking, access to the AI chatbot, stress management exercises, and the ability to connect with doctors. Premium features include advanced analytics and priority support.'
+      answer: 'The free plan includes basic mood tracking, access to AI Health Triage, stress management exercises, and the ability to connect with doctors. Premium features include advanced analytics and priority support.'
     },
     {
       question: 'Can I use MedDoctor Hub on mobile devices?',
@@ -531,7 +531,7 @@ const LandingPage = () => {
                   { label: 'Home', path: '/' },
                   { label: 'Sign In', path: '/user-signin' },
                   { label: 'Mood Tracker', path: '/mood-tracker' },
-                  { label: 'Chatbot', path: '/chatbot' },
+                  { label: 'AI Triage', path: '/ai-triage' },
                   { label: 'Stress Management', path: '/stress-management' }
                 ].map((item) => (
                   <li key={item.label}>

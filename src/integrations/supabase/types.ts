@@ -72,6 +72,7 @@ export type Database = {
           prescription_file_url: string | null
           reminder_1h_sent: boolean | null
           reminder_24h_sent: boolean | null
+          triage_assessment_id: string | null
           status: string
           updated_at: string
         }
@@ -87,6 +88,7 @@ export type Database = {
           prescription_file_url?: string | null
           reminder_1h_sent?: boolean | null
           reminder_24h_sent?: boolean | null
+          triage_assessment_id?: string | null
           status?: string
           updated_at?: string
         }
@@ -102,8 +104,142 @@ export type Database = {
           prescription_file_url?: string | null
           reminder_1h_sent?: boolean | null
           reminder_24h_sent?: boolean | null
+          triage_assessment_id?: string | null
           status?: string
           updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_triage_assessment_id_fkey"
+            columns: ["triage_assessment_id"]
+            isOneToOne: false
+            referencedRelation: "triage_assessments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      follow_ups: {
+        Row: {
+          appointment_id: string | null
+          created_at: string
+          id: string
+          response: Json | null
+          scheduled_for: string | null
+          status: string | null
+          triage_assessment_id: string | null
+          user_id: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          created_at?: string
+          id?: string
+          response?: Json | null
+          scheduled_for?: string | null
+          status?: string | null
+          triage_assessment_id?: string | null
+          user_id: string
+        }
+        Update: {
+          appointment_id?: string | null
+          created_at?: string
+          id?: string
+          response?: Json | null
+          scheduled_for?: string | null
+          status?: string | null
+          triage_assessment_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "follow_ups_triage_assessment_id_fkey"
+            columns: ["triage_assessment_id"]
+            isOneToOne: false
+            referencedRelation: "triage_assessments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_events: {
+        Row: {
+          created_at: string
+          event_name: string
+          id: string
+          properties: Json | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_name: string
+          id?: string
+          properties?: Json | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_name?: string
+          id?: string
+          properties?: Json | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      triage_assessments: {
+        Row: {
+          ai_disclaimer: string | null
+          appointment_summary: string | null
+          alternate_specialties: string[] | null
+          chief_complaint: string | null
+          created_at: string
+          doctor_questions: string[] | null
+          id: string
+          patient_context: Json | null
+          possible_conditions: Json | null
+          raw_ai_response: Json | null
+          recommended_specialty: string | null
+          red_flags: string[] | null
+          reasoning: string | null
+          selected_symptoms: string[] | null
+          self_care: string[] | null
+          urgency: string
+          user_id: string
+        }
+        Insert: {
+          ai_disclaimer?: string | null
+          appointment_summary?: string | null
+          alternate_specialties?: string[] | null
+          chief_complaint: string
+          created_at?: string
+          doctor_questions?: string[] | null
+          id?: string
+          patient_context?: Json | null
+          possible_conditions?: Json | null
+          raw_ai_response?: Json | null
+          recommended_specialty?: string | null
+          red_flags?: string[] | null
+          reasoning?: string | null
+          selected_symptoms?: string[] | null
+          self_care?: string[] | null
+          urgency: string
+          user_id: string
+        }
+        Update: {
+          ai_disclaimer?: string | null
+          appointment_summary?: string | null
+          alternate_specialties?: string[] | null
+          chief_complaint?: string
+          created_at?: string
+          doctor_questions?: string[] | null
+          id?: string
+          patient_context?: Json | null
+          possible_conditions?: Json | null
+          raw_ai_response?: Json | null
+          recommended_specialty?: string | null
+          red_flags?: string[] | null
+          reasoning?: string | null
+          selected_symptoms?: string[] | null
+          self_care?: string[] | null
+          urgency?: string
+          user_id?: string
         }
         Relationships: []
       }
