@@ -46,6 +46,40 @@ function sanitizeInput(text: string): string {
   return clean;
 }
 
+function buildFallbackReply(message: string): string {
+  const text = message.toLowerCase();
+
+  if (text.includes("anxious") || text.includes("panic") || text.includes("overwhelmed")) {
+    return [
+      "I'm here with you.",
+      "Try one slow breath in, one longer breath out, and notice one steady thing around you.",
+      "If you want, send one sentence about what triggered this and I can help you structure the next step.",
+    ].join("\n");
+  }
+
+  if (text.includes("sad") || text.includes("down") || text.includes("depressed")) {
+    return [
+      "I'm here with you.",
+      "A useful next step is to note when this started, whether anything made it worse, and what support you already have.",
+      "If you want, I can help you turn that into a short message for a clinician.",
+    ].join("\n");
+  }
+
+  if (text.includes("sleep") || text.includes("insomnia")) {
+    return [
+      "I'm here with you.",
+      "When sleep is the problem, note when you went to bed, whether your mind felt active, and what helped you relax.",
+      "If you want, I can help you organize those details into a clear summary.",
+    ].join("\n");
+  }
+
+  return [
+    "I'm here with you.",
+    "I couldn't finish the AI reply just now, but you can still make progress by naming the main feeling, the trigger, and what you'd like help with next.",
+    "If symptoms are severe or you feel unsafe, seek urgent medical help right away.",
+  ].join("\n");
+}
+
 // --- Main handler ---
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -55,19 +89,11 @@ serve(async (req) => {
   // Environment setup - inside serve to handle gracefully
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  const geminiApiKey = Deno.env.get("VITE_GEMINI_API_KEY");
+  const geminiApiKey = Deno.env.get("GEMINI_API_KEY") ?? Deno.env.get("VITE_GEMINI_API_KEY");
 
   if (!supabaseUrl || !supabaseServiceKey) {
     console.error("❌ Missing Supabase environment variables");
     return new Response(JSON.stringify({ error: "Server configuration error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
-  if (!geminiApiKey) {
-    console.error("❌ Missing VITE_GEMINI_API_KEY");
-    return new Response(JSON.stringify({ error: "AI service not configured" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -156,18 +182,14 @@ serve(async (req) => {
       },
     );
 
-    if (!aiResponse.ok) {
+    if (!geminiApiKey || !aiResponse.ok) {
       const status = aiResponse.status;
       console.error(`Gemini API Error: ${status}`);
 
-      let message = "Unexpected AI service error. Please try again later.";
-      if (status === 429)
-        message =
-          "High server load. Please wait a moment or contact emergency services if in crisis (988 / 112).";
-      if (status === 400)
-        message = "I couldn't understand that. Could you rephrase?";
+      const message = buildFallbackReply(sanitizedMessage);
 
       return new Response(JSON.stringify({ response: message }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -196,9 +218,9 @@ serve(async (req) => {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("❌ Chatbot Server Error:", errorMessage);
     return new Response(JSON.stringify({
-      error: "Server encountered an issue. Please try again later.",
+      response: buildFallbackReply(""),
     }), {
-      status: 500,
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
